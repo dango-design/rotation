@@ -1,12 +1,15 @@
 # Process log
 
-How this project got from idea to app, kept so every step can be referenced later in a portfolio case study. Each milestone is a git tag with screenshots, a strategy snapshot and the decisions that led to it.
+How this project got from idea to app, kept so every step can be referenced later in a portfolio case study. Each milestone is a git tag with screenshots, a strategy snapshot and the decisions that led to it. The live strategy doc is kept in Claude Docs; each milestone saves a markdown copy here.
+
+**Roles.** Denise ([dango-design](https://github.com/dango-design)) set the direction and made the product decisions. Claude Code was used as a build partner for research, prototyping and documentation.
 
 ## Milestones
 
 | Milestone | Date | What it is | Snapshot |
 | --- | --- | --- | --- |
 | `v0-gap-concept` | Oct 6, 2026 | Closet concept for Gap Inc.: purchase sync, Gap-first recommendations, the Outfit Unlock score, and a 7-screen prototype | [Code](https://github.com/dango-design/outfit-builder/tree/v0-gap-concept) · [Screens](screens/v0-gap-concept/) · [Strategy](../strategy/v0-gap-concept.md) |
+| `v1-multi-store` | Oct 6, 2026 | Public app for all major stores: email import, piece-first recommendations with store comparison, size per store, a shopping list by store, and disclosed commissions | [Code](https://github.com/dango-design/outfit-builder/tree/v1-multi-store) · [Screens](screens/v1-multi-store/) · [Strategy](../strategy/v1-multi-store.md) |
 
 ## Decisions
 

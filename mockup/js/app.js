@@ -1,4 +1,4 @@
-/* Staple prototype: views, interactions and the design-notes layer. */
+/* Outfit builder prototype (working title): views, interactions and the design-notes layer. */
 
 (() => {
   const E = Engine;
@@ -10,8 +10,18 @@
   const SLOT_LABEL = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', acc: 'Extra' };
   const svgOf = (it) => Garments.svg(it.type, it.color, it.pattern);
   const tile = (it, cls = '') => `<div class="tile ${cls}">${svgOf(it)}</div>`;
-  const brandChip = (it) => `<span class="chip ${E.isGapInc(it) ? 'gap' : ''}">${it.brand}</span>`;
-  const source = (it) => (it.bought === 'Added by photo' ? 'photo' : it.bought === 'Added by link' ? 'link' : 'sync');
+  const brandChip = (it) => `<span class="chip">${it.brand}</span>`;
+  const storeCount = (p) => `${p.options.length} store${p.options.length > 1 ? 's' : ''}`;
+  const fromPrice = (p) => `From ${money(p.price)} at ${storeCount(p)}`;
+  const recent = (i) => !['Mar', 'Feb', 'Jan', 'Apr', 'May', 'Jun'].some((m) => i.last.startsWith(m));
+
+  /* Shopping-list entries are "<piece id>|<store>". */
+  const listKey = (pieceId, store) => `${pieceId}|${store}`;
+  const fromKey = (key) => {
+    const [pid, store] = key.split('|');
+    const piece = byId(pid);
+    return { piece, option: piece.options.find((o) => o.store === store) };
+  };
 
   /* ---------- Icons ---------- */
   const ICONS = {
@@ -28,9 +38,9 @@
     x: '<path d="M6 6l12 12M18 6 6 18"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    out: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
     shuffle: '<path d="M3 7h3.5c2 0 3.2 1 4.3 2.7l2.4 4.6c1.1 1.7 2.3 2.7 4.3 2.7H21"/><path d="M3 17h3.5c1.3 0 2.2-.4 3-1.1M14.2 8.1c.8-.7 1.7-1.1 3-1.1H21"/><path d="m18 4 3 3-3 3M18 14l3 3-3 3"/>',
     store: '<path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5 11.5V20h14v-8.5"/><path d="M10 20v-5h4v5"/>',
-    truck: '<path d="M3 6.5h11v10H3ZM14 10h4l3 3.5v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
     camera: '<path d="M4 8h3l1.5-2.5h7L17 8h3v11H4Z"/><circle cx="12" cy="13" r="3.5"/>',
     link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
     mail: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/>',
@@ -40,12 +50,13 @@
     wind: '<path d="M3 8.5h11a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 12.5h15a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 16.5h7"/>',
     shield: '<path d="M12 3 5 6v5.5c0 4.4 3 8 7 9.5 4-1.5 7-5.1 7-9.5V6Z"/><path d="m9 12 2 2 4-4"/>',
     tag: '<path d="M3.5 12.5v-8a1 1 0 0 1 1-1h8l8 8a1.4 1.4 0 0 1 0 2l-7 7a1.4 1.4 0 0 1-2 0Z"/><circle cx="8.5" cy="8.5" r="1.5"/>',
+    ruler: '<path d="M3 16.5 16.5 3 21 7.5 7.5 21Z"/><path d="m7 12.5 2 2M10 9.5l2 2M13 6.5l2 2"/>',
     metric: '<path d="m4 17 5.5-5.5 4 4L21 8"/><path d="M15 8h6v6"/>',
     alert: '<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.3v.2"/>',
     left: '<path d="m15 6-6 6 6 6"/>',
     right: '<path d="m9 6 6 6-6 6"/>',
     layers: '<path d="m12 3 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/>',
-    brand: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12h7M12 8.5v7"/>',
+    star: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.4"/>',
   };
   const icon = (n) =>
@@ -69,13 +80,12 @@
     return `<div class="flatlay ${cls}">${pieces}</div>`;
   }
 
-  /* The most wearable outfit around one item: favour Gap Inc. partners and pieces the customer reaches for. */
+  /* The most wearable outfit around one item: favour pieces the person reaches for most. */
   function bestOutfitWith(item, withLayer = true) {
     let best = null;
     let bestScore = -1;
     for (const o of E.outfitsWith(item)) {
-      const its = Object.values(o).map(byId);
-      const score = its.filter(E.isGapInc).length * 100 + its.reduce((a, i) => a + (i.wears || 0), 0);
+      const score = Object.values(o).map(byId).reduce((a, i) => a + (i.wears || 0), 0);
       if (score > bestScore) [best, bestScore] = [o, score];
     }
     if (!best) return { [item.cat]: item.id };
@@ -83,20 +93,17 @@
       const base = Object.values(best).map(byId);
       const layer = E.owned('outer')
         .filter((l) => E.check([...base, l]).ok)
-        .sort((a, b) => E.isGapInc(b) - E.isGapInc(a) || b.wears - a.wears)[0];
+        .sort((a, b) => b.wears - a.wears)[0];
       if (layer) best = { outer: layer.id, ...best };
     }
     return best;
   }
 
-  /* Up to n outfits for a new item: owned Gap Inc. partners first, and as varied as possible.
+  /* Up to n outfits for a new piece, built from favourite owned pieces and as varied as possible.
      offset rotates the starting point so neighbouring cards don't repeat the same looks. */
   function previewsFor(item, n = 3, offset = 0) {
     const scored = E.outfitsWith(item)
-      .map((o) => {
-        const its = Object.values(o).map(byId).filter((i) => i !== item);
-        return { o, s: its.filter(E.isGapInc).length * 100 + its.reduce((a, i) => a + i.wears, 0) };
-      })
+      .map((o) => ({ o, s: Object.values(o).map(byId).filter((i) => i !== item).reduce((a, i) => a + i.wears, 0) }))
       .sort((a, b) => b.s - a.s)
       .map((x) => x.o);
     const list = scored.slice(offset).concat(scored.slice(0, offset));
@@ -146,11 +153,11 @@
   const VIEWS = ['today', 'closet', 'builder', 'planner', 'fill', 'insights', 'journey'];
   const state = {
     view: VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'today',
-    bag: [],
+    list: [],
     showShop: true,
     notes: new URLSearchParams(location.search).has('notes'),
     noteHL: null,
-    closet: { cat: 'all', brand: 'all', sort: 'worn' },
+    closet: { cat: 'all', source: 'all', sort: 'worn' },
     overlay: null,
     todayIdx: 0,
     builder: { outfit: { ...TODAY_PICKS[0].outfit }, focus: 'bottom', tray: 'top', name: 'Client presentation' },
@@ -163,32 +170,33 @@
       ['closet', 'Closet', 'closet', CLOSET.length],
       ['builder', 'Outfit builder', 'builder'],
       ['planner', 'Planner', 'planner'],
-      ['fill', 'Fill the gap', 'unlock', null, 'New'],
+      ['fill', 'Fill the gap', 'unlock'],
       ['insights', 'Insights', 'insights'],
     ];
-    const item = ([v, label, ic, count, pill]) =>
+    const item = ([v, label, ic, count]) =>
       `<button class="nav-item ${state.view === v ? 'active' : ''}" data-act="nav" data-view="${v}" ${state.view === v ? 'aria-current="page"' : ''}>
-        ${icon(ic)}<span>${label}</span>${count ? `<span class="count">${count}</span>` : ''}${pill ? `<span class="pill-new">${pill}</span>` : ''}
+        ${icon(ic)}<span>${label}</span>${count ? `<span class="count">${count}</span>` : ''}
       </button>`;
+    const emailed = CLOSET.filter((i) => i.source === 'email');
     return `
-      <div class="logo">staple<span>.</span></div>
-      <div class="logo-sub">Style what you own. Shop what's missing.</div>
+      <div class="logo">${APP.name}<span>.</span></div>
+      <div class="logo-sub"><span class="chip">Working title</span><br/>${APP.tagline}</div>
       <nav class="nav" aria-label="Main">
         ${nav.map(item).join('')}
         <div class="nav-label">Concept</div>
         ${item(['journey', 'Across the journey', 'journey'])}
       </nav>
       <div class="side-foot">
-        <div class="sync-status"><span class="pulse"></span><span><b>Gap Inc. purchases synced</b><br/>Gap, Old Navy, Banana Republic, Athleta</span></div>
-        <div class="me"><div class="avatar">JL</div><div><b>${PERSON.first} ${PERSON.last}</b><small>${PERSON.tier}</small></div></div>
+        <div class="sync-status"><span class="pulse"></span><span><b>Order emails connected</b><br/>${PERSON.inbox} · ${new Set(emailed.map(E.storeOf)).size} stores found</span></div>
+        <div class="me"><div class="avatar">JL</div><div><b>${PERSON.first} ${PERSON.last}</b><small>${PERSON.city}</small></div></div>
         <button class="notes-toggle" data-act="toggle-notes" aria-pressed="${state.notes}"><span class="notes-dot"></span><span class="lbl">Design notes</span><span class="switch" aria-hidden="true"><span></span></span></button>
-        <div class="disclaimer">Concept prototype. Not affiliated with or endorsed by Gap Inc. Product names and prices are illustrative.</div>
+        <div class="disclaimer">Prototype. Store names are for illustration; products and prices are examples. Not affiliated with any retailer.</div>
       </div>`;
   }
 
   function topbar() {
     return `<div class="topbar">
-      <button class="icon-btn" data-act="bag" aria-label="Bag, ${state.bag.length} items">${icon('bag')}${state.bag.length ? `<span class="bag-count">${state.bag.length}</span>` : ''}</button>
+      <button class="icon-btn" data-act="list" aria-label="Shopping list, ${state.list.length} items">${icon('bag')}${state.list.length ? `<span class="bag-count">${state.list.length}</span>` : ''}</button>
     </div>`;
   }
 
@@ -197,17 +205,36 @@
       <span class="switch ${state.showShop ? 'on' : ''}"><span></span></span>${label}</button>`;
   }
 
+  function disclosure() {
+    return `<div class="disclosure">${icon('shield')}<span><b>How we rank, and how we make money.</b> Pieces are ranked by the new outfits they create with your closet, your style, your size being in stock, and whether you already own something similar. Stores are listed by your favorites, then price. We may earn a commission when you buy through a link; it never changes the ranking.</span></div>`;
+  }
+
+  /* Store options for a piece; addable rows go to the shopping list. */
+  function optionRows(p) {
+    return `<div class="opt-list">${E.optionsFor(p)
+      .map((o) => {
+        const key = listKey(p.id, o.store);
+        const added = state.list.includes(key);
+        return `<div class="opt-row">
+          <div><div class="opt-store">${o.store}${FAVORITE_STORES.includes(o.store) ? `<span class="fav" title="One of your favorite stores">${icon('star')}</span>` : ''}</div>
+          <div class="opt-product">${o.product}</div>
+          ${o.fit ? `<div class="opt-fit">${icon('ruler')}${o.fit}</div>` : ''}</div>
+          <div class="opt-price">${money(o.price)}</div>
+          ${added ? `<span class="chip good">${icon('check')}On list</span>` : `<button class="btn xs" data-act="add-list" data-key="${key}">Add to list</button>`}
+        </div>`;
+      })
+      .join('')}</div>`;
+  }
+
   /* ---------- Today ---------- */
   function viewToday() {
     const pick = TODAY_PICKS[state.todayIdx];
     const pieces = SLOTS.filter((s) => pick.outfit[s]).map((s) => byId(pick.outfit[s]));
-    const gapCount = pieces.filter(E.isGapInc).length;
     const lead = E.gapPicks()[0];
-    const leadOutfits = E.outfitsWith(lead);
-    const tops = new Set(leadOutfits.map((o) => o.top)).size;
-    const worn90 = CLOSET.filter((i) => !['Mar', 'Feb', 'Jan', 'Apr', 'May', 'Jun'].some((m) => i.last.startsWith(m))).length;
+    const tops = new Set(E.outfitsWith(lead).map((o) => o.top)).size;
+    const worn90 = CLOSET.filter(recent).length;
     const avgCpw = CLOSET.reduce((a, i) => a + i.price, 0) / CLOSET.reduce((a, i) => a + i.wears, 0);
-    const redis = ['o4', 't9', 'b3'].map(byId);
+    const redis = ['o4', 't9', 'b5'].map(byId);
 
     return `
       <header class="page-head">
@@ -230,7 +257,7 @@
             <div class="piece-list">
               ${pieces.map((it) => `<div class="piece-row">${tile(it)}<span class="name">${it.name}</span>${brandChip(it)}</div>`).join('')}
             </div>
-            <div class="share-line">${icon('brand')}<span><b>${gapCount} of ${pieces.length} pieces</b> from Gap Inc. brands</span></div>
+            <div class="share-line">${icon('builder')}<span><b>A combination you haven't worn yet,</b> all from your closet</span></div>
             <div class="hero-actions">
               <button class="btn primary" data-act="wear">${icon('check')}Wear this</button>
               <button class="btn" data-act="shuffle">${icon('shuffle')}Shuffle</button>
@@ -246,9 +273,9 @@
             <div class="eyebrow">Fill the gap</div>
             <div class="row">
               ${tile(lead)}
-              <div><div class="big-num">${lead.unlock}</div><div>new outfits from one pair of Gap ${lead.name}</div></div>
+              <div><div class="big-num">${lead.unlock}</div><div>new outfits from ${lead.phrase}</div></div>
             </div>
-            <p>They pair with ${tops} of your ${E.owned('top').length} tops. ${lead.why}</p>
+            <p>They pair with ${tops} of your ${E.owned('top').length} tops. ${lead.why} ${fromPrice(lead)}, in your size.</p>
             <button class="btn" data-act="nav" data-view="fill">See the outfits ${icon('arrow')}</button>
           </article>`
               : `<article class="card card-pad" data-note="2"><div class="eyebrow">Fill the gap</div><p class="sub" style="margin-top:0">Shopping suggestions are hidden. Your closet already makes ${E.totalOutfits()} outfits.</p><div style="margin-top:14px">${shopSwitch('Show them again')}</div></article>`
@@ -266,20 +293,19 @@
 
       <section class="section">
         <div class="section-head">
-          <div><h3>Rediscover what you own</h3><p>Gap Inc. pieces you haven't reached for lately, styled with things you wear all the time.</p></div>
+          <div><h3>Rediscover what you own</h3><p>Pieces you haven't reached for lately, styled with things you wear all the time.</p></div>
         </div>
         <div class="rediscover" data-note="4">
           ${redis
-            .map((it) => {
-              const o = bestOutfitWith(it);
-              return `<article class="card redis-card">
-              ${flatlay(o)}
+            .map(
+              (it) => `<article class="card redis-card">
+              ${flatlay(bestOutfitWith(it))}
               <div class="redis-meta">
                 <div><h4>${it.name}</h4><p>${brandChip(it)} &nbsp;Worn ${it.wears} times · last ${it.last}</p></div>
                 <button class="btn sm" data-act="style-item" data-id="${it.id}">Style it</button>
               </div>
-            </article>`;
-            })
+            </article>`
+            )
             .join('')}
         </div>
       </section>`;
@@ -287,44 +313,43 @@
 
   /* ---------- Closet ---------- */
   function viewCloset() {
-    const { cat, brand, sort } = state.closet;
-    const gapCount = CLOSET.filter(E.isGapInc).length;
-    let items = CLOSET.filter((i) => (cat === 'all' || i.cat === cat) && (brand === 'all' || (brand === 'gapinc') === E.isGapInc(i)));
+    const { cat, source, sort } = state.closet;
+    const emailed = CLOSET.filter((i) => i.source === 'email');
+    let items = CLOSET.filter((i) => (cat === 'all' || i.cat === cat) && (source === 'all' || (source === 'email') === (i.source === 'email')));
     const sorters = { worn: (a, b) => b.wears - a.wears, least: (a, b) => a.wears - b.wears, cpw: (a, b) => E.cpw(a) - E.cpw(b) };
     items = [...items].sort(sorters[sort]);
     const chip = (v, label, n) =>
       `<button class="filter-chip ${cat === v ? 'active' : ''}" data-act="closet-cat" data-v="${v}">${label}<b>${n}</b></button>`;
-    const seg = (v, label) => `<button class="${brand === v ? 'active' : ''}" data-act="closet-brand" data-v="${v}">${label}</button>`;
-    const srcBadge = (it) => {
-      const s = source(it);
-      if (s === 'sync') return `<span class="src gap">${icon('sync')}Synced · ${it.brand}</span>`;
-      return `<span class="src">${icon(s === 'photo' ? 'camera' : 'link')}${s === 'photo' ? 'Photo' : 'Link'}</span>`;
-    };
+    const seg = (v, label) => `<button class="${source === v ? 'active' : ''}" data-act="closet-source" data-v="${v}">${label}</button>`;
+    const srcBadge = (it) =>
+      it.source === 'email'
+        ? `<span class="src">${icon('mail')}${E.storeOf(it)}</span>`
+        : `<span class="src">${icon(it.source === 'photo' ? 'camera' : 'link')}${it.source === 'photo' ? 'Photo' : 'Link'}</span>`;
 
     return `
       <header class="page-head">
         <div>
           <div class="eyebrow">Closet</div>
           <h1>${CLOSET.length} pieces, ${E.totalOutfits()} outfits</h1>
-          <p class="sub">${gapCount} synced from your Gap Inc. purchases · ${CLOSET.length - gapCount} added by you</p>
+          <p class="sub">${emailed.length} imported from order emails at ${new Set(emailed.map(E.storeOf)).size} stores · ${CLOSET.length - emailed.length} added by photo or link</p>
         </div>
         <div class="head-actions">
-          <button class="btn" data-act="sync">${icon('sync')}Sync purchases</button>
+          <button class="btn" data-act="email">${icon('mail')}Check for new orders</button>
           <button class="btn primary" data-act="add">${icon('plus')}Add pieces</button>
         </div>
       </header>
 
       <div class="banner" data-note="1">
-        ${icon('sync')}
-        <div class="grow"><b>Your Gap Inc. purchases add themselves.</b> Orders from Gap, Old Navy, Banana Republic and Athleta, online or in store with your rewards account, arrive photographed, sized and tagged.</div>
-        <button class="link" data-act="sync">See how</button>
+        ${icon('mail')}
+        <div class="grow"><b>Your inbox does the work.</b> Order confirmations from ${E.stores().length} stores, from Gap to Zara to Nordstrom, were turned into closet pieces with product photos and sizes. New orders appear automatically.</div>
+        <button class="link" data-act="email">See how</button>
       </div>
 
       <div class="toolbar">
         ${chip('all', 'All', CLOSET.length)}
         ${CATS.map((c) => chip(c.id, c.label, CLOSET.filter((i) => i.cat === c.id).length)).join('')}
         <span class="spacer"></span>
-        <div class="seg" role="group" aria-label="Brand filter" data-note="3">${seg('all', 'All brands')}${seg('gapinc', 'Gap Inc.')}${seg('other', 'Other brands')}</div>
+        <div class="seg" role="group" aria-label="Source filter" data-note="3">${seg('all', 'All')}${seg('email', 'From emails')}${seg('mine', 'Added by you')}</div>
         <select class="select" data-act="closet-sort" aria-label="Sort">
           <option value="worn" ${sort === 'worn' ? 'selected' : ''}>Most worn</option>
           <option value="least" ${sort === 'least' ? 'selected' : ''}>Least worn</option>
@@ -351,23 +376,21 @@
 
   function drawerItem(it) {
     const pairs = E.pairsWith(it);
-    const shop = state.showShop
-      ? E.gapPicks().filter((c) => c.cat !== it.cat && c.unlock > 0 && E.check([it, c]).ok).slice(0, 2)
-      : [];
-    const s = source(it);
+    const shop = state.showShop ? E.gapPicks().filter((c) => c.cat !== it.cat && c.unlock > 0 && E.check([it, c]).ok).slice(0, 2) : [];
+    const store = E.storeOf(it);
     const prov =
-      s === 'sync'
-        ? `${icon('sync')}<span><b>Synced from your ${it.brand} purchase</b> on ${it.bought}. Photo, size ${it.size} and color came from the order, so there was nothing to enter.</span>`
-        : s === 'photo'
+      it.source === 'email'
+        ? `${icon('mail')}<span><b>Imported from your ${store} order email</b> from ${it.bought}. The photo, size ${it.size} and color came from the receipt, so there was nothing to type.</span>`
+        : it.source === 'photo'
         ? `${icon('camera')}<span><b>Added from a photo.</b> The background was removed and the category and color tagged automatically; you confirmed the details.</span>`
-        : `${icon('link')}<span><b>Added from a product link.</b> The product photo and details were pulled from the page.</span>`;
+        : `${icon('link')}<span><b>Added from a product link.</b> The product photo and details were pulled from the store's page.</span>`;
     return `
       <div class="backdrop" data-act="close"></div>
       <aside class="drawer" role="dialog" aria-label="${it.name}">
         <button class="icon-btn close" data-act="close" aria-label="Close">${icon('x')}</button>
         ${tile(it, 'big')}
         <div>
-          ${brandChip(it)}
+          ${brandChip(it)}${it.store ? ` <span class="chip">Bought at ${it.store}</span>` : ''}
           <h2 style="margin-top:10px">${it.name}</h2>
           <div class="meta-line">${it.colorName} · Size ${it.size}</div>
         </div>
@@ -378,23 +401,23 @@
         </div>
         <div>
           <h3 class="small">Pairs with ${pairs.length} pieces you own</h3>
-          <p class="meta-line" style="margin:2px 0 10px">Gap Inc. pieces first · ${E.outfitsWith(it).length} complete outfits</p>
+          <p class="meta-line" style="margin:2px 0 10px">Most-worn first · ${E.outfitsWith(it).length} complete outfits</p>
           <div class="thumb-row">${pairs
             .slice(0, 10)
-            .map((p) => `<div class="thumb" title="${p.name} · ${p.brand}">${tile(p)}${E.isGapInc(p) ? '<span class="dot-gap"></span>' : ''}</div>`)
+            .map((p) => `<div class="thumb" title="${p.name} · ${p.brand}">${tile(p)}</div>`)
             .join('')}</div>
         </div>
         <button class="btn primary" data-act="style-item" data-id="${it.id}">${icon('builder')}Style it in the builder</button>
         ${
           shop.length
             ? `<div>
-          <h3 class="small">Complete it with Gap</h3>
-          <p class="meta-line" style="margin:2px 0 6px">New pieces that pair with this one, ranked by outfits unlocked</p>
+          <h3 class="small">Complete it</h3>
+          <p class="meta-line" style="margin:2px 0 6px">Pieces that pair with this one, ranked by outfits unlocked</p>
           ${shop
             .map(
               (c) => `<div class="sugg shop">${tile(c)}<div><div class="sugg-name">${c.name}</div>
-            <div class="unlock-line">${icon('unlock')}Unlocks ${c.unlock} outfits</div><div class="sugg-sub">${money(c.price)} · ${c.stock}</div></div>
-            <button class="btn xs gap" data-act="add-bag" data-id="${c.id}">Add</button></div>`
+            <div class="unlock-line">${icon('unlock')}Unlocks ${c.unlock} outfits</div><div class="sugg-sub">${fromPrice(c)}</div></div>
+            <button class="btn xs" data-act="compare" data-id="${c.id}">Compare</button></div>`
             )
             .join('')}
         </div>`
@@ -412,7 +435,6 @@
     const complete = outfit.top && outfit.bottom && outfit.shoes;
     const verdict = E.check(items);
     const trialItems = items.filter(isShop);
-    const gapCount = items.filter(E.isGapInc).length;
 
     const slotEl = (s) => {
       const [l, t, w] = LAYOUT[s];
@@ -424,7 +446,7 @@
       return `<div class="slot ${focused} ${isShop(it) ? 'trial' : ''}" role="button" tabindex="0" aria-label="${it.name}" data-act="focus-slot" data-slot="${s}" style="${style}">
         ${svgOf(it)}
         <button class="slot-x" data-act="remove-slot" data-slot="${s}" aria-label="Remove ${it.name}">${icon('x')}</button>
-        ${isShop(it) ? `<div class="trial-tag">Not in your closet · ${money(it.price)}<button class="btn" data-act="add-bag" data-id="${it.id}">Add to bag</button></div>` : ''}
+        ${isShop(it) ? `<div class="trial-tag">Not in your closet · from ${money(it.price)}<button class="btn" data-act="compare" data-id="${it.id}">Compare stores</button></div>` : ''}
       </div>`;
     };
 
@@ -439,10 +461,9 @@
       const on = outfit[b.focus] === c.id;
       return `<div class="sugg shop">${tile(c)}
         <div><div class="sugg-name">${c.name}</div><div class="unlock-line">${icon('unlock')}Unlocks ${c.unlock} outfits</div>
-        <div class="sugg-sub">${money(c.price)} · ${c.stock}</div></div>
-        ${on ? `<button class="btn xs gap" data-act="add-bag" data-id="${c.id}">Add</button>` : `<button class="btn xs" data-act="put" data-slot="${b.focus}" data-id="${c.id}">Try it</button>`}</div>`;
+        <div class="sugg-sub">${fromPrice(c)}</div></div>
+        ${on ? `<button class="btn xs" data-act="compare" data-id="${c.id}">Compare</button>` : `<button class="btn xs" data-act="put" data-slot="${b.focus}" data-id="${c.id}">Try it</button>`}</div>`;
     };
-    const ownedRows = [...sugg.gap, ...sugg.other];
 
     return `
       <header class="page-head">
@@ -461,14 +482,13 @@
           <div class="tray-tabs">${CATS.map((c) => `<button class="${b.tray === c.id ? 'active' : ''}" data-act="tray" data-v="${c.id}">${c.label}</button>`).join('')}</div>
           <div class="tray-grid">
             ${E.owned(b.tray)
-              .sort((x, y) => E.isGapInc(y) - E.isGapInc(x))
               .map(
                 (it) => `<button class="tray-item ${outfit[it.cat] === it.id ? 'on' : ''}" draggable="true" data-act="place" data-id="${it.id}" title="${it.name} · ${it.brand}">
-              ${tile(it)}${E.isGapInc(it) ? '<span class="dot-gap"></span>' : ''}</button>`
+              ${tile(it)}</button>`
               )
               .join('')}
           </div>
-          <div class="tray-hint"><span class="dot-gap"></span> Gap Inc. · Click or drag onto the board</div>
+          <div class="tray-hint">Click or drag onto the board</div>
         </section>
 
         <section class="board-wrap" data-note="1">
@@ -481,7 +501,7 @@
                 ? `<span class="verdict ok">${icon('check')}These work together</span>`
                 : `<span class="verdict bad">${icon('alert')}${verdict.reason}</span>`
             }
-            <span class="share-line">${icon('brand')}<span><b>${gapCount} of ${items.length}</b> from Gap Inc.${trialItems.length ? ` · ${trialItems.length} not yet owned` : ''}</span></span>
+            <span class="share-line">${icon('closet')}<span><b>${items.length - trialItems.length} of ${items.length}</b> from your closet${trialItems.length ? ` · ${trialItems.length} to shop` : ''}</span></span>
           </div>
         </section>
 
@@ -490,11 +510,11 @@
           <p class="help">Pieces that work with everything else on the board.</p>
           <div class="slot-tabs">${SLOTS.map((s) => `<button class="${b.focus === s ? 'active' : ''}" data-act="focus-slot" data-slot="${s}">${SLOT_LABEL[s]}</button>`).join('')}</div>
           <div class="group">
-            <div class="group-label">From your closet <span class="chip gap">Gap Inc. first</span></div>
-            ${ownedRows.length ? ownedRows.map(row).join('') : `<div class="empty-note">Nothing you own fits with the rest of this outfit. Try changing another piece.</div>`}
+            <div class="group-label">From your closet <span class="chip">Least-worn first</span></div>
+            ${sugg.mine.length ? sugg.mine.map(row).join('') : `<div class="empty-note">Nothing you own fits with the rest of this outfit. Try changing another piece.</div>`}
           </div>
           <div class="group" data-note="3">
-            <div class="group-label">Shop Gap ${state.showShop ? '<span class="chip">Ranked by outfits unlocked</span>' : ''}</div>
+            <div class="group-label">Shop the gap ${state.showShop ? '<span class="chip">Ranked by outfits unlocked</span>' : ''}</div>
             ${
               state.showShop
                 ? sugg.shop.length
@@ -514,6 +534,7 @@
     const top3 = picks.slice(0, 3);
     const more = picks.slice(3);
     const total = top3.reduce((a, p) => a + p.unlock, 0);
+    const spend = top3.reduce((a, p) => a + p.price, 0);
     const skipped = CATALOG.filter((c) => c.dupOf || E.unlock(c) === 0);
 
     const head = `
@@ -521,7 +542,7 @@
         <div>
           <div class="eyebrow">Fill the gap</div>
           <h1>${state.showShop ? `Three pieces, <em>${total} new outfits</em>` : 'Your closet, as it is'}</h1>
-          <p class="sub">We compared ${CATALOG.length} new Gap pieces with your ${CLOSET.length}. These create the most new outfits with what you already own.</p>
+          <p class="sub">We compared common pieces across ${SUPPORTED_STORES.length} stores with your ${CLOSET.length}. These create the most new outfits with what you already own.</p>
         </div>
         <div class="head-actions">${shopSwitch()}</div>
       </header>`;
@@ -547,19 +568,13 @@
     const pickCard = (p, i) => {
       const prev = previewsFor(p, 3, i * 2);
       return `<article class="card pick" ${i === 0 ? 'data-note="1"' : ''}>
-        <div class="pick-product"><span class="rank">${i + 1}</span><span class="chip new">New · Gap</span>${tile(p)}</div>
+        <div class="pick-product"><span class="rank">${i + 1}</span>${tile(p)}</div>
         <div class="pick-info">
-          <div><h3>${p.name}</h3><div class="price">${money(p.price)} · ${p.colorName}</div></div>
+          <div><h3>${p.name}</h3><div class="price">${p.colorName} · ${fromPrice(p)}</div></div>
           <div class="unlock-big"><span class="num">${p.unlock}</span><span class="lbl">new outfits with what you own</span></div>
           <p class="why" ${i === 0 ? 'data-note="2"' : ''}>${whyLine(p)}</p>
-          <div class="avail" ${i === 0 ? 'data-note="3"' : ''}>
-            <div>${icon('store')}Pick up today at a Gap store near you</div>
-            <div>${icon('truck')}${p.stock} · ships in 2 to 4 days</div>
-          </div>
-          <div class="pick-actions">
-            <button class="btn gap" data-act="add-bag" data-id="${p.id}">${icon('bag')}Add to bag</button>
-            <button class="btn" data-act="try-builder" data-id="${p.id}">Try with my closet</button>
-          </div>
+          <div ${i === 0 ? 'data-note="3"' : ''}>${optionRows(p)}</div>
+          <button class="btn sm" data-act="try-builder" data-id="${p.id}" style="align-self:flex-start">Try with my closet</button>
         </div>
         <div class="pick-previews">
           <div class="previews-label">Outfits it unlocks</div>
@@ -573,8 +588,8 @@
     return `${head}
       <div class="card summary-bar">
         <div class="stack">${top3.map((p) => tile(p)).join('')}</div>
-        <div class="txt"><b>${total} new outfits for ${money(top3.reduce((a, p) => a + p.price, 0))}</b><span>About ${money(top3.reduce((a, p) => a + p.price, 0) / total)} per new outfit, before a single wear.</span></div>
-        <button class="btn" data-act="add-all">${icon('bag')}Add all three</button>
+        <div class="txt"><b>${total} new outfits from ${money(spend)}</b><span>Lowest price for each piece, about ${money(spend / total)} per new outfit before a single wear.</span></div>
+        <button class="btn" data-act="add-best">${icon('bag')}Add lowest prices to list</button>
       </div>
       ${top3.map(pickCard).join('')}
 
@@ -583,7 +598,8 @@
         <div class="more-picks">${more
           .map(
             (p) => `<article class="card mini-pick">${tile(p)}<div><h4>${p.name}</h4>
-          <div class="unlock-line">${icon('unlock')}Unlocks ${p.unlock} outfits · ${money(p.price)}</div><p>${p.why}</p></div></article>`
+          <div class="unlock-line">${icon('unlock')}Unlocks ${p.unlock} outfits · from ${money(p.price)}</div><p>${p.why}</p>
+          <button class="link" data-act="compare" data-id="${p.id}" style="margin-top:6px;font-size:12.5px">Compare ${storeCount(p)}</button></div></article>`
           )
           .join('')}</div>
       </section>
@@ -596,7 +612,8 @@
           ${c.dupOf ? `<span class="chip warn">${icon('alert')}You own this</span>` : `<span class="chip">0 new outfits</span>`}</div>`
           )
           .join('')}</div>
-      </section>`;
+      </section>
+      <div class="section" data-note="5">${disclosure()}</div>`;
   }
 
   /* ---------- Planner ---------- */
@@ -621,12 +638,12 @@
         : d.rediscover
         ? '<span class="chip gap">Rediscover</span>'
         : '<span>Planned</span>';
-      const gapN = Object.values(d.outfit).map(byId).filter(E.isGapInc).length;
+      const n = Object.keys(d.outfit).length;
       return `<article class="card day ${d.today ? 'today' : ''}" ${d.rediscover ? 'data-note="2"' : ''}>
         <div class="day-head"><div><div class="d">${d.day}</div><div class="n">${d.date}</div></div><div class="wx">${icon(skyIcon[d.sky])}${d.temp}°</div></div>
         ${d.events.map((e) => `<div class="event">${e}</div>`).join('') || '<div class="event" style="opacity:.55">No events</div>'}
         ${flatlay(d.outfit)}
-        <div class="day-foot">${status}<span>${gapN} Gap Inc.</span></div>
+        <div class="day-foot">${status}<span>${n} pieces</span></div>
       </article>`;
     };
     return `
@@ -642,9 +659,7 @@
           <button class="btn primary" data-act="toast" data-msg="Trip planning opens here in the full build">${icon('plus')}Plan a trip</button>
         </div>
       </header>
-      <div class="week" data-note="1">
-        ${WEEK.map(day).join('')}
-      </div>
+      <div class="week" data-note="1">${WEEK.map(day).join('')}</div>
       <article class="card trip" data-note="3">
         <div class="trip-head">
           <div><div class="eyebrow" style="margin-bottom:4px">Trip · ${TRIP.days}</div><h3 class="trip-title">${TRIP.name}</h3></div>
@@ -659,8 +674,8 @@
             state.showShop
               ? `<div class="gap-callout">${tile(miss)}<div>
             <h4>Missing: something dressier than jeans for the winery dinner</h4>
-            <p>Gap ${miss.name} take your packed looks from ${base} to ${withMiss}, day and night. ${money(miss.price)}, ready for pickup today.</p>
-            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm gap" data-act="add-bag" data-id="${miss.id}">${icon('store')}Pick up today</button><button class="btn sm" data-act="try-builder" data-id="${miss.id}">Try with my closet</button></div>
+            <p>${miss.name} take your packed looks from ${base} to ${withMiss}, day and night. ${fromPrice(miss)}, in your size.</p>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm gap" data-act="compare" data-id="${miss.id}">Compare stores</button><button class="btn sm" data-act="try-builder" data-id="${miss.id}">Try with my closet</button></div>
           </div></div>`
               : ''
           }
@@ -672,19 +687,18 @@
   /* ---------- Insights ---------- */
   function viewInsights() {
     const total = E.totalOutfits();
-    const worn90 = CLOSET.filter((i) => !['Mar', 'Feb', 'Jan', 'Apr', 'May', 'Jun'].some((m) => i.last.startsWith(m))).length;
+    const worn90 = CLOSET.filter(recent).length;
     const avgCpw = CLOSET.reduce((a, i) => a + i.price, 0) / CLOSET.reduce((a, i) => a + i.wears, 0);
-    const gapDays = WEEK.filter((d) => Object.values(d.outfit).map(byId).some(E.isGapInc)).length;
     const most = [...CLOSET].sort((a, b) => b.wears - a.wears).slice(0, 8);
     const max = most[0].wears;
     const waiting = [...CLOSET].sort((a, b) => a.wears - b.wears).slice(0, 5);
-    const brands = {};
-    CLOSET.forEach((i) => {
-      const k = E.isGapInc(i) ? i.brand : 'Other brands';
-      brands[k] = (brands[k] || 0) + 1;
-    });
-    const brandRows = Object.entries(brands).sort((a, b) => (a[0] === 'Other brands') - (b[0] === 'Other brands') || b[1] - a[1]);
-    const bmax = Math.max(...brandRows.map((r) => r[1]));
+    const counts = {};
+    CLOSET.forEach((i) => (counts[E.storeOf(i)] = (counts[E.storeOf(i)] || 0) + 1));
+    const storeRows = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    const shown = storeRows.slice(0, 7);
+    const rest = storeRows.slice(7);
+    if (rest.length) shown.push([`${rest.length} other stores`, rest.reduce((a, r) => a + r[1], 0)]);
+    const smax = Math.max(...shown.map((r) => r[1]));
 
     return `
       <header class="page-head">
@@ -698,16 +712,15 @@
         <div class="card kpi"><div class="v">${total}</div><div class="l">Outfits you can make</div><div class="s">From ${CLOSET.length} pieces</div></div>
         <div class="card kpi"><div class="v">${Math.round((worn90 / CLOSET.length) * 100)}<small>%</small></div><div class="l">Worn in 90 days</div><div class="s">${worn90} of ${CLOSET.length} pieces</div></div>
         <div class="card kpi"><div class="v">${money(avgCpw)}</div><div class="l">Average cost per wear</div><div class="s">Across every piece you own</div></div>
-        <div class="card kpi"><div class="v">${gapDays}<small>/${WEEK.length}</small></div><div class="l">Days with a Gap Inc. piece</div><div class="s">This week's outfits</div></div>
+        <div class="card kpi"><div class="v">${E.stores().length}</div><div class="l">Stores in your closet</div><div class="s">Your size saved for each</div></div>
       </div>
       <div class="ins-grid">
         <article class="card card-pad">
           <h3 class="small">Most worn</h3>
-          <div class="legend"><span><i style="background:var(--chart-gap)"></i>Gap Inc.</span><span><i style="background:#8f887c"></i>Other brands</span></div>
           <div class="bars">${most
             .map(
               (it) => `<div class="bar-row" title="${it.name}: ${it.wears} wears, ${money(E.cpw(it))} per wear">${tile(it)}<span class="nm">${it.name}</span>
-            <div class="bar-track"><div class="bar-fill ${E.isGapInc(it) ? 'gap' : ''}" style="width:${(it.wears / max) * 100}%;${E.isGapInc(it) ? '' : 'background:#8f887c'}"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(it.wears / max) * 100}%"></div></div>
             <span class="val">${it.wears} · ${money(E.cpw(it))}</span></div>`
             )
             .join('')}</div>
@@ -725,11 +738,11 @@
               .join('')}</div>
           </article>
           <article class="card card-pad">
-            <h3 class="small">Pieces by brand</h3>
-            <div class="bars">${brandRows
+            <h3 class="small">Pieces by store</h3>
+            <div class="bars">${shown
               .map(
-                ([k, n]) => `<div class="bar-row" style="grid-template-columns:minmax(0,130px) 1fr 40px" title="${k}: ${n} pieces"><span class="nm">${k}</span>
-              <div class="bar-track"><div class="bar-fill" style="width:${(n / bmax) * 100}%;background:${k === 'Other brands' ? '#8f887c' : 'var(--chart-gap)'}"></div></div><span class="val">${n}</span></div>`
+                ([k, n]) => `<div class="bar-row" style="grid-template-columns:minmax(0,150px) 1fr 40px" title="${k}: ${n} pieces"><span class="nm">${k}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${(n / smax) * 100}%"></div></div><span class="val">${n}</span></div>`
               )
               .join('')}</div>
           </article>
@@ -747,46 +760,46 @@
     const stages = [
       {
         name: 'Discover',
-        where: 'Product page, web and app',
+        where: "Any store's product page",
         thought: '“Will these go with anything I own?”',
-        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Product page</span></div><div class="mock-body">
-          ${tile(k)}<div><div class="mock-title">${k.name}</div><div class="mock-price">${money(k.price)}</div></div>
-          <div class="mock-module"><b>Pairs with 9 tops you own</b><div class="mini-row">${['t3', 't1', 't4', 't5'].map((id) => tile(byId(id))).join('')}</div><div class="mock-btn light">See ${k.unlock} outfits</div></div>
+        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Store product page + browser extension</span></div><div class="mock-body">
+          ${tile(k)}<div><div class="mock-title">Straight Chinos</div><div class="mock-price">${money(59.95)}</div></div>
+          <div class="mock-module"><b>Goes with 9 tops you own</b><div class="mini-row">${['t3', 't1', 't4', 't5'].map((id) => tile(byId(id))).join('')}</div><div class="mock-btn light">See ${k.unlock} outfits</div></div>
         </div></div>`,
-        hook: ['Your closet on every product page', 'Owned pieces that pair, plus the outfit count, sit beside size and price.'],
-        metric: 'Product page conversion',
+        hook: ['Your closet on any product page', 'A browser extension shows what a product pairs with, at any store.'],
+        metric: 'Saves to shopping list',
       },
       {
         name: 'Evaluate',
-        where: 'In store, fitting room',
+        where: 'In a store',
         thought: '“I like them, but do I need them?”',
-        mock: `<div class="mock phone"><div class="mock-body"><div class="viewfinder"><div class="tagcard">KHAKI<i></i>32 × 30</div></div>
-          <div class="sheet"><div class="mock-title">${k.name}</div><b style="font-size:11px;color:var(--gap-ink)">${k.unlock} outfits with your closet</b>
-          <div class="ok-line">${icon('check')}Nothing similar in your closet</div><div class="mock-btn">Add to closet at checkout</div></div></div></div>`,
-        hook: ['Scan a tag, see your closet', 'Before buying in store, see what it pairs with at home.'],
-        metric: 'Store conversion',
+        mock: `<div class="mock phone"><div class="mock-body"><div class="viewfinder"><div class="tagcard">CHINO<i></i>32 × 30</div></div>
+          <div class="sheet"><div class="mock-title">Straight chinos</div><b style="font-size:11px;color:var(--gap-ink)">${k.unlock} outfits with your closet</b>
+          <div class="ok-line">${icon('check')}Nothing similar in your closet</div><div class="mock-btn">Save to closet if I buy</div></div></div></div>`,
+        hook: ['Scan a tag in any store', 'See what it pairs with at home before buying.'],
+        metric: 'Scans per active person',
       },
       {
         name: 'Purchase',
-        where: 'Bag, web and app',
+        where: 'Checkout, via the extension',
         thought: '“Didn’t I already buy one of these?”',
-        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Bag</span></div><div class="mock-body">
+        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Store checkout</span></div><div class="mock-body">
           <div class="warn-box"><b>You already own this</b><div style="display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:center">${tile(hoodie)}<span>${hoodie.name}, ${hoodie.colorName} · ${hoodie.wears} wears</span></div></div>
-          <div style="display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:center">${tile(cardi)}<span><b style="font-size:11px">Swap for ${cardi.name}?</b><br/>+${E.unlock(cardi)} new outfits</span></div>
-          <div class="mock-btn light">Swap item</div><div class="mock-btn">Keep both and check out</div>
+          <div style="display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:center">${tile(cardi)}<span><b style="font-size:11px">Try a ${cardi.name.toLowerCase()}?</b><br/>+${E.unlock(cardi)} new outfits</span></div>
+          <div class="mock-btn light">See the cardigan</div><div class="mock-btn">Continue to checkout</div>
         </div></div>`,
-        hook: ['A duplicate check before checkout', 'Flags near-duplicates and offers a swap that adds more outfits.'],
-        metric: 'Return rate',
+        hook: ['A duplicate check at checkout', 'Flags near-duplicates and suggests a piece that adds more outfits.'],
+        metric: 'Duplicate purchases avoided',
       },
       {
         name: 'Receive',
-        where: 'Order email and push',
+        where: 'Order email',
         thought: '“What do I wear these with first?”',
-        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Order email</span></div><div class="mock-body">
-          <div class="email-head">Your khakis are in your closet</div><div class="mock-price">Three ways to wear them this week</div>
+        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Notification</span></div><div class="mock-body">
+          <div class="email-head">Your chinos are in your closet</div><div class="mock-price">Added from your order email · three ways to wear them this week</div>
           <div class="mini-flats">${prev.map((o) => flatlay(o)).join('')}</div><div class="mock-btn">Plan my week</div>
         </div></div>`,
-        hook: ['New purchases arrive styled', 'Orders land in the closet with outfits, so the first wear comes sooner.'],
+        hook: ['Orders add themselves, styled', 'The order email becomes a closet piece with outfits, so the first wear comes sooner.'],
         metric: 'Time to first wear',
       },
       {
@@ -794,21 +807,21 @@
         where: 'Daily, app and lock screen',
         thought: '“I have nothing to wear.”',
         mock: `<div class="mock phone"><div class="mock-body"><div class="lockscreen"><div class="time">7:42</div>
-          <div class="notif"><div class="app-ic">s</div><div><b>Today's outfit</b>Oxford, khakis and boots. 61° and foggy, so bring the trench.</div></div>
-          <div class="notif"><div class="app-ic">s</div><div><b>Friday is planned</b>Your blazer's first outing since June.</div></div></div></div></div>`,
-        hook: ['A daily outfit from what they own', 'Weighted toward Gap Inc. pieces, explained by weather and calendar.'],
+          <div class="notif"><div class="app-ic">o</div><div><b>Today's outfit</b>Oxford, chinos and boots. 61° and foggy, so bring the trench.</div></div>
+          <div class="notif"><div class="app-ic">o</div><div><b>Friday is planned</b>Your blazer's first outing since June.</div></div></div></div></div>`,
+        hook: ['A daily outfit from what they own', 'Explained by weather and calendar, with forgotten pieces brought back.'],
         metric: 'Outfits worn per week (north star)',
       },
       {
-        name: 'Return or replenish',
-        where: 'Returns flow and reminders',
+        name: 'Keep or return',
+        where: 'Return-window reminders',
         thought: '“These don’t fit. And my favorite tee is wearing out.”',
-        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Returns</span></div><div class="mock-body">
-          <div class="mock-title">Before you send them back</div><div class="mock-price">Same khakis in 32 × 32 still unlock ${k.unlock} outfits</div><div class="mock-btn">Exchange size</div>
-          <div style="border-top:1px solid var(--line);padding-top:8px;display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:center">${tile(tee)}<span><b style="font-size:11px">${tee.wears} wears on your ${tee.name}</b><br/>Reorder in size ${tee.size}?</span></div>
+        mock: `<div class="mock"><div class="mock-bar"><i></i><i></i><i></i><span>Reminder</span></div><div class="mock-body">
+          <div class="mock-title">Return window closes Friday</div><div class="mock-price">You haven't worn the chinos yet. Same pair in 32 × 32 still unlocks ${k.unlock} outfits.</div><div class="mock-btn">Exchange size</div>
+          <div style="border-top:1px solid var(--line);padding-top:8px;display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:center">${tile(tee)}<span><b style="font-size:11px">${tee.wears} wears on your ${tee.name}</b><br/>Find it again in size ${tee.size}?</span></div>
         </div></div>`,
-        hook: ['Exchanges over refunds; timely reorders', 'Style-led exchanges and replenishment timed to wear count.'],
-        metric: 'Repeat purchase rate',
+        hook: ['Decide before the window closes', 'Exchange reminders while returns are still possible, and replacements timed to wear count.'],
+        metric: 'Unworn purchases kept past the window',
       },
     ];
 
@@ -816,8 +829,8 @@
       <header class="page-head">
         <div>
           <div class="eyebrow">Across the journey</div>
-          <h1>One closet, every channel</h1>
-          <p class="sub">How the closet shows up at each stage of the Gap customer journey, from product page to fitting room to returns. Each moment names the metric it should move.</p>
+          <h1>One closet, every store</h1>
+          <p class="sub">How the closet shows up at each stage of shopping, from a product page to a fitting room to a return. Each moment names the metric it should move.</p>
         </div>
       </header>
       <div class="journey" data-note="1">
@@ -835,71 +848,67 @@
       </div>
       <div class="lanes" data-note="2">
         <article class="card lane">
-          <h3>Shared across Gap Inc.</h3>
-          <p>Built once, so every brand gets the closet on day one.</p>
+          <h3>How it stays neutral</h3>
+          <p>Product rules the customer can see, not promises.</p>
           <ul>
-            <li>${icon('layers')}<span>One closet per rewards member, synced across all four brands</span></li>
-            <li>${icon('layers')}<span>Pairing engine and Outfit Unlock score</span></li>
-            <li>${icon('layers')}<span>Consent, privacy controls and the shopping switch</span></li>
-            <li>${icon('layers')}<span>Design system patterns: flat-lay, slot board, unlock badge</span></li>
+            <li>${icon('unlock')}<span>Pieces are ranked by outfits unlocked, style fit, size in stock and duplication only</span></li>
+            <li>${icon('star')}<span>Stores are listed by the customer's favorites, then price</span></li>
+            <li>${icon('shield')}<span>Commissions are disclosed and never change the ranking</span></li>
+            <li>${icon('layers')}<span>Shopping can be switched off entirely; the closet still works</span></li>
           </ul>
         </article>
         <article class="card lane">
-          <h3>Distinct for each brand</h3>
-          <p>Each brand's app leads with its own catalog and keeps its own voice.</p>
-          <div class="brand-strip">
-            <div>Gap<small>Denim and essentials lead</small></div>
-            <div>Old Navy<small>Family closets, value</small></div>
-            <div>Banana Republic<small>Workwear, tailoring</small></div>
-            <div>Athleta<small>Active and travel</small></div>
-          </div>
+          <h3>Works with major stores</h3>
+          <p>Order emails, product links and photos bring in clothes from anywhere.</p>
+          <div class="store-chips">${SUPPORTED_STORES.map((s) => `<span class="chip">${s}</span>`).join('')}<span class="chip">and more</span></div>
         </article>
       </div>`;
   }
 
-  /* ---------- Overlays: drawer, bag, modals ---------- */
-  function modalSync(step) {
-    const synced = CLOSET.filter(E.isGapInc);
+  /* ---------- Overlays ---------- */
+  function modalEmail(step) {
+    const imported = CLOSET.filter((i) => i.source === 'email');
+    const storesFound = new Set(imported.map(E.storeOf));
     const steps = `<div class="steps">${[1, 2, 3].map((n) => `<span class="${n <= step ? 'on' : ''}"></span>`).join('')}</div>`;
     let body = '';
     if (step === 1)
-      body = `${steps}<h2>Build your closet in one tap</h2>
-        <p class="lede">We can add what you've bought from Gap Inc. brands, online or in store with your rewards account, with photos, sizes and colors included.</p>
-        <div class="brand-row">${GAP_INC.map((b) => `<span class="chip gap">${b}</span>`).join('')}</div>
+      body = `${steps}<h2>Build your closet from your inbox</h2>
+        <p class="lede">We look for order confirmations from clothing stores and add what you bought, with product photos, sizes and colors.</p>
+        <div class="store-chips" style="margin-top:16px">${SUPPORTED_STORES.slice(0, 12).map((s) => `<span class="chip">${s}</span>`).join('')}<span class="chip">and more</span></div>
         <div class="consent">
-          <button data-act="noop" aria-pressed="true"><span><b>Use my purchase history to build my closet</b><small>Returned items and gifts are skipped</small></span><span class="switch on"><span></span></span></button>
-          <button data-act="noop" aria-pressed="true"><span><b>Include in-store purchases linked to your rewards account</b><small>Receipts from any Gap Inc. store</small></span><span class="switch on"><span></span></span></button>
-          <button data-act="toggle-shop" aria-pressed="${state.showShop}"><span><b>Suggest new Gap pieces that go with my closet</b><small>You can turn this off anytime</small></span><span class="switch ${state.showShop ? 'on' : ''}"><span></span></span></button>
+          <button data-act="noop" aria-pressed="true"><span><b>Read order confirmations from clothing stores only</b><small>Nothing else in your inbox is opened or stored</small></span><span class="switch on"><span></span></span></button>
+          <button data-act="noop" aria-pressed="true"><span><b>Add new orders automatically</b><small>Returns you send back are removed for you</small></span><span class="switch on"><span></span></span></button>
+          <button data-act="toggle-shop" aria-pressed="${state.showShop}"><span><b>Suggest pieces that fill gaps in my closet</b><small>You can turn this off anytime</small></span><span class="switch ${state.showShop ? 'on' : ''}"><span></span></span></button>
         </div>
-        <div class="fineprint">${icon('shield')}<span>Your closet stays within Gap Inc. and is never sold. Remove any piece or disconnect at any time.</span></div>
-        <div class="modal-actions"><button class="btn ghost" data-act="close">Not now</button><button class="btn primary" data-act="sync-step" data-step="2">Find my purchases</button></div>`;
+        <div class="fineprint">${icon('shield')}<span>Disconnect at any time and everything imported from your email is deleted. Your closet is never sold or shared with stores.</span></div>
+        <div class="modal-actions"><button class="btn ghost" data-act="close">Not now</button><button class="btn" data-act="email-step" data-step="2">Use Outlook</button><button class="btn primary" data-act="email-step" data-step="2">Connect Gmail</button></div>`;
     if (step === 2)
-      body = `${steps}<h2>We found ${synced.length} pieces</h2>
-        <p class="lede">From 11 orders since 2024 across Gap, Old Navy, Banana Republic and Athleta. Deselect anything you no longer own.</p>
-        <div class="found-grid">${synced.map((it) => `<div class="thumb" title="${it.name}">${tile(it)}<span class="check">${icon('check')}</span></div>`).join('')}</div>
-        <div class="fineprint">${icon('info')}<span>Two returned orders were skipped automatically.</span></div>
-        <div class="modal-actions"><button class="btn ghost" data-act="sync-step" data-step="1">Back</button><button class="btn primary" data-act="sync-step" data-step="3">Add ${synced.length} pieces</button></div>`;
+      body = `${steps}<h2>We found ${imported.length} pieces from ${storesFound.size} stores</h2>
+        <p class="lede">From order emails since 2023. Deselect anything you gave away or no longer own.</p>
+        <div class="found-grid">${imported.map((it) => `<div class="thumb" title="${it.name} · ${E.storeOf(it)}">${tile(it)}<span class="check">${icon('check')}</span></div>`).join('')}</div>
+        <div class="fineprint">${icon('info')}<span>Three returned orders were skipped automatically.</span></div>
+        <div class="modal-actions"><button class="btn ghost" data-act="email-step" data-step="1">Back</button><button class="btn primary" data-act="email-step" data-step="3">Add ${imported.length} pieces</button></div>`;
     if (step === 3)
       body = `${steps}<h2>Your closet is started</h2>
-        <p class="lede">${synced.length} pieces added in about 40 seconds, with nothing typed. Add shoes and other brands next; a quick photo is enough.</p>
+        <p class="lede">${imported.length} pieces added in under a minute, with nothing typed. Add older pieces, gifts and thrift finds with a quick photo.</p>
         <div class="add-options">
           <button class="add-opt" data-act="photo">${icon('camera')}<b>Snap a photo</b><small>We remove the background and tag it</small></button>
-          <button class="add-opt" data-act="toast" data-msg="Forward receipts from any store to your closet address">${icon('mail')}<b>Forward a receipt</b><small>Works for any retailer</small></button>
+          <button class="add-opt" data-act="toast" data-msg="Paste a link from any store to add it">${icon('link')}<b>Paste a product link</b><small>From any online store</small></button>
         </div>
         <div class="modal-actions"><button class="btn primary" data-act="close">Go to my closet</button></div>`;
-    return `<div class="backdrop" data-act="close"></div><div class="modal-wrap"><div class="modal" role="dialog" aria-label="Sync purchases">
+    return `<div class="backdrop" data-act="close"></div><div class="modal-wrap"><div class="modal" role="dialog" aria-label="Connect your email">
       <button class="icon-btn close" data-act="close" aria-label="Close">${icon('x')}</button>${body}</div></div>`;
   }
 
   function modalAdd() {
     return `<div class="backdrop" data-act="close"></div><div class="modal-wrap"><div class="modal" role="dialog" aria-label="Add pieces">
       <button class="icon-btn close" data-act="close" aria-label="Close">${icon('x')}</button>
-      <h2>Add pieces</h2><p class="lede">Gap Inc. purchases add themselves. For everything else, pick the fastest way.</p>
+      <h2>Add pieces</h2><p class="lede">Most pieces arrive from your order emails. For everything else, pick the fastest way.</p>
       <div class="add-options">
-        <button class="add-opt rec" data-act="sync">${icon('sync')}<b>Sync Gap Inc. purchases</b><small>Connected · last synced today</small></button>
+        <button class="add-opt rec" data-act="email">${icon('mail')}<b>Import from order emails</b><small>Connected · checked today</small></button>
         <button class="add-opt" data-act="photo">${icon('camera')}<b>Snap a photo</b><small>Background removed, category and color tagged</small></button>
         <button class="add-opt" data-act="toast" data-msg="Paste a link from any store to add it">${icon('link')}<b>Paste a product link</b><small>From any online store</small></button>
-        <button class="add-opt" data-act="toast" data-msg="Forward receipts from any store to your closet address">${icon('mail')}<b>Forward a receipt</b><small>Works for any retailer</small></button>
+        <button class="add-opt" data-act="toast" data-msg="Forward a receipt to your closet address to add it">${icon('mail')}<b>Forward a receipt</b><small>For stores we don't read automatically</small></button>
       </div></div></div>`;
   }
 
@@ -923,26 +932,48 @@
     </div></div>`;
   }
 
-  function bagDrawer() {
-    const items = state.bag.map(byId);
-    const total = items.reduce((a, i) => a + i.price, 0);
+  function drawerCompare(p) {
+    const piece = { ...p, unlock: E.unlock(p) };
     return `<div class="backdrop" data-act="close"></div>
-      <aside class="drawer" role="dialog" aria-label="Bag">
+      <aside class="drawer" role="dialog" aria-label="Compare stores for ${p.name}">
         <button class="icon-btn close" data-act="close" aria-label="Close">${icon('x')}</button>
-        <div><div class="eyebrow">Bag</div><h2>${items.length ? `${items.length} piece${items.length > 1 ? 's' : ''}` : 'Your bag is empty'}</h2></div>
+        <div class="eyebrow">Compare stores</div>
+        <div style="display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:center">${tile(piece)}
+          <div><h2>${p.name}</h2><div class="unlock-line" style="font-size:13px">${icon('unlock')}Unlocks ${piece.unlock} new outfits</div></div></div>
+        <p class="why">${p.why}</p>
+        ${optionRows(p)}
+        ${disclosure()}
+      </aside>`;
+  }
+
+  function drawerList() {
+    const entries = state.list.map(fromKey);
+    const byStore = {};
+    entries.forEach((e) => (byStore[e.option.store] = byStore[e.option.store] || []).push(e));
+    const total = entries.reduce((a, e) => a + e.option.price, 0);
+    return `<div class="backdrop" data-act="close"></div>
+      <aside class="drawer" role="dialog" aria-label="Shopping list">
+        <button class="icon-btn close" data-act="close" aria-label="Close">${icon('x')}</button>
+        <div><div class="eyebrow">Shopping list</div><h2>${entries.length ? `${entries.length} piece${entries.length > 1 ? 's' : ''}, ${money(total)}` : 'Your list is empty'}</h2></div>
         ${
-          items.length
-            ? items
+          entries.length
+            ? Object.entries(byStore)
                 .map(
-                  (c) => `<div class="sugg shop">${tile(c)}<div><div class="sugg-name">${c.name}</div><div class="unlock-line">${icon('unlock')}+${E.unlock(c)} outfits with your closet</div>
-          <div class="sugg-sub">${money(c.price)} · ${c.colorName}</div></div><button class="btn xs" data-act="remove-bag" data-id="${c.id}">Remove</button></div>`
+                  ([store, es]) => `<div class="list-store">
+            <div class="list-store-head"><b>${store}</b><button class="btn xs primary" data-act="toast" data-msg="In the full app this opens ${store}'s site with your size selected">Buy at ${store} ${icon('out')}</button></div>
+            ${es
+              .map(
+                ({ piece, option }) => `<div class="sugg">${tile(piece)}<div><div class="sugg-name">${option.product}</div>
+              <div class="unlock-line">${icon('unlock')}+${E.unlock(piece)} outfits with your closet</div><div class="sugg-sub">${money(option.price)}${option.fit ? ` · ${option.fit.split(',')[0]}` : ''}</div></div>
+              <button class="btn xs" data-act="remove-list" data-key="${listKey(piece.id, option.store)}">Remove</button></div>`
+              )
+              .join('')}
+          </div>`
                 )
                 .join('') +
-              `<div class="provenance">${icon('check')}<span><b>No duplicates.</b> Nothing in your bag is too close to something you already own.</span></div>
-          <div style="display:flex;justify-content:space-between;font-weight:600;font-size:15px"><span>Total</span><span>${money(total)}</span></div>
-          <button class="btn primary" data-act="toast" data-msg="Checkout is out of scope for this concept">${icon('store')}Pick up today in store</button>
-          <button class="btn" data-act="toast" data-msg="Checkout is out of scope for this concept">${icon('truck')}Ship to home</button>`
-            : `<p class="sub">Picks from Fill the gap land here, with the outfits they unlock.</p>
+              `<div class="provenance">${icon('check')}<span><b>No duplicates.</b> Nothing on your list is too close to something you already own.</span></div>
+          ${disclosure()}`
+            : `<p class="sub">Pieces you add from Fill the gap land here, grouped by store, with the outfits they unlock.</p>
           <button class="btn primary" data-act="nav" data-view="fill">See Fill the gap</button>`
         }
       </aside>`;
@@ -952,8 +983,9 @@
     const o = state.overlay;
     let html = '';
     if (o?.type === 'item') html = drawerItem(byId(o.id));
-    if (o?.type === 'bag') html = bagDrawer();
-    if (o?.type === 'sync') html = modalSync(o.step);
+    if (o?.type === 'list') html = drawerList();
+    if (o?.type === 'compare') html = drawerCompare(byId(o.id));
+    if (o?.type === 'email') html = modalEmail(o.step);
     if (o?.type === 'add') html = modalAdd();
     if (o?.type === 'photo') html = modalPhoto(o.step);
     $('#overlay').innerHTML = html;
@@ -984,7 +1016,7 @@
       <div style="margin-top:10px">${notes.items
         .map((i) => `<div class="note-item ${state.noteHL === i.n ? 'hl' : ''}" id="note-${i.n}"><span class="n">${i.n}</span><div><b>${i.title}</b><p>${i.body}</p></div></div>`)
         .join('')}</div>
-      <div class="notes-foot">Concept prototype for a portfolio case study. Not affiliated with Gap Inc.</div>`;
+      <div class="notes-foot">Prototype for a portfolio case study. Store names are used for illustration.</div>`;
     document.body.appendChild(panel);
     if (state.noteHL) $(`#note-${state.noteHL}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
@@ -1021,12 +1053,13 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  function addToBag(id) {
-    const it = byId(id);
-    if (!state.bag.includes(id)) state.bag.push(id);
-    toast(`Added to bag · ${it.name} · ${money(it.price)}`, 'bag');
+  function addToList(key) {
+    const { piece, option } = fromKey(key);
+    if (!state.list.includes(key)) state.list.push(key);
+    toast(`Added to your list · ${option.product} from ${option.store}, ${money(option.price)}`, 'bag');
     render();
-    if (state.overlay?.type === 'bag') renderOverlay();
+    if (state.overlay) renderOverlay();
+    return piece;
   }
 
   function place(id) {
@@ -1038,11 +1071,10 @@
 
   function styleItem(id) {
     const it = byId(id);
-    const o = bestOutfitWith(it);
-    state.builder.outfit = { ...o };
+    state.builder.outfit = { ...bestOutfitWith(it) };
     state.builder.focus = it.cat;
     state.builder.tray = it.cat;
-    state.builder.name = isShop(it) ? `Trying the ${it.name}` : `Styling the ${it.name}`;
+    state.builder.name = isShop(it) ? `Trying ${it.name.toLowerCase()}` : `Styling the ${it.name}`;
     go('builder');
   }
 
@@ -1050,7 +1082,7 @@
   document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-act]');
     if (!el) return;
-    const { act, id, slot, v } = el.dataset;
+    const { act, id, slot, v, key } = el.dataset;
     switch (act) {
       case 'nav': state.overlay = null; renderOverlay(); go(el.dataset.view); break;
       case 'toggle-notes': state.notes = !state.notes; state.noteHL = null; renderNotes(); break;
@@ -1066,13 +1098,22 @@
       case 'open-item': state.overlay = { type: 'item', id }; renderOverlay(); break;
       case 'close': state.overlay = null; renderOverlay(); break;
       case 'closet-cat': state.closet.cat = v; render(); break;
-      case 'closet-brand': state.closet.brand = v; render(); break;
-      case 'add-bag': e.stopPropagation(); addToBag(id); break;
-      case 'add-all': E.gapPicks().filter((p) => p.unlock > 0).slice(0, 3).forEach((p) => !state.bag.includes(p.id) && state.bag.push(p.id)); toast('Added all three to your bag', 'bag'); render(); break;
-      case 'remove-bag': state.bag = state.bag.filter((x) => x !== id); render(); renderOverlay(); break;
-      case 'bag': state.overlay = { type: 'bag' }; renderOverlay(); break;
+      case 'closet-source': state.closet.source = v; render(); break;
+      case 'add-list': e.stopPropagation(); addToList(key); break;
+      case 'add-best':
+        E.gapPicks().filter((p) => p.unlock > 0).slice(0, 3).forEach((p) => {
+          const cheapest = [...p.options].sort((a, b) => a.price - b.price)[0];
+          const k = listKey(p.id, cheapest.store);
+          if (!state.list.includes(k)) state.list.push(k);
+        });
+        toast('Added the lowest price for each piece to your list', 'bag');
+        render();
+        break;
+      case 'remove-list': state.list = state.list.filter((x) => x !== key); render(); renderOverlay(); break;
+      case 'list': state.overlay = { type: 'list' }; renderOverlay(); break;
+      case 'compare': e.stopPropagation(); state.overlay = { type: 'compare', id }; renderOverlay(); break;
       case 'style-item': state.overlay = null; renderOverlay(); styleItem(id); break;
-      case 'try-builder': styleItem(id); break;
+      case 'try-builder': state.overlay = null; renderOverlay(); styleItem(id); break;
       case 'tray': state.builder.tray = v; render(); break;
       case 'place': place(id); break;
       case 'focus-slot': state.builder.focus = slot; if (CATS.some((c) => c.id === slot)) state.builder.tray = slot; render(); break;
@@ -1086,8 +1127,8 @@
         break;
       case 'save-outfit': toast('Saved to your outfits'); break;
       case 'plan-outfit': toast('Planned for Tuesday, October 6', 'planner'); break;
-      case 'sync': state.overlay = { type: 'sync', step: 1 }; renderOverlay(); break;
-      case 'sync-step': state.overlay = { type: 'sync', step: +el.dataset.step }; renderOverlay(); break;
+      case 'email': state.overlay = { type: 'email', step: 1 }; renderOverlay(); break;
+      case 'email-step': state.overlay = { type: 'email', step: +el.dataset.step }; renderOverlay(); break;
       case 'add': state.overlay = { type: 'add' }; renderOverlay(); break;
       case 'photo':
         state.overlay = { type: 'photo', step: 1 };

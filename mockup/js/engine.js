@@ -1,11 +1,13 @@
 /* Outfit engine: rule-based pairing (the MVP stage of the compatibility model) and the Outfit Unlock score.
-   An outfit is a top, a bottom and shoes, with an optional outer layer and accessory. */
+   An outfit is a top, a bottom and shoes, with an optional outer layer and accessory.
+   Nothing here weights any store: pieces are ranked by the value they add to this closet. */
 
 const Engine = (() => {
   const ALL = [...CLOSET, ...CATALOG];
   const byId = (id) => ALL.find((i) => i.id === id);
-  const isGapInc = (item) => GAP_INC.includes(item.brand);
   const owned = (cat) => CLOSET.filter((i) => i.cat === cat);
+  const storeOf = (i) => i.store || i.brand;
+  const stores = () => [...new Set(CLOSET.map(storeOf))];
 
   function clash(a, b) {
     if (a.tone !== 'neutral' && b.tone !== 'neutral' && a.tone !== b.tone)
@@ -70,26 +72,31 @@ const Engine = (() => {
       .sort((a, b) => b.score - a.score);
   }
 
-  /* Owned items that pair with a given item, Gap Inc. first. */
+  /* Store options for a piece: the customer's favorite stores first, then lowest price. */
+  function optionsFor(piece) {
+    const fav = (o) => FAVORITE_STORES.includes(o.store);
+    return [...byId(piece.id).options].sort((a, b) => fav(b) - fav(a) || a.price - b.price);
+  }
+
+  /* Owned items that pair with a given item, most-worn first. */
   function pairsWith(item) {
     return CLOSET.filter((i) => i.id !== item.id && i.cat !== item.cat && i.cat !== 'acc')
       .filter((i) => check([item, i]).ok)
-      .sort((a, b) => isGapInc(b) - isGapInc(a) || b.wears - a.wears);
+      .sort((a, b) => b.wears - a.wears);
   }
 
-  /* Suggestions for one outfit slot given the rest of the outfit.
-     Tier 1: owned Gap Inc. (under-worn first), tier 2: owned other brands, tier 3: new Gap by rank. */
+  /* Suggestions for one outfit slot given the rest of the outfit:
+     owned pieces that fit (least-worn first, to bring forgotten pieces back), then new pieces by rank. */
   function forSlot(slot, outfit) {
     const others = Object.entries(outfit)
       .filter(([k, v]) => k !== slot && v)
       .map(([, v]) => byId(v));
     const fits = (i) => check([...others, i]).ok;
-    const mine = owned(slot).filter(fits);
     return {
-      gap: mine.filter(isGapInc).sort((a, b) => a.wears - b.wears),
-      other: mine.filter((i) => !isGapInc(i)).sort((a, b) => b.wears - a.wears),
+      mine: owned(slot).filter(fits).sort((a, b) => a.wears - b.wears),
       shop: CATALOG.filter((c) => c.cat === slot && !c.dupOf && fits(c))
         .map((c) => ({ ...c, unlock: unlock(c), score: rank(c) }))
+        .filter((c) => c.unlock > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, 2),
     };
@@ -97,5 +104,5 @@ const Engine = (() => {
 
   const cpw = (i) => (i.wears ? i.price / i.wears : i.price);
 
-  return { byId, isGapInc, owned, check, outfitsWith, unlock, totalOutfits, gapPicks, pairsWith, forSlot, cpw, dupPenalty };
+  return { byId, owned, storeOf, stores, check, outfitsWith, unlock, totalOutfits, gapPicks, optionsFor, pairsWith, forSlot, cpw, dupPenalty };
 })();
