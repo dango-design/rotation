@@ -1,4 +1,4 @@
-# Outfit Builder (working title)
+# Rotation
 
 **Style what you own. Shop what's missing.**
 
@@ -37,8 +37,8 @@ This project is documented for a product design portfolio. Every milestone is ta
 
 | Milestone | What it is |
 | --- | --- |
-| [`v0-gap-concept`](https://github.com/dango-design/outfit-builder/tree/v0-gap-concept) | The first concept, designed around one retailer (Gap Inc.) |
-| [`v1-multi-store`](https://github.com/dango-design/outfit-builder/tree/v1-multi-store) | A public app for clothes from all major stores ([why it changed](docs/process/decisions/002-public-multi-store-app.md)) |
+| [`v0-gap-concept`](https://github.com/dango-design/rotation/tree/v0-gap-concept) | The first concept, designed around one retailer (Gap Inc.) |
+| [`v1-multi-store`](https://github.com/dango-design/rotation/tree/v1-multi-store) | A public app for clothes from all major stores ([why it changed](docs/process/decisions/002-public-multi-store-app.md)), later named Rotation ([003](docs/process/decisions/003-name-rotation.md)) |
 
 ## What's in `mockup/`
 

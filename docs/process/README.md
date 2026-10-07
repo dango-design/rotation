@@ -8,8 +8,8 @@ How this project got from idea to app, kept so every step can be referenced late
 
 | Milestone | Date | What it is | Snapshot |
 | --- | --- | --- | --- |
-| `v0-gap-concept` | Oct 6, 2026 | Closet concept for Gap Inc.: purchase sync, Gap-first recommendations, the Outfit Unlock score, and a 7-screen prototype | [Code](https://github.com/dango-design/outfit-builder/tree/v0-gap-concept) · [Screens](screens/v0-gap-concept/) · [Strategy](../strategy/v0-gap-concept.md) |
-| `v1-multi-store` | Oct 6, 2026 | Public app for all major stores: email import, piece-first recommendations with store comparison, size per store, a shopping list by store, and disclosed commissions | [Code](https://github.com/dango-design/outfit-builder/tree/v1-multi-store) · [Screens](screens/v1-multi-store/) · [Strategy](../strategy/v1-multi-store.md) |
+| `v0-gap-concept` | Oct 6, 2026 | Closet concept for Gap Inc.: purchase sync, Gap-first recommendations, the Outfit Unlock score, and a 7-screen prototype | [Code](https://github.com/dango-design/rotation/tree/v0-gap-concept) · [Screens](screens/v0-gap-concept/) · [Strategy](../strategy/v0-gap-concept.md) |
+| `v1-multi-store` | Oct 6, 2026 | Public app for all major stores: email import, piece-first recommendations with store comparison, size per store, a shopping list by store, and disclosed commissions | [Code](https://github.com/dango-design/rotation/tree/v1-multi-store) · [Screens](screens/v1-multi-store/) · [Strategy](../strategy/v1-multi-store.md) |
 
 ## Decisions
 
@@ -17,6 +17,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | --- | --- | --- |
 | [001](decisions/001-start-with-gap.md) | Start with Gap as the target retailer | Oct 6, 2026 |
 | [002](decisions/002-public-multi-store-app.md) | Become a public app that works with all major retailers | Oct 6, 2026 |
+| [003](decisions/003-name-rotation.md) | Name the app Rotation | Oct 6, 2026 |
 
 ## Capturing a milestone
 

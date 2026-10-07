@@ -1,7 +1,7 @@
 /* Demo data for one person: Jordan, in San Francisco, who shops at many stores.
    Store names are used for illustration; product names and prices are examples, not live data. */
 
-const APP = { name: 'outfit builder', tagline: "Style what you own. Shop what's missing." };
+const APP = { name: 'rotation', tagline: "Style what you own. Shop what's missing." };
 
 const CATS = [
   { id: 'top', label: 'Tops' },

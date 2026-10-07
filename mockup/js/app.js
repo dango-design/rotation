@@ -1,4 +1,4 @@
-/* Outfit builder prototype (working title): views, interactions and the design-notes layer. */
+/* Rotation prototype: views, interactions and the design-notes layer. */
 
 (() => {
   const E = Engine;
@@ -180,7 +180,7 @@
     const emailed = CLOSET.filter((i) => i.source === 'email');
     return `
       <div class="logo">${APP.name}<span>.</span></div>
-      <div class="logo-sub"><span class="chip">Working title</span><br/>${APP.tagline}</div>
+      <div class="logo-sub">${APP.tagline}</div>
       <nav class="nav" aria-label="Main">
         ${nav.map(item).join('')}
         <div class="nav-label">Concept</div>
