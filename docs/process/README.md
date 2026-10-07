@@ -13,6 +13,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | # | Decision | Date |
 | --- | --- | --- |
 | [001](decisions/001-start-with-gap.md) | Start with Gap as the target retailer | Oct 6, 2026 |
+| [002](decisions/002-public-multi-store-app.md) | Become a public app that works with all major retailers | Oct 6, 2026 |
 
 ## Capturing a milestone
 

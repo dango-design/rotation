@@ -1,6 +1,6 @@
 # 001 — Start with Gap as the target retailer
 
-**Date:** Oct 6, 2026 · **Status:** Accepted · **Milestone:** `v0-gap-concept`
+**Date:** Oct 6, 2026 · **Status:** Partly replaced by [002](002-public-multi-store-app.md) · **Milestone:** `v0-gap-concept`
 
 ## Context
 

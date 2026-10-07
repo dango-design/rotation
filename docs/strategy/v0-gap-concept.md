@@ -1,6 +1,6 @@
 # Staple — Product Strategy & Plan (v0, Gap concept)
 
-> **Snapshot.** This is the strategy as it stood at milestone `v0-gap-concept` (Oct 6, 2026), when the project was a closet concept built for Gap Inc. Self-initiated concept, not affiliated with Gap Inc.
+> **Snapshot.** This is the strategy as it stood at milestone `v0-gap-concept` (Oct 6, 2026), when the project was a closet concept built for Gap Inc. It later became a retailer-neutral public app; see [decision 002](../process/decisions/002-public-multi-store-app.md). Self-initiated concept, not affiliated with Gap Inc.
 
 Oct 6, 2026 · Denise ([dango-design](https://github.com/dango-design))
 
