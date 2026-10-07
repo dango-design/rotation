@@ -2,34 +2,60 @@
 
 **Style what you own. Shop what's missing.**
 
-A closet and outfit planner for clothes from any store. It builds your closet from order-confirmation emails, styles what you already own, and recommends the one piece that would unlock the most new outfits, with options from several stores in your size.
+Rotation is a closet and outfit planner for clothes from any store. Add what you own, and it builds an outfit for each day from what you have, explains why each piece made the cut, and plans the week around your calendar and the weather. When something is missing, it recommends the one piece that would unlock the most new outfits, with options from several stores in your size.
 
-> Prototype, in progress. Store names are used for illustration; products and prices are examples. Not affiliated with any retailer.
+> In progress. Store products and prices in suggestions are examples for now. Not affiliated with any retailer.
 
-## Run the prototype
-
-No build step. Open `mockup/index.html` in a browser, or serve it:
+## Run the app
 
 ```bash
-python3 -m http.server 4173 --directory mockup
+cd web
+npm install
+npm run dev
 ```
 
-Then visit http://localhost:4173. Use the **Design notes** switch in the sidebar to see the design rationale on each screen, or open http://localhost:4173/?notes to start with notes on.
+Then open http://localhost:3000. Open http://localhost:3000/?demo to explore Jordan's demo closet without saving anything.
 
-## Screens
+Optional: to have Claude suggest the type, color and name of each photo, set an Anthropic API key before starting:
 
-Today · Closet (with email, photo and link import) · Outfit builder · Fill the gap · Planner · Insights · Across the journey
+```bash
+echo "ANTHROPIC_API_KEY=your-key" > web/.env.local
+```
+
+Run the tests with `npm test` inside `web/`.
+
+## What it does
+
+- **Closet:** add pieces by photo (the background is removed on your device), product link, or description. Tops, dresses, bottoms, outerwear, shoes and accessories.
+- **Today:** a daily outfit from what you own, set for a casual, work or dressy day, using the live forecast for your city. It favors pieces you haven't worn lately.
+- **Outfit builder:** a flat-lay board with a live pairing check, and suggestions for each slot, least-worn first.
+- **Planner:** a week of planned and worn outfits, with the forecast for each day.
+- **Fill the gap:** the pieces that would add the most new outfits, each with store options, your size at each store, and what wasn't recommended and why.
+- **Insights:** outfits you can make, how much of your closet you wear, cost per wear, and the pieces waiting to be worn.
+- **Your data:** everything stays in your browser. Download a backup or delete everything in Settings.
 
 ## How recommendations work
 
-**Piece first, store second.** The app decides what kind of piece the closet is missing, then lists matching options from several stores.
+**Piece first, store second.** Rotation decides what kind of piece your closet is missing, then lists matching options from several stores.
 
-1. An outfit is a top, a bottom and shoes (plus an optional layer and accessory) that pass the pairing rules: no two competing colors, no same-wash denim on denim, and formality within one step.
+1. An outfit is a top, a bottom and shoes, or a dress and shoes, with an optional layer and accessory. Pieces pair when their colors don't compete, two denims aren't the same wash, and none is much dressier than the rest.
 2. A piece's **Outfit Unlock** score is the number of new outfits it creates with what you already own. A new layer only counts outfits that none of your layers already work with.
-3. Pieces are ranked by unlock × style fit × size availability × (1 − duplication). Commission is not part of the ranking.
-4. Store options are listed by your favorite stores first, then price, with the size to buy at each store from your past orders.
+3. Pieces are ranked by unlock × style fit × (1 − duplication). Exact duplicates of what you own are never suggested. Commission is not part of the ranking.
+4. Store options are listed by your favorite stores first, then price.
 
-With the demo closet (24 pieces from 15 stores), the engine finds 100 outfits. Light straight chinos unlock 26 more, and two jackets score zero because the closet's layers already cover every outfit.
+With the demo closet (24 pieces from 15 stores), the engine finds 100 outfits, and light straight chinos would unlock 26 more. The tests in `web/src/lib/engine.test.ts` check these numbers.
+
+## Project layout
+
+| Path | What it is |
+| --- | --- |
+| `web/` | The Rotation app: Next.js, React and TypeScript |
+| `web/src/lib/engine.ts` | Pairing rules and the Outfit Unlock score |
+| `web/src/lib/bgremove.ts` | On-device background removal |
+| `web/src/app/api/` | Server routes for photo tagging (Claude) and reading product links |
+| `mockup/` | The clickable prototype from the concept phase |
+| `docs/process/` | The process log: milestones, screenshots and decision records |
+| `docs/strategy/` | Strategy snapshots for each milestone |
 
 ## Process
 
@@ -38,20 +64,14 @@ This project is documented for a product design portfolio. Every milestone is ta
 | Milestone | What it is |
 | --- | --- |
 | [`v0-gap-concept`](https://github.com/dango-design/rotation/tree/v0-gap-concept) | The first concept, designed around one retailer (Gap Inc.) |
-| [`v1-multi-store`](https://github.com/dango-design/rotation/tree/v1-multi-store) | A public app for clothes from all major stores ([why it changed](docs/process/decisions/002-public-multi-store-app.md)), later named Rotation ([003](docs/process/decisions/003-name-rotation.md)) |
-
-## What's in `mockup/`
-
-| File | Purpose |
-| --- | --- |
-| `index.html` | App shell and shared SVG definitions |
-| `css/styles.css` | Design tokens and all component styles |
-| `js/garments.js` | Flat-lay garment illustrations, recolored from one hex per item |
-| `js/data.js` | Demo person (Jordan): 24-piece closet, suggested pieces with store options, planner week |
-| `js/engine.js` | Rule-based pairing and the Outfit Unlock score |
-| `js/notes.js` | Design-notes copy for each screen |
-| `js/app.js` | Views, interactions, drag and drop, overlays |
+| [`v1-multi-store`](https://github.com/dango-design/rotation/tree/v1-multi-store) | A public app for clothes from all major stores ([why it changed](docs/process/decisions/002-public-multi-store-app.md)) |
+| [`v2-rotation-app`](https://github.com/dango-design/rotation/tree/v2-rotation-app) | The first working app, named Rotation ([003](docs/process/decisions/003-name-rotation.md), [004](docs/process/decisions/004-build-local-first.md)) |
 
 ## How this was made
 
-Designed by Denise ([dango-design](https://github.com/dango-design)): research direction, product strategy, UX, visual design and every product decision recorded in the process log. The prototype was built with [Claude Code](https://claude.com/claude-code) as a build partner, which also helped with competitive research and drafting documentation.
+Designed by Denise ([dango-design](https://github.com/dango-design)): research direction, product strategy, UX, visual design and every product decision recorded in the process log. Built with [Claude Code](https://claude.com/claude-code) as a build partner, which also helped with competitive research and drafting documentation.
+
+## Credits
+
+- Background removal uses the [U²-Net](https://github.com/xuebinqin/U-2-Net) `u2netp` model (Apache-2.0), run with [ONNX Runtime Web](https://onnxruntime.ai/), following [rembg](https://github.com/danielgatis/rembg)'s pre- and post-processing.
+- Weather from [Open-Meteo](https://open-meteo.com/).

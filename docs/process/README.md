@@ -10,6 +10,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | --- | --- | --- | --- |
 | `v0-gap-concept` | Oct 6, 2026 | Closet concept for Gap Inc.: purchase sync, Gap-first recommendations, the Outfit Unlock score, and a 7-screen prototype | [Code](https://github.com/dango-design/rotation/tree/v0-gap-concept) · [Screens](screens/v0-gap-concept/) · [Strategy](../strategy/v0-gap-concept.md) |
 | `v1-multi-store` | Oct 6, 2026 | Public app for all major stores: email import, piece-first recommendations with store comparison, size per store, a shopping list by store, and disclosed commissions | [Code](https://github.com/dango-design/rotation/tree/v1-multi-store) · [Screens](screens/v1-multi-store/) · [Strategy](../strategy/v1-multi-store.md) |
+| `v2-rotation-app` | Oct 6, 2026 | First working app, named Rotation: real closets stored on the device, photo import with on-device background removal, the engine, daily outfits with live weather, builder, planner, Fill the gap, insights and a demo mode | [Code](https://github.com/dango-design/rotation/tree/v2-rotation-app) · [Screens](screens/v2-rotation-app/) · [Strategy](../strategy/v2-rotation-app.md) |
 
 ## Decisions
 
@@ -18,11 +19,13 @@ How this project got from idea to app, kept so every step can be referenced late
 | [001](decisions/001-start-with-gap.md) | Start with Gap as the target retailer | Oct 6, 2026 |
 | [002](decisions/002-public-multi-store-app.md) | Become a public app that works with all major retailers | Oct 6, 2026 |
 | [003](decisions/003-name-rotation.md) | Name the app Rotation | Oct 6, 2026 |
+| [004](decisions/004-build-local-first.md) | Build the first version local-first | Oct 6, 2026 |
 
 ## Capturing a milestone
 
-1. Serve the prototype: `python3 -m http.server 4173 --directory mockup`
-2. Capture screens: `scripts/screenshots.sh <milestone-name>` (each screen, with and without design notes, at 2x)
-3. Save the strategy doc as `docs/strategy/<milestone-name>.md`
-4. Write a decision record in `decisions/` for anything that changed direction
-5. Commit, then tag: `git tag -a <milestone-name> -m "<summary>"` and push with `--tags`
+1. Capture screens at 2x:
+   - The app: build and start it (`cd web && npm run build && npx next start -p 3100`), then `scripts/screenshots-app.sh <milestone-name>` (demo closet)
+   - The prototype: `python3 -m http.server 4173 --directory mockup`, then `scripts/screenshots.sh <milestone-name>` (with and without design notes)
+2. Save the strategy doc as `docs/strategy/<milestone-name>.md`
+3. Write a decision record in `decisions/` for anything that changed direction
+4. Commit, then tag: `git tag -a <milestone-name> -m "<summary>"` and push with `--tags`
