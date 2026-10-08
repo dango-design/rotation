@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
 import { check, duplicate, fitsBoard, rankPieces, totalOutfits, unlock, whyLine } from './engine';
+import { nextStep, piecesFor } from './planning';
 import type { Item } from './types';
 
 const { items } = demoData();
@@ -70,5 +71,26 @@ describe('fitting pieces to the board', () => {
   });
   it('lets a dress replace the bottom', () => {
     expect(fitsBoard(pieceById('p-dress-black')!, { bottom: byShort('b2').id }, byId)).toBe(true);
+  });
+});
+
+describe('planning a day piece by piece', () => {
+  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
+  const opts = { occasion: 'work' as const, today: '2026-10-07' };
+  it('suggests two pieces that work with the picks so far', () => {
+    const slots = { top: byShort('t8').id };
+    const rows = piecesFor('bottom', slots, items, byId, opts);
+    const suggested = rows.filter((r) => r.suggested);
+    expect(suggested).toHaveLength(2);
+    expect(suggested.every((r) => r.fits)).toBe(true);
+    expect(rows.findIndex((r) => !r.fits)).toBeGreaterThan(rows.findLastIndex((r) => r.fits));
+  });
+  it('asks for the required pieces first, then the optional ones', () => {
+    expect(nextStep({}, byId)).toBe('top');
+    expect(nextStep({ top: byShort('t8').id }, byId)).toBe('bottom');
+    expect(nextStep({ top: byShort('t8').id, bottom: byShort('b2').id, shoes: byShort('s1').id }, byId)).toBe('outer');
+  });
+  it('skips the bottom when a dress is picked', () => {
+    expect(nextStep({ top: 'p-dress-black' }, byId)).toBe('shoes');
   });
 });

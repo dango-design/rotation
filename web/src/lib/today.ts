@@ -17,7 +17,7 @@ export interface Suggestion {
   reasons: Reason[];
 }
 
-const RANGE: Record<Settings['occasion'], [number, number]> = { casual: [1, 1.9], work: [1.75, 2.75], dressy: [2.25, 3] };
+export const RANGE: Record<Settings['occasion'], [number, number]> = { casual: [1, 1.9], work: [1.75, 2.75], dressy: [2.25, 3] };
 const TITLE: Record<Settings['occasion'], string> = { casual: 'Easy and put together', work: 'Ready for the day', dressy: 'Dressed up' };
 const OCCASION_LINE: Record<Settings['occasion'], [string, string]> = {
   casual: ['A relaxed day.', 'Comfortable pieces that still look intentional.'],

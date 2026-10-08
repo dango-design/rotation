@@ -658,3 +658,74 @@ a.nav-item { text-decoration: none; }
   .panel-hint { display: none; }
   .strip-days { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 104px; overflow-x: auto; padding: 3px 3px 8px; margin: 0 -3px; }
 }
+
+/* ---------- Planning a day (Today) ---------- */
+:root { --clay-tint: #f8ece4; --clay-line: #e5bfa8; --clay-ink: #8f3f1f; }
+.strip-day.open .strip-empty { border-color: var(--clay-line); color: var(--clay); background: rgba(248, 236, 228, 0.55); transition: background 0.15s, border-color 0.15s; }
+.strip-day.open:hover .strip-empty { background: var(--clay-tint); border-color: var(--clay); }
+.strip-day.open .strip-label { color: var(--clay); }
+
+.plan-callout { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); gap: 32px; align-items: center; padding: 28px; border: 1.5px dashed var(--clay-line); background: radial-gradient(120% 140% at 0% 0%, #fbf1ea 0%, var(--panel) 62%); }
+.callout-art { position: relative; aspect-ratio: 1; border: 0; padding: 0; border-radius: 18px; background: var(--clay-tint); transition: transform 0.2s, box-shadow 0.2s; }
+.callout-art:hover { transform: translateY(-2px) rotate(-0.6deg); box-shadow: 0 14px 30px rgba(181, 83, 44, 0.16); }
+.ghost-piece { position: absolute; opacity: 0.75; }
+.ghost-piece svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 6px 8px rgba(143, 63, 31, 0.08)); }
+.g-top { left: 6%; top: 5%; width: 52%; transform: rotate(-6deg); }
+.g-bottom { left: 50%; top: 24%; width: 44%; transform: rotate(4deg); }
+.g-shoes { left: 8%; top: 60%; width: 40%; transform: rotate(-3deg); }
+.callout-plus { position: absolute; right: 9%; bottom: 9%; width: 56px; height: 56px; border-radius: 50%; background: var(--clay); color: #fff; display: grid; place-items: center; box-shadow: 0 8px 22px rgba(181, 83, 44, 0.35); animation: nudge 2.4s ease-in-out infinite; }
+.callout-plus svg { width: 26px; height: 26px; stroke-width: 2.2; }
+.callout-body { display: flex; flex-direction: column; gap: 12px; }
+.callout-body .eyebrow { color: var(--clay-ink); margin: 0; }
+.callout-body h2 { font: 44px/1.02 var(--serif); font-weight: 400; letter-spacing: -0.01em; }
+.callout-body p { color: var(--ink-2); font-size: 15px; max-width: 460px; }
+.callout-body .callout-wx { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.callout-wx svg { width: 18px; height: 18px; }
+.callout-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.plan-callout .btn.primary { background: var(--clay); border-color: var(--clay); }
+.plan-callout .btn.primary:hover { background: var(--clay-ink); }
+.plan-callout.is-past { border-color: var(--line-2); background: var(--panel); }
+.plan-callout.is-past .callout-art { background: var(--tile); }
+.plan-callout.is-past .callout-plus { background: var(--ink); box-shadow: var(--shadow); animation: none; }
+.plan-callout.is-past .eyebrow { color: var(--ink-3); }
+.plan-callout.is-past .btn.primary { background: var(--ink); border-color: var(--ink); }
+@keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+.day-planner { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
+.planner-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.planner-head .eyebrow { color: var(--clay-ink); }
+.planner-head .outfit-name { font-size: 34px; }
+.planner-body { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr); gap: 26px; align-items: start; }
+.planner-board { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 20px; }
+.step-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.step-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--panel); font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.step-tabs button svg { width: 14px; height: 14px; color: var(--good); }
+.step-tabs button small { font-size: 11px; font-weight: 500; color: var(--ink-3); }
+.step-tabs button.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+.step-tabs button.active svg { color: #fff; }
+.step-tabs button.active small { color: rgba(255, 255, 255, 0.65); }
+.step-tabs button:disabled { opacity: 0.45; cursor: default; }
+.step-hint { font-size: 13px; color: var(--ink-3); margin-top: 12px; }
+.step-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 14px; margin-top: 14px; }
+.step-piece { position: relative; border: 0; padding: 0; background: none; text-align: left; display: flex; flex-direction: column; gap: 4px; }
+.step-piece .tile { transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 4px; }
+.step-piece:hover .tile { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(28, 27, 25, 0.1); }
+.step-piece.on .tile { box-shadow: inset 0 0 0 2px var(--ink); }
+.step-piece.faded .tile, .step-piece.faded .step-name, .step-piece.faded .step-why { opacity: 0.38; }
+.step-name { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+.step-why { font-size: 11.5px; color: var(--ink-3); }
+.suggest-badge { position: absolute; top: 7px; left: 7px; z-index: 1; display: inline-flex; align-items: center; gap: 4px; height: 21px; padding: 0 8px; border-radius: 99px; background: var(--clay); color: #fff; font-size: 10.5px; font-weight: 600; box-shadow: 0 3px 8px rgba(181, 83, 44, 0.3); }
+.suggest-badge svg { width: 11px; height: 11px; }
+.suggest-badge ~ .step-why { color: var(--clay-ink); font-weight: 500; }
+.planner-foot { display: flex; align-items: center; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.planner-foot .spacer { flex: 1; }
+
+@media (max-width: 900px) {
+  .plan-callout { grid-template-columns: 1fr; gap: 20px; padding: 20px; }
+  .callout-art { width: min(220px, 100%); }
+  .callout-body h2 { font-size: 34px; }
+  .planner-body { grid-template-columns: 1fr; }
+  .planner-board { position: static; }
+  .planner-board .board { width: min(300px, 100%); margin: 0 auto; }
+  .planner-head .outfit-name { font-size: 28px; }
+}
