@@ -106,6 +106,7 @@ export function DayPlanner({
 
       <div className="planner-body">
         <div className="planner-board">
+          <div className="board-label">Preview</div>
           <OutfitBoard slots={slots} focus={step} onFocus={setStep} onRemove={remove} />
           <div className="board-status">
             {!complete ? (

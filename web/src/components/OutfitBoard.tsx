@@ -27,22 +27,14 @@ export function OutfitBoard({
   const st = useStore();
   const ui = useUI();
   const [dragOver, setDragOver] = useState(false);
-  const dressOn = st.wearableById(slots.top)?.cat === 'dress';
+  const empty = !SLOTS.some((s) => slots[s]);
 
   const slotEl = (s: Slot) => {
     const [l, t, w] = LAYOUT[s];
     const it = slots[s] ? st.wearableById(slots[s]) : undefined;
     const focused = focus === s ? 'focused' : '';
-    const box = { left: `${l + w * 0.18}%`, top: `${t + w * 0.18}%`, width: `${w * 0.64}%`, aspectRatio: '1' };
-    // Only the spot being filled is outlined; the step tabs (or the closet filters) choose it.
-    if (!it) {
-      if (focus !== s) return null;
-      return (
-        <div key={s} className="slot hole" style={box} aria-hidden="true">
-          {s === 'bottom' && dressOn ? 'Dress covers this' : SLOT_LABEL[s]}
-        </div>
-      );
-    }
+    // Empty spots aren't drawn: the step tabs (or the closet filters) say what to add next.
+    if (!it) return null;
     const isTrial = !('wears' in it);
     const pos = it.cat === 'dress' ? [46, 4, 52] : [l, t, w];
     return (
@@ -78,7 +70,7 @@ export function OutfitBoard({
           : undefined
       }
     >
-      {SLOTS.map(slotEl)}
+      {empty ? <span className="board-empty">Your picks show up here</span> : SLOTS.map(slotEl)}
     </div>
   );
 }
