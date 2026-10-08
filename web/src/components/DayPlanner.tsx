@@ -106,26 +106,14 @@ export function DayPlanner({
 
       <div className="planner-body">
         <div className="planner-board">
-          <div className="board-label">Preview</div>
           <OutfitBoard slots={slots} focus={step} onFocus={setStep} onRemove={remove} />
-          <div className="board-status">
-            {!complete ? (
-              <span className="verdict todo">
-                <Icon name="info" />
-                {dress ? 'Add shoes to finish the outfit' : 'Pick a top, a bottom and shoes'}
-              </span>
-            ) : verdict.ok ? (
-              <span className="verdict ok">
-                <Icon name="check" />
-                These work together
-              </span>
-            ) : (
-              <span className="verdict bad">
-                <Icon name="alert" />
-                {verdict.reason}
-              </span>
-            )}
-          </div>
+          {/* Clashing pieces are faded, so this only shows when one was picked anyway; it says why Plan is off. */}
+          {complete && !verdict.ok && (
+            <span className="verdict bad">
+              <Icon name="alert" />
+              {verdict.reason}
+            </span>
+          )}
         </div>
 
         <div className="planner-steps">
