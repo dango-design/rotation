@@ -12,8 +12,8 @@ mkdir -p "$out"
 
 # file:path:height
 shots=(
-  "today:/:1480" "closet:/closet:1500" "builder:/builder:1200" "fill:/fill:2700"
-  "planner:/planner:1000" "insights:/insights:1150" "settings:/settings:1300" "about:/about:1100"
+  "today:/:1700" "closet:/closet:1500" "closet-board:/builder:1500" "fill:/fill:2700"
+  "report:/insights:1000" "settings:/settings:1300" "about:/about:1100"
 )
 
 shoot() { # url file height; a fresh profile per shot so a lingering instance can't block the next one

@@ -46,7 +46,7 @@ export default function SettingsPage() {
 
       <section className="card settings-section">
         <h3>Weather</h3>
-        <p>Your city sets layers and the forecast in the planner. Temperatures are in °F.</p>
+        <p>Your city sets layers and the forecast for each day on Today. Temperatures are in °F.</p>
         <form
           style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}
           onSubmit={async (e) => {

@@ -25,8 +25,8 @@ export default function Fill() {
   const skipped = ranked.filter((p) => p.dup.level === 1 || (p.unlock === 0 && p.piece.cat === 'outer')).slice(0, 4);
 
   const tryIt = (p: Piece) => {
-    st.setDraft({ name: `Trying the ${p.name.toLowerCase()}`, slots: bestOutfitWith(p, st.items), focus: slotOf(p) });
-    router.push(st.href('/builder'));
+    st.build({ name: `Trying the ${p.name.toLowerCase()}`, slots: bestOutfitWith(p, st.items), focus: slotOf(p) });
+    router.push(st.href('/closet'));
   };
 
   const head = (

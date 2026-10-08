@@ -17,10 +17,7 @@ export const useUI = () => useContext(UICtx)!;
 const NAV = [
   { path: '/', label: 'Today', icon: 'today' },
   { path: '/closet', label: 'Closet', icon: 'closet' },
-  { path: '/builder', label: 'Outfit builder', icon: 'builder' },
-  { path: '/planner', label: 'Planner', icon: 'planner' },
   { path: '/fill', label: 'Fill the gap', icon: 'unlock' },
-  { path: '/insights', label: 'Insights', icon: 'insights' },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -67,6 +64,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <nav className="nav" aria-label="Main">
             {NAV.map((n) => navLink(n, n.path === '/closet' ? st.items.length : undefined))}
             <div className="nav-label">You</div>
+            {navLink({ path: '/insights', label: 'Closet report', icon: 'insights' })}
             {navLink({ path: '/settings', label: 'Settings', icon: 'settings' })}
             {navLink({ path: '/about', label: 'How it works', icon: 'info' })}
           </nav>

@@ -36,8 +36,9 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
     : [];
 
   const styleIt = () => {
-    st.setDraft({ name: `Styling the ${it.name}`, slots: bestOutfitWith(it, st.items), focus: slotOf(it) });
-    router.push(st.href('/builder'));
+    st.build({ name: `Styling the ${it.name}`, slots: bestOutfitWith(it, st.items), focus: slotOf(it) });
+    onClose();
+    router.push(st.href('/closet'));
   };
 
   return (
