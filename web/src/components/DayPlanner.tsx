@@ -7,9 +7,15 @@ import { useState } from 'react';
 import { isComplete, SLOTS } from '@/lib/engine';
 import { nextStep, piecesFor, STEPS } from '@/lib/planning';
 import { useStore } from '@/lib/store';
-import type { OutfitSlots, Slot } from '@/lib/types';
+import type { OutfitSlots, Settings, Slot } from '@/lib/types';
 import { OutfitBoard } from './OutfitBoard';
 import { Icon, Tile } from './ui';
+
+const OCCASIONS: [Settings['occasion'], string][] = [
+  ['casual', 'Casual'],
+  ['work', 'Work'],
+  ['dressy', 'Dressy'],
+];
 
 export function DayPlanner({
   date,
@@ -30,7 +36,7 @@ export function DayPlanner({
   initialName: string;
   weather?: { temp: number; word: string };
   /** A suggested outfit for the day, or null when there is none to offer. */
-  surprise: (n: number) => OutfitSlots | null;
+  surprise: (n: number, occasion: Settings['occasion']) => OutfitSlots | null;
   onDone: (name: string, slots: OutfitSlots) => void;
   onCancel: () => void;
 }) {
@@ -39,12 +45,13 @@ export function DayPlanner({
   const [name, setName] = useState(initialName);
   const [step, setStep] = useState<Slot>(() => nextStep(initial ?? {}, st.wearableById) ?? 'top');
   const [surprises, setSurprises] = useState(0);
+  const [occasion, setOccasion] = useState(st.settings.occasion);
 
   const pieces = SLOTS.filter((s) => slots[s]).map((s) => st.wearableById(slots[s])!).filter(Boolean);
   const complete = isComplete(slots, st.wearableById);
   // Clashing pieces are faded as a hint, but the outfit is the person's call.
   const ready = complete;
-  const rows = piecesFor(step, slots, st.items, st.wearableById, { occasion: st.settings.occasion, today: date });
+  const rows = piecesFor(step, slots, st.items, st.wearableById, { occasion, today: date });
   const dress = st.wearableById(slots.top)?.cat === 'dress';
   const current = STEPS.find((s) => s.slot === step)!;
 
@@ -67,7 +74,7 @@ export function DayPlanner({
     setStep(s);
   };
   const surpriseMe = () => {
-    const s = surprise(surprises);
+    const s = surprise(surprises, occasion);
     if (!s) return;
     setSlots(s);
     setSurprises((n) => n + 1);
@@ -90,6 +97,20 @@ export function DayPlanner({
         <div>
           <div className="eyebrow">{mode === 'log' ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}</div>
           <input className="outfit-name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Outfit name" />
+          {mode === 'plan' && (
+            <div className="seg occasion-seg" role="group" aria-label="Occasion">
+              {OCCASIONS.map(([v, l]) => (
+                <button
+                  key={v}
+                  className={occasion === v ? 'active' : ''}
+                  // Remembered as the default for the next day planned.
+                  onClick={() => (setOccasion(v), st.updateSettings({ occasion: v }))}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="head-actions">
           {mode === 'plan' && (

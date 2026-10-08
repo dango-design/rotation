@@ -14,10 +14,11 @@ export const STEPS: { slot: Slot; label: string; optional?: boolean }[] = [
   { slot: 'acc', label: 'Extra', optional: true },
 ];
 
-/** A single piece suits the occasion when its formality is within a step of the occasion's middle. */
-export const suitsOccasion = (i: Wearable, occasion: Settings['occasion']) => {
+/** How well one piece suits the occasion: 2 at the occasion's own formality, 1 within a step of it, 0 otherwise. */
+export const occasionFit = (i: Wearable, occasion: Settings['occasion']) => {
   const [lo, hi] = RANGE[occasion];
-  return Math.abs(i.f - (lo + hi) / 2) <= 1;
+  if (i.f >= lo && i.f <= hi) return 2;
+  return Math.abs(i.f - (lo + hi) / 2) <= 1 ? 1 : 0;
 };
 
 export interface StepPiece {
@@ -28,7 +29,7 @@ export interface StepPiece {
   why?: string;
 }
 
-/** Every owned piece for a step: ones that work with the outfit so far come first, freshest first; the top two are suggested. */
+/** Every owned piece for a step: ones that work with the outfit so far come first, then the best match for the occasion, then the freshest; the top two are suggested. */
 export function piecesFor(
   slot: Slot,
   slots: OutfitSlots,
@@ -39,9 +40,9 @@ export function piecesFor(
   const since = (i: Item) => (i.lastWorn ? daysBetween(i.lastWorn, opts.today) : 999);
   const rows = closet
     .filter((i) => slotOf(i) === slot)
-    .map((item) => ({ item, fits: fitsBoard(item, slots, byId), suits: suitsOccasion(item, opts.occasion) }))
-    .sort((a, b) => Number(b.fits) - Number(a.fits) || Number(b.suits) - Number(a.suits) || since(b.item) - since(a.item));
-  const picks = rows.filter((r) => r.fits && r.suits && r.item.id !== slots[slot]).slice(0, 2);
+    .map((item) => ({ item, fits: fitsBoard(item, slots, byId), suits: occasionFit(item, opts.occasion) }))
+    .sort((a, b) => Number(b.fits) - Number(a.fits) || b.suits - a.suits || since(b.item) - since(a.item));
+  const picks = rows.filter((r) => r.fits && r.suits > 0 && r.item.id !== slots[slot]).slice(0, 2);
   return rows.map(({ item, fits }) => {
     const suggested = picks.some((p) => p.item.id === item.id);
     const d = since(item);

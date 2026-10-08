@@ -3,6 +3,7 @@ import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
 import { check, duplicate, fitsBoard, rankPieces, totalOutfits, unlock, whyLine } from './engine';
 import { nextStep, piecesFor } from './planning';
+import { RANGE } from './today';
 import type { Item } from './types';
 
 const { items } = demoData();
@@ -92,5 +93,20 @@ describe('planning a day piece by piece', () => {
   });
   it('skips the bottom when a dress is picked', () => {
     expect(nextStep({ top: 'p-dress-black' }, byId)).toBe('shoes');
+  });
+});
+
+describe('the occasion shapes suggestions', () => {
+  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
+  const top = (occasion: 'casual' | 'work' | 'dressy') =>
+    piecesFor('top', {}, items, byId, { occasion, today: '2026-10-07' }).filter((r) => r.suggested).map((r) => r.item.f);
+  it("suggests tops at the occasion's own formality", () => {
+    for (const occasion of ['casual', 'work', 'dressy'] as const) {
+      const [lo, hi] = RANGE[occasion];
+      const fs = top(occasion);
+      if (occasion !== 'dressy') expect(fs).toHaveLength(2);
+      expect(fs.every((f) => f >= lo && f <= hi) || occasion === 'dressy').toBe(true);
+    }
+    expect(top('casual')).not.toEqual(top('work'));
   });
 });

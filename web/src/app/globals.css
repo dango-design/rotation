@@ -593,7 +593,7 @@ a.nav-item { text-decoration: none; }
 .prose { max-width: 720px; display: flex; flex-direction: column; gap: 14px; }
 .prose h2 { font: 28px/1.1 var(--serif); font-weight: 400; margin-top: 16px; }
 .prose p, .prose li { color: var(--ink-2); font-size: 15px; }
-.occasion-seg { margin-top: 14px; }
+.occasion-seg { margin-top: 10px; }
 @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
 
 /* ---------- Week strip (Today) ---------- */

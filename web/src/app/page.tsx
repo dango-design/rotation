@@ -14,14 +14,8 @@ import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
 import { suggest } from '@/lib/today';
-import type { OutfitSlots, Settings } from '@/lib/types';
+import type { OutfitSlots } from '@/lib/types';
 import { skyWord } from '@/lib/weather';
-
-const OCCASIONS: [Settings['occasion'], string][] = [
-  ['casual', 'Casual'],
-  ['work', 'Work'],
-  ['dressy', 'Dressy'],
-];
 
 /** The outline of an outfit waiting to happen, for the empty-day callout. */
 const GHOSTS: { type: string; cls: string }[] = [
@@ -58,9 +52,9 @@ export default function Today() {
     const d = st.weather?.days.find((x) => x.date === date);
     return d ? { temp: d.high, sky: d.sky, word: skyWord(d.sky) } : undefined;
   };
-  const suggestFor = (date: string, n: number) => {
+  const suggestFor = (date: string, n: number, occasion = st.settings.occasion) => {
     const wx = wxFor(date);
-    return suggest(st.items, { occasion: st.settings.occasion, today: date, shuffle: n, temp: wx?.temp, sky: wx?.sky, skyWord: wx?.word });
+    return suggest(st.items, { occasion, today: date, shuffle: n, temp: wx?.temp, sky: wx?.sky, skyWord: wx?.word });
   };
 
   if (!st.items.length) {
@@ -152,13 +146,6 @@ export default function Today() {
               </>
             )}
           </div>
-          <div className="seg occasion-seg" role="group" aria-label="Occasion">
-            {OCCASIONS.map(([v, l]) => (
-              <button key={v} className={st.settings.occasion === v ? 'active' : ''} onClick={() => st.updateSettings({ occasion: v })}>
-                {l}
-              </button>
-            ))}
-          </div>
         </div>
       </header>
 
@@ -237,7 +224,7 @@ export default function Today() {
             initial={planning.slots}
             initialName={planning.name}
             weather={wx ? { temp: wx.temp, word: wx.word } : undefined}
-            surprise={(n) => suggestFor(day, n + planning.offset)?.slots ?? null}
+            surprise={(n, occasion) => suggestFor(day, n + planning.offset, occasion)?.slots ?? null}
             onDone={(name, s) => finish(name, s)}
             onCancel={() => setPlanning(null)}
           />
