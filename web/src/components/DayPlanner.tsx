@@ -4,7 +4,7 @@
    Each step lists your pieces for that slot, suggests the two that fit best, and fades the ones that clash. */
 
 import { useState } from 'react';
-import { check, isComplete, SLOTS } from '@/lib/engine';
+import { isComplete, SLOTS } from '@/lib/engine';
 import { nextStep, piecesFor, STEPS } from '@/lib/planning';
 import { useStore } from '@/lib/store';
 import type { OutfitSlots, Slot } from '@/lib/types';
@@ -42,8 +42,8 @@ export function DayPlanner({
 
   const pieces = SLOTS.filter((s) => slots[s]).map((s) => st.wearableById(slots[s])!).filter(Boolean);
   const complete = isComplete(slots, st.wearableById);
-  const verdict = check(pieces);
-  const ready = complete && verdict.ok;
+  // Clashing pieces are faded as a hint, but the outfit is the person's call.
+  const ready = complete;
   const rows = piecesFor(step, slots, st.items, st.wearableById, { occasion: st.settings.occasion, today: date });
   const dress = st.wearableById(slots.top)?.cat === 'dress';
   const current = STEPS.find((s) => s.slot === step)!;
@@ -107,13 +107,6 @@ export function DayPlanner({
       <div className="planner-body">
         <div className="planner-board">
           <OutfitBoard slots={slots} focus={step} onFocus={setStep} onRemove={remove} />
-          {/* Clashing pieces are faded, so this only shows when one was picked anyway; it says why Plan is off. */}
-          {complete && !verdict.ok && (
-            <span className="verdict bad">
-              <Icon name="alert" />
-              {verdict.reason}
-            </span>
-          )}
         </div>
 
         <div className="planner-steps">
