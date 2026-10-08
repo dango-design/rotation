@@ -1,6 +1,6 @@
 # 005 — Consolidate to three tabs, and keep stats in the background
 
-**Date:** Oct 7, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 7, 2026 · **Status:** Accepted · **Milestone:** `v3-three-tabs`
 
 ## Context
 
