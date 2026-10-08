@@ -109,7 +109,7 @@ export function DayPlanner({
           <OutfitBoard slots={slots} focus={step} onFocus={setStep} onRemove={remove} />
           <div className="board-status">
             {!complete ? (
-              <span className="verdict empty">
+              <span className="verdict todo">
                 <Icon name="info" />
                 {dress ? 'Add shoes to finish the outfit' : 'Pick a top, a bottom and shoes'}
               </span>

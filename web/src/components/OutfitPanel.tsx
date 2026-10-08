@@ -57,7 +57,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
 
       <div className="board-status">
         {!complete ? (
-          <span className="verdict empty">
+          <span className="verdict todo">
             <Icon name="info" />
             Add a top, bottom and shoes (or a dress and shoes)
           </span>

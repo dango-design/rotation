@@ -277,8 +277,7 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .slot .garment { width: 100%; height: 100%; display: block; filter: drop-shadow(0 10px 10px rgba(28, 27, 25, 0.15)); }
 .slot:hover { box-shadow: inset 0 0 0 1.5px rgba(28, 27, 25, 0.18); }
 .slot.focused { box-shadow: inset 0 0 0 2px var(--ink); }
-.slot.empty { border: 1.5px dashed var(--line-2); background: rgba(255, 255, 255, 0.35); display: grid; place-items: center; color: var(--ink-3); font-weight: 600; font-size: 13px; }
-.slot.empty.focused { border-color: var(--ink); color: var(--ink); box-shadow: none; }
+.slot.hole { border: 1.5px dashed var(--line-2); background: rgba(255, 255, 255, 0.4); display: grid; place-items: center; color: var(--ink-3); font-weight: 600; font-size: 13px; pointer-events: none; animation: fade 0.2s ease; }
 .slot.trial { box-shadow: inset 0 0 0 1.5px var(--gap); background: rgba(234, 239, 247, 0.55); }
 .slot.trial.focused { box-shadow: inset 0 0 0 2px var(--gap); }
 .slot-x { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.95); display: none; place-items: center; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
@@ -291,7 +290,7 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .verdict svg { width: 17px; height: 17px; flex: none; }
 .verdict.ok { background: var(--good-tint); color: var(--good); }
 .verdict.bad { background: var(--warn-tint); color: var(--warn); }
-.verdict.empty { background: var(--panel); color: var(--ink-3); border: 1px solid var(--line); }
+.verdict.todo { background: var(--panel); color: var(--ink-3); border: 1px solid var(--line); }
 
 .slot-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 14px 0 6px; padding: 3px; background: var(--tile); border-radius: 12px; }
 .slot-tabs button { border: 0; background: none; height: 30px; border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--ink-2); }

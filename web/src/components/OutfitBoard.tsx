@@ -34,18 +34,15 @@ export function OutfitBoard({
     const it = slots[s] ? st.wearableById(slots[s]) : undefined;
     const focused = focus === s ? 'focused' : '';
     const box = { left: `${l + w * 0.18}%`, top: `${t + w * 0.18}%`, width: `${w * 0.64}%`, aspectRatio: '1' };
-    if (s === 'bottom' && dressOn)
+    // Only the spot being filled is outlined; the step tabs (or the closet filters) choose it.
+    if (!it) {
+      if (focus !== s) return null;
       return (
-        <div key={s} className="slot empty" style={{ ...box, opacity: 0.6 }}>
-          Dress covers this
+        <div key={s} className="slot hole" style={box} aria-hidden="true">
+          {s === 'bottom' && dressOn ? 'Dress covers this' : SLOT_LABEL[s]}
         </div>
       );
-    if (!it)
-      return (
-        <div key={s} className={`slot empty ${focused}`} role="button" tabIndex={0} onClick={() => onFocus(s)} onKeyDown={(e) => e.key === 'Enter' && onFocus(s)} style={box}>
-          + {SLOT_LABEL[s]}
-        </div>
-      );
+    }
     const isTrial = !('wears' in it);
     const pos = it.cat === 'dress' ? [46, 4, 52] : [l, t, w];
     return (
