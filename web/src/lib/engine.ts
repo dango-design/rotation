@@ -177,4 +177,14 @@ export function forSlot(slot: Slot, slots: OutfitSlots, closet: Item[], catalog:
   return { mine, shop };
 }
 
+/** Whether a piece works with what is on the board, taking its own slot (a dress also replaces the bottom). */
+export function fitsBoard(item: Wearable, slots: OutfitSlots, byId: (id: string) => Wearable | undefined) {
+  const slot = slotOf(item);
+  const others = (Object.entries(slots) as [Slot, string | undefined][])
+    .filter(([k, v]) => v && k !== slot && !(item.cat === 'dress' && k === 'bottom'))
+    .map(([, v]) => byId(v!))
+    .filter((w): w is Wearable => !!w);
+  return check([...others, item]).ok;
+}
+
 export const cpw = (i: Item) => (i.price && i.wears ? i.price / i.wears : null);

@@ -17,6 +17,8 @@ interface Draft {
   name: string;
   slots: OutfitSlots;
   focus: Slot;
+  /** The day to plan it for, when it was started from a day on Today. */
+  date?: string;
 }
 
 interface State {
@@ -38,6 +40,8 @@ const uid = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? cry
 function useStoreValue() {
   const [s, setS] = useState<State>(EMPTY);
   const [draft, setDraft] = useState<Draft>({ name: 'New outfit', slots: {}, focus: 'top' });
+  /** The outfit board is open beside the closet. */
+  const [building, setBuilding] = useState(false);
   const [forecastFor, setForecastFor] = useState<{ key: string; data: Forecast | null } | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -260,6 +264,8 @@ function useStoreValue() {
   /** Keeps demo mode on while moving around the app. */
   const href = useCallback((path: string) => (s.demo ? `${path}${path.includes('?') ? '&' : '?'}demo` : path), [s.demo]);
   const imageFor = useCallback((i?: { imageId?: string }) => (i?.imageId ? s.images[i.imageId] : undefined), [s.images]);
+  /** Opens the outfit board in the closet with this outfit on it; the caller navigates to the closet. */
+  const build = useCallback((d: Draft) => (setDraft(d), setBuilding(true)), []);
 
   return useMemo(
     () => ({
@@ -269,6 +275,9 @@ function useStoreValue() {
       skyWord: weather ? skyWord(weather.sky) : undefined,
       draft,
       setDraft,
+      building,
+      setBuilding,
+      build,
       toastMsg,
       toast,
       itemById,
@@ -290,7 +299,7 @@ function useStoreValue() {
       exportData,
       importData,
     }),
-    [s, weather, draft, toastMsg, toast, itemById, wearableById, imageFor, href, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData],
+    [s, weather, draft, building, build, toastMsg, toast, itemById, wearableById, imageFor, href, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData],
   );
 }
 

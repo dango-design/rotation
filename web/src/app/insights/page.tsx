@@ -1,7 +1,7 @@
 'use client';
 
 import { useUI } from '@/components/Shell';
-import { Icon, money, Tile } from '@/components/ui';
+import { money, Tile } from '@/components/ui';
 import { daysBetween, todayISO } from '@/lib/dates';
 import { cpw, totalOutfits } from '@/lib/engine';
 import { plural } from '@/lib/format';
@@ -14,8 +14,8 @@ export default function Insights() {
   if (!st.items.length)
     return (
       <div className="card empty" style={{ marginTop: 40 }}>
-        <h2>Insights need a closet</h2>
-        <p>Once you add pieces and log a few outfits, this page shows what you wear, what waits, and what each piece costs per wear.</p>
+        <h2>The closet report needs a closet</h2>
+        <p>Once you add pieces and log a few outfits, this page shows what you wear most, where your clothes come from, and what each piece costs per wear.</p>
       </div>
     );
 
@@ -25,10 +25,6 @@ export default function Insights() {
   const weekWears = st.wears.filter((w) => daysBetween(w.date, today) < 7).length;
   const most = [...st.items].sort((a, b) => b.wears - a.wears).slice(0, 8);
   const max = Math.max(1, most[0]?.wears ?? 1);
-  const waiting = [...st.items]
-    .filter((i) => i.cat !== 'acc')
-    .sort((a, b) => (a.lastWorn ?? '').localeCompare(b.lastWorn ?? '') || a.wears - b.wears)
-    .slice(0, 5);
   const counts = new Map<string, number>();
   st.items.forEach((i) => {
     const k = i.store ?? i.brand ?? 'Unknown';
@@ -43,7 +39,7 @@ export default function Insights() {
     <>
       <header className="page-head">
         <div>
-          <div className="eyebrow">Insights</div>
+          <div className="eyebrow">Closet report</div>
           <h1>{worn90 / st.items.length >= 0.6 ? 'Your closet is working' : 'Room to rotate'}</h1>
           <p className="sub">
             {worn90} of your {plural(st.items.length, 'piece')} {worn90 === 1 ? 'was' : 'were'} worn in the last 90 days.
@@ -102,43 +98,20 @@ export default function Insights() {
             Wears · cost per wear
           </p>
         </article>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <article className="card card-pad">
-            <h3 className="small">Waiting to be worn</h3>
-            <p className="meta-line">The pieces you&apos;ve gone longest without</p>
-            <div style={{ marginTop: 8 }}>
-              {waiting.map((it) => (
-                <div className="waiting-row" key={it.id}>
-                  <Tile w={it} />
-                  <div>
-                    <b>{it.name}</b>
-                    <small>
-                      {it.wears} wears{it.lastWorn ? ` · last ${daysBetween(it.lastWorn, today)} days ago` : ' · not worn yet'}
-                    </small>
-                  </div>
-                  <button className="btn xs" onClick={() => ui.open({ type: 'item', id: it.id })}>
-                    <Icon name="builder" />
-                    Style it
-                  </button>
+        <article className="card card-pad">
+          <h3 className="small">Pieces by brand or store</h3>
+          <div className="bars">
+            {shown.map(([k, n]) => (
+              <div key={k} className="bar-row" style={{ gridTemplateColumns: 'minmax(0,150px) 1fr 40px' }} title={`${k}: ${n} pieces`}>
+                <span className="nm">{k}</span>
+                <div className="bar-track">
+                  <div className="bar-fill" style={{ width: `${(n / smax) * 100}%` }} />
                 </div>
-              ))}
-            </div>
-          </article>
-          <article className="card card-pad">
-            <h3 className="small">Pieces by brand or store</h3>
-            <div className="bars">
-              {shown.map(([k, n]) => (
-                <div key={k} className="bar-row" style={{ gridTemplateColumns: 'minmax(0,150px) 1fr 40px' }} title={`${k}: ${n} pieces`}>
-                  <span className="nm">{k}</span>
-                  <div className="bar-track">
-                    <div className="bar-fill" style={{ width: `${(n / smax) * 100}%` }} />
-                  </div>
-                  <span className="val">{n}</span>
-                </div>
-              ))}
-            </div>
-          </article>
-        </div>
+                <span className="val">{n}</span>
+              </div>
+            ))}
+          </div>
+        </article>
       </div>
     </>
   );

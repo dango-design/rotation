@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
-import { check, duplicate, rankPieces, totalOutfits, unlock, whyLine } from './engine';
+import { check, duplicate, fitsBoard, rankPieces, totalOutfits, unlock, whyLine } from './engine';
 import type { Item } from './types';
 
 const { items } = demoData();
@@ -56,5 +56,19 @@ describe('dresses', () => {
   it('count as complete outfits with shoes', () => {
     const dress: Item = { ...pieceById('p-dress-black')!, brand: 'Zara', source: 'manual', wears: 0, createdAt: '' };
     expect(totalOutfits([...items, dress])).toBeGreaterThan(100);
+  });
+});
+
+describe('fitting pieces to the board', () => {
+  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
+  it('rejects a piece that clashes with the rest of the board', () => {
+    expect(fitsBoard(byShort('o1'), { bottom: byShort('b1').id }, byId)).toBe(false);
+    expect(fitsBoard(byShort('o1'), { bottom: byShort('b2').id }, byId)).toBe(true);
+  });
+  it('ignores the piece it would replace', () => {
+    expect(fitsBoard(byShort('b2'), { bottom: byShort('b1').id, outer: byShort('o1').id }, byId)).toBe(true);
+  });
+  it('lets a dress replace the bottom', () => {
+    expect(fitsBoard(pieceById('p-dress-black')!, { bottom: byShort('b2').id }, byId)).toBe(true);
   });
 });
