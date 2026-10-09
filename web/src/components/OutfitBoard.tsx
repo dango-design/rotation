@@ -10,7 +10,7 @@ import { ASPECT, clampW, heightOf, keepVisible, resizeAround, resolveLayout, res
 import { useStore } from '@/lib/store';
 import type { Layout, OutfitSlots, Piece, PieceLayout, Slot } from '@/lib/types';
 import { useUI } from './Shell';
-import { Art, Icon, money } from './ui';
+import { Art, BoardSwatches, Icon, money } from './ui';
 
 export const SLOT_LABEL: Record<Slot, string> = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', bag: 'Bag', jewelry: 'Jewelry', acc: 'Accessory' };
 
@@ -184,11 +184,14 @@ export function OutfitBoard({
         </div>
       )}
 
-      {layout && !empty && (
-        <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onLayout(undefined), setPicked(null))} title="Put every piece back at its true size and spot">
-          Tidy up
-        </button>
-      )}
+      <div className="canvas-corner">
+        <BoardSwatches className="canvas-bg" />
+        {layout && !empty && (
+          <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onLayout(undefined), setPicked(null))} title="Put every piece back at its true size and spot">
+            Tidy up
+          </button>
+        )}
+      </div>
     </div>
   );
 }

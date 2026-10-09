@@ -1,17 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { averageColor, removeBackground, toJpegBase64, warmUp } from '@/lib/bgremove';
 import { nearestSwatch, swatchByName, TYPES } from '@/lib/catalog-meta';
+import { hintFrom, PART_TYPE, pathWords, type Hint } from '@/lib/garment-hints';
 import { useStore } from '@/lib/store';
 import type { GarmentType } from '@/lib/types';
+import { findInPhoto, findInProduct, findInProductPhoto, photoUrl, toJpegBase64, type Found, type Piece } from '@/lib/vision/find';
+import { warmUp } from '@/lib/vision/models';
 import { ItemForm, type ItemFields } from './ItemForm';
 import { Icon } from './ui';
 
 type Step =
   | { kind: 'choose' }
   | { kind: 'working'; label: string; original?: string }
-  | { kind: 'pick'; original: string; cutout: string; originalBlob: Blob; cutoutBlob: Blob; rgb: [number, number, number] }
+  | { kind: 'pick' }
   | { kind: 'link' }
   | { kind: 'form'; initial: Partial<ItemFields>; blob?: Blob; url?: string; ai?: boolean };
 
@@ -20,6 +22,33 @@ interface Tags {
   type?: GarmentType;
   colorName?: string;
   brand?: string | null;
+}
+
+interface Product {
+  title: string;
+  brand: string | null;
+  store: string;
+  price: number | null;
+  category: string;
+  images: string[];
+  url: string;
+}
+
+type Shown = Piece & { url: string };
+
+/** Pieces found in one photo or product page, and which of them are being added. */
+interface Session {
+  from: 'photo' | 'link';
+  sure: boolean;
+  pieces: Shown[];
+  selected: string[];
+  /** Pieces still to add after the one in the form. */
+  queue: string[];
+  /** Position of the piece in the form, for "Piece 2 of 3". */
+  index: number;
+  total: number;
+  product?: Product;
+  hint?: Hint;
 }
 
 /** Ask the server to tag a photo with Claude; returns null when tagging is off or fails. */
@@ -34,23 +63,32 @@ async function tagPhoto(blob: Blob): Promise<Tags | null> {
   }
 }
 
-function fieldsFrom(tags: Tags | null, rgb: [number, number, number], source: ItemFields['source']): Partial<ItemFields> {
-  const sw = (tags?.colorName && swatchByName(tags.colorName)) || nearestSwatch(...rgb);
-  const type = tags?.type && TYPES[tags.type] ? tags.type : undefined;
-  return {
-    source,
+/** Form fields for a piece: Claude's tags first, then what the product name says, then what the parser saw. */
+function fieldsFor(piece: Pick<Piece, 'part' | 'rgb' | 'cutout'>, tags: Tags | null, found: Session): Partial<ItemFields> {
+  const sw = (tags?.colorName && swatchByName(tags.colorName)) || nearestSwatch(...piece.rgb);
+  const fromHint = found.hint && (!piece.part || piece.part === found.hint.part) ? found.hint.type ?? PART_TYPE[found.hint.part] : undefined;
+  const type = (tags?.type && TYPES[tags.type] ? tags.type : undefined) ?? fromHint ?? (piece.part ? PART_TYPE[piece.part] : undefined);
+  const base: Partial<ItemFields> = {
+    source: found.from,
+    cutout: piece.cutout,
     name: tags?.name ?? '',
     brand: tags?.brand ?? '',
     colorName: sw.name,
     ...(type ? { type, cat: TYPES[type].cat } : {}),
   };
+  const p = found.product;
+  if (!p) return base;
+  return { ...base, name: p.title || base.name, brand: p.brand || base.brand || p.store || '', store: p.brand && p.store !== p.brand ? p.store : undefined, price: p.price ?? undefined, link: p.url };
 }
 
 export function AddItemDialog({ onClose }: { onClose: () => void }) {
   const { addItem, toast, demo } = useStore();
   const [step, setStep] = useState<Step>({ kind: 'choose' });
+  const [found, setFound] = useState<Session | null>(null);
   const [error, setError] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  /** The page photo being searched after the person picked it. */
+  const [busyPhoto, setBusyPhoto] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const urls = useRef<string[]>([]);
   const track = (u: string) => (urls.current.push(u), u);
@@ -61,68 +99,140 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
     return () => tracked.forEach((u) => URL.revokeObjectURL(u));
   }, []);
 
+  const show = (f: Found, from: Session['from'], extra: Pick<Session, 'product' | 'hint'> = {}): Session => ({
+    from,
+    sure: f.sure,
+    pieces: f.pieces.map((p) => ({ ...p, url: track(URL.createObjectURL(p.blob)) })),
+    selected: f.guess ? [f.guess] : [],
+    queue: [],
+    index: 0,
+    total: 0,
+    ...extra,
+  });
+
+  /** Tag the next piece in the queue and open its details. */
+  const openNext = async (f: Session) => {
+    const [id, ...queue] = f.queue;
+    const piece = f.pieces.find((p) => p.id === id);
+    if (!piece) return;
+    const next = { ...f, queue, index: f.index + 1 };
+    setFound(next);
+    setStep({ kind: 'working', label: 'Reading the photo…', original: piece.url });
+    const tags = await tagPhoto(piece.blob);
+    setStep({ kind: 'form', initial: fieldsFor(piece, tags, next), blob: piece.blob, url: piece.url, ai: !!tags });
+  };
+
+  const add = (f: Session, ids: string[]) => openNext({ ...f, selected: ids, queue: ids, index: 0, total: ids.length });
+
   const onFile = async (file: File) => {
     setError('');
     const original = track(URL.createObjectURL(file));
-    setStep({ kind: 'working', label: 'Removing the background…', original });
+    setStep({ kind: 'working', label: 'Finding the clothes in your photo…', original });
     try {
-      const cut = await removeBackground(file);
-      setStep({ kind: 'pick', original, cutout: track(URL.createObjectURL(cut.blob)), originalBlob: file, cutoutBlob: cut.blob, rgb: cut.rgb });
+      // One retry covers a model download that was cut off.
+      const result = await findInPhoto(file).catch(() => findInPhoto(file));
+      const f = show(result, 'photo');
+      setFound(f);
+      if (f.sure) add(f, [f.pieces[0].id]);
+      else setStep({ kind: 'pick' });
     } catch {
       setError("Couldn't remove the background, so the original photo will be used.");
-      const rgb = await averageColor(file).catch(() => [200, 200, 200] as [number, number, number]);
+      const f: Session = { from: 'photo', sure: false, pieces: [], selected: [], queue: [], index: 0, total: 1 };
+      setFound(f);
       setStep({ kind: 'working', label: 'Reading the photo…', original });
       const tags = await tagPhoto(file);
-      setStep({ kind: 'form', initial: fieldsFrom(tags, rgb, 'photo'), blob: file, url: original, ai: !!tags });
+      setStep({ kind: 'form', initial: fieldsFor({ rgb: [200, 200, 200], cutout: false }, tags, f), blob: file, url: original, ai: !!tags });
     }
-  };
-
-  const choosePhoto = async (which: 'cutout' | 'original') => {
-    if (step.kind !== 'pick') return;
-    const blob = which === 'cutout' ? step.cutoutBlob : step.originalBlob;
-    const url = which === 'cutout' ? step.cutout : step.original;
-    const rgb = step.rgb;
-    setStep({ kind: 'working', label: 'Reading the photo…', original: url });
-    const tags = await tagPhoto(blob);
-    setStep({ kind: 'form', initial: fieldsFrom(tags, rgb, 'photo'), blob, url, ai: !!tags });
   };
 
   const importLink = async () => {
     setError('');
     setStep({ kind: 'working', label: 'Reading the product page…' });
+    let product: Product;
     try {
       const res = await fetch('/api/link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: linkUrl }) });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'That page could not be read.');
-      let blob: Blob | undefined;
-      let url: string | undefined;
-      let rgb: [number, number, number] = [200, 200, 200];
-      if (d.image) {
-        blob = await (await fetch(d.image)).blob();
-        url = track(URL.createObjectURL(blob));
-        rgb = await averageColor(blob).catch(() => rgb);
-      }
-      const tags = blob ? await tagPhoto(blob) : null;
-      const initial = fieldsFrom(tags, rgb, 'link');
-      setStep({
-        kind: 'form',
-        initial: { ...initial, name: d.title || initial.name, brand: d.brand || initial.brand || d.store || '', store: d.store && d.store !== d.brand ? d.store : undefined, price: d.price ?? undefined, link: linkUrl },
-        blob,
-        url,
-        ai: !!tags,
-      });
+      product = { ...d, url: linkUrl };
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That page could not be read.');
       setStep({ kind: 'link' });
+      return;
     }
+
+    const hint = hintFrom(product.title, product.category, pathWords(product.url));
+    let result: Found | null = null;
+    if (product.images.length) {
+      setStep({ kind: 'working', label: 'Finding the product in its photos…' });
+      result = await findInProduct(product.images, hint, (done, total) =>
+        setStep({ kind: 'working', label: total > 1 ? `Checking photo ${done} of ${total}…` : 'Removing the background…' }),
+      ).catch(() => null);
+    }
+    if (!result) {
+      // No usable photo: keep the details and draw the piece instead.
+      if (product.images.length) setError("Couldn't load the product's photos, so we'll draw it instead.");
+      const f: Session = { from: 'link', sure: false, pieces: [], selected: [], queue: [], index: 1, total: 1, product, hint };
+      setFound(f);
+      setStep({ kind: 'form', initial: fieldsFor({ rgb: [200, 200, 200], cutout: false }, null, f) });
+      return;
+    }
+    const f = show(result, 'link', { product, hint });
+    setFound(f);
+    if (f.sure) add(f, [f.pieces[0].id]);
+    else setStep({ kind: 'pick' });
   };
 
-  const save = (f: ItemFields, blob?: Blob) => {
-    addItem(f, blob);
-    toast(`${f.name} added to your closet${demo ? ' (demo, not saved)' : ''}`);
+  const save = (fields: ItemFields, blob?: Blob) => {
+    addItem(fields, blob);
+    toast(`${fields.name} added to your closet${demo ? ' (demo, not saved)' : ''}`);
+    if (found?.queue.length) return openNext(found);
+    setFound(null);
+    setError('');
     setStep({ kind: 'choose' });
     setLinkUrl('');
   };
+
+  /** The person picked a photo from the page: show its cutout, finding the product in it first if it wasn't checked. */
+  const pickPhoto = async (i: number) => {
+    const f = found;
+    if (!f?.product) return;
+    const have = f.pieces.find((p) => p.photo === i && p.cutout) ?? f.pieces.find((p) => p.photo === i);
+    if (have) return setFound({ ...f, selected: [have.id] });
+    setError('');
+    setBusyPhoto(i);
+    try {
+      const pieces = (await findInProductPhoto(f.product.images[i], i, f.hint)).map((p) => ({ ...p, url: track(URL.createObjectURL(p.blob)) }));
+      setFound((cur) => cur && { ...cur, pieces: [...pieces, ...cur.pieces], selected: [pieces[0].id] });
+    } catch {
+      setError("Couldn't read that photo. Try another one.");
+    }
+    setBusyPhoto(null);
+  };
+
+  const toggle = (id: string) =>
+    setFound((f) => {
+      if (!f) return f;
+      // A product page is one product, so pick one; a photo can hold several pieces worth adding.
+      const selected = f.from === 'link' ? [id] : f.selected.includes(id) ? f.selected.filter((s) => s !== id) : [...f.selected, id];
+      return { ...f, selected };
+    });
+
+  // "As one piece" isn't counted: it's the same pieces together, offered in case they are one.
+  const cutouts = found?.pieces.filter((p) => p.cutout && !p.together).length ?? 0;
+  const pickLede =
+    found?.from === 'link'
+      ? found.sure
+        ? "Here's the piece we found. If it isn't right, or the photo cuts it off, pick another cutout or another photo from the page."
+        : "We couldn't tell for sure which piece is the product. Pick it, or choose a photo from the page that shows all of it."
+      : cutouts > 1
+        ? `We found ${cutouts} pieces in your photo. Pick the ones you want to add; each gets its own details next.`
+        : found?.sure
+          ? 'Pick the cutout, or use the photo as it is.'
+          : "We couldn't find one clear piece in this photo. Pick the cutout if it looks right, or use the photo as it is.";
+  const chosen = found?.selected.length ?? 0;
+  // On a product page: the piece shown large, and every photo on the page to pick from.
+  const shownPick = found?.pieces.find((p) => p.id === found.selected[0]) ?? found?.pieces[0];
+  const pagePhotos = found?.from === 'link' ? (found.product?.images.slice(0, 12) ?? []) : [];
 
   return (
     <>
@@ -143,13 +253,16 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
                 accept="image/*"
                 capture="environment"
                 hidden
-                onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+                onChange={(e) => {
+                  if (e.target.files?.[0]) onFile(e.target.files[0]);
+                  e.target.value = '';
+                }}
               />
               <div className="add-options">
                 <button className="add-opt rec" onClick={() => fileRef.current?.click()}>
                   <Icon name="camera" />
                   <b>Photo</b>
-                  <small>Take or upload one; the background is removed on your device</small>
+                  <small>Take or upload one; we find each piece and remove the background on your device</small>
                 </button>
                 <button className="add-opt" onClick={() => setStep({ kind: 'link' })}>
                   <Icon name="link" />
@@ -179,29 +292,84 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
                   <img className="photo" src={step.original} alt="" />
                 </div>
               )}
-              <div className="processing">
+              <div className="processing" role="status">
                 <span className="spinner" />
                 {step.label}
               </div>
             </>
           )}
 
-          {step.kind === 'pick' && (
+          {step.kind === 'pick' && found && (
             <>
-              <h2>Which looks right?</h2>
-              <p className="lede">Background removal is automatic and usually works best on a plain surface.</p>
-              <div className="grid2" style={{ marginTop: 16 }}>
-                <button className="add-opt rec" onClick={() => choosePhoto('cutout')}>
-                  <div className="tile">
-                    <img className="photo" src={step.cutout} alt="Background removed" />
+              <h2>{found.from === 'link' ? 'Which one is it?' : cutouts > 1 ? 'Which pieces?' : 'Does this look right?'}</h2>
+              <p className="lede">{pickLede}</p>
+              <div className={found.from === 'link' ? 'pick-layout' : undefined}>
+                {found.from === 'link' && shownPick && (
+                  <div className="pick-big">
+                    <div className="tile">
+                      <img className={`photo ${shownPick.cutout ? '' : 'as-is'}`} src={shownPick.url} alt={shownPick.label} />
+                    </div>
+                    <span className="pick-caption">
+                      {shownPick.label}
+                      {shownPick.photo !== undefined && pagePhotos.length > 1 ? ` · photo ${shownPick.photo + 1} of ${pagePhotos.length}` : ''}
+                    </span>
+                    {shownPick.clipped && <span className="pick-warn">The photo cuts this piece off. Try another photo from the page.</span>}
                   </div>
-                  <b>Background removed</b>
+                )}
+                <div className="piece-picks" role="group" aria-label="Pieces found">
+                  {found.pieces.map((p) => {
+                    const on = found.selected.includes(p.id);
+                    return (
+                      <button key={p.id} type="button" className={`piece-pick ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(p.id)}>
+                        <div className="tile">
+                          <img className={`photo ${p.cutout ? '' : 'as-is'}`} src={p.url} alt="" />
+                          <span className="pick-check" aria-hidden="true">
+                            <Icon name="check" />
+                          </span>
+                        </div>
+                        <span>{p.label}</span>
+                        {p.clipped && <small className="pick-note">Cut off by the photo</small>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {pagePhotos.length > 1 && (
+                <div className="page-photos">
+                  <div className="group-label">Photos on the page</div>
+                  <div className="photo-strip" role="group" aria-label="Photos on the product page">
+                    {pagePhotos.map((u, i) => {
+                      const on = shownPick?.photo === i;
+                      return (
+                        <button
+                          key={u}
+                          type="button"
+                          className={`strip-photo ${on ? 'on' : ''}`}
+                          aria-pressed={on}
+                          aria-label={`Use photo ${i + 1} from the page`}
+                          disabled={busyPhoto !== null}
+                          onClick={() => pickPhoto(i)}
+                        >
+                          <img src={photoUrl(u)} alt="" loading="lazy" />
+                          {busyPhoto === i && (
+                            <span className="strip-busy">
+                              <span className="spinner" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="meta-line">Pick the photo that shows the whole piece, and we&apos;ll cut it out.</p>
+                </div>
+              )}
+              {error && <p className="error-note">{error}</p>}
+              <div className="modal-actions">
+                <button type="button" className="btn ghost" onClick={() => setStep(found.from === 'link' ? { kind: 'link' } : { kind: 'choose' })}>
+                  Back
                 </button>
-                <button className="add-opt" onClick={() => choosePhoto('original')}>
-                  <div className="tile">
-                    <img className="photo" src={step.original} alt="Original" />
-                  </div>
-                  <b>Keep the original</b>
+                <button type="button" className="btn primary" disabled={!chosen || busyPhoto !== null} onClick={() => add(found, found.selected)}>
+                  {found.from === 'link' ? 'Use this one' : chosen > 1 ? `Add ${chosen} pieces` : 'Add this piece'}
                 </button>
               </div>
             </>
@@ -210,7 +378,7 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
           {step.kind === 'link' && (
             <>
               <h2>Add from a product link</h2>
-              <p className="lede">Paste a product page from any online store. We read its name, photo and price.</p>
+              <p className="lede">Paste a product page from any online store. We read its name and price, find the product in its photos and remove the background.</p>
               <form
                 className="form"
                 onSubmit={(e) => {
@@ -237,16 +405,27 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
 
           {step.kind === 'form' && (
             <>
+              {found && found.total > 1 && (
+                <div className="eyebrow">
+                  Piece {found.index} of {found.total}
+                </div>
+              )}
               <h2>Check the details</h2>
               <p className="lede">Type and color decide what it pairs with. Price makes cost per wear work.</p>
               {error && <p className="error-note">{error}</p>}
               <ItemForm
+                key={`${found?.index ?? 0}-${step.url ?? ''}`}
                 initial={step.initial}
                 previewUrl={step.url}
                 aiTagged={step.ai}
-                submitLabel="Add to closet"
+                submitLabel={found && found.queue.length ? 'Add and go to the next piece' : 'Add to closet'}
+                onChangePhoto={found && found.total <= 1 && (found.pieces.length > 1 || (found.product?.images.length ?? 0) > 1) ? () => setStep({ kind: 'pick' }) : undefined}
                 onSubmit={(f) => save(f, step.blob)}
-                onCancel={() => setStep({ kind: 'choose' })}
+                onCancel={() => {
+                  setFound(null);
+                  setError('');
+                  setStep({ kind: 'choose' });
+                }}
               />
             </>
           )}
