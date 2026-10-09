@@ -29,24 +29,64 @@ export interface StepPiece {
   why?: string;
 }
 
-/** Every owned piece for a step: ones that work with the outfit so far come first, then the best match for the occasion, then the freshest; the top two are suggested. */
+/** Pieces meant for the cold, and pieces meant for the heat. Everything else works most of the year. */
+const WARM = new Set(['sweater', 'hoodie', 'cardigan', 'coat', 'puffer', 'beanie']);
+const LIGHT = new Set(['linenshirt']);
+
+/** How well one piece suits the day's temperature (°F): 1 a good match, 0 fine, -1 out of season. */
+export const weatherFit = (i: Wearable, temp?: number) => {
+  if (temp === undefined) return 0;
+  if (WARM.has(i.type)) return temp >= 72 ? -1 : temp <= 55 ? 1 : 0;
+  if (LIGHT.has(i.type)) return temp <= 55 ? -1 : temp >= 75 ? 1 : 0;
+  return 0;
+};
+
+/** Worn within the last week: suggested again only when nothing else fits. */
+const RECENT_DAYS = 7;
+
+/**
+ * Every owned piece for a step, in suggested order: pieces that work with the outfit so far, then the best match
+ * for the occasion and the weather, then ones not worn this week, then the ones worn most (what's in rotation).
+ * A long gap is not a reason on its own: a piece unworn for months may be seasonal or for one kind of day.
+ */
 export function piecesFor(
   slot: Slot,
   slots: OutfitSlots,
   closet: Item[],
   byId: (id: string) => Wearable | undefined,
-  opts: { occasion: Settings['occasion']; today: string },
+  opts: { occasion: Settings['occasion']; today: string; temp?: number },
 ): StepPiece[] {
-  const since = (i: Item) => (i.lastWorn ? daysBetween(i.lastWorn, opts.today) : 999);
+  const since = (i: Item) => (i.lastWorn ? daysBetween(i.lastWorn, opts.today) : Infinity);
   const rows = closet
     .filter((i) => slotOf(i) === slot)
-    .map((item) => ({ item, fits: fitsBoard(item, slots, byId), suits: occasionFit(item, opts.occasion) }))
-    .sort((a, b) => Number(b.fits) - Number(a.fits) || b.suits - a.suits || since(b.item) - since(a.item));
-  const picks = rows.filter((r) => r.fits && r.suits > 0 && r.item.id !== slots[slot]).slice(0, 2);
-  return rows.map(({ item, fits }) => {
+    .map((item) => ({
+      item,
+      fits: fitsBoard(item, slots, byId),
+      suits: occasionFit(item, opts.occasion),
+      weather: weatherFit(item, opts.temp),
+      rested: since(item) >= RECENT_DAYS,
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.fits) - Number(a.fits) ||
+        b.suits - a.suits ||
+        b.weather - a.weather ||
+        Number(b.rested) - Number(a.rested) ||
+        b.item.wears - a.item.wears,
+    );
+  const candidates = rows.filter((r) => r.fits && r.suits > 0 && r.weather >= 0 && r.item.id !== slots[slot]);
+  const picks = [...candidates.filter((r) => r.rested), ...candidates.filter((r) => !r.rested)].slice(0, 2);
+  return rows.map(({ item, fits, suits, weather }) => {
     const suggested = picks.some((p) => p.item.id === item.id);
-    const d = since(item);
-    const why = !suggested ? undefined : d === 999 ? 'Not worn yet' : d >= 14 ? `Not worn in ${d} days` : Object.keys(slots).length ? 'Goes with your picks' : 'Fits the day';
+    const why = !suggested
+      ? undefined
+      : weather > 0
+        ? `${WARM.has(item.type) ? 'Warm' : 'Light'} for ${opts.temp}°`
+        : Object.keys(slots).length
+          ? 'Goes with your picks'
+          : suits === 2
+            ? `Right for a ${opts.occasion} day`
+            : 'Not worn this week';
     return { item, fits, suggested, why };
   });
 }

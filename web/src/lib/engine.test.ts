@@ -4,6 +4,7 @@ import { demoData } from './demo';
 import { check, duplicate, fitsBoard, rankPieces, totalOutfits, unlock, whyLine } from './engine';
 import { nextStep, piecesFor } from './planning';
 import { RANGE } from './today';
+import { daysBetween } from './dates';
 import type { Item } from './types';
 
 const { items } = demoData();
@@ -108,5 +109,20 @@ describe('the occasion shapes suggestions', () => {
       expect(fs.every((f) => f >= lo && f <= hi) || occasion === 'dressy').toBe(true);
     }
     expect(top('casual')).not.toEqual(top('work'));
+  });
+});
+
+describe('suggestions follow the season, not just the calendar', () => {
+  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
+  const suggestedTops = (temp?: number) =>
+    piecesFor('top', {}, items, byId, { occasion: 'work', today: '2026-10-07', temp }).filter((r) => r.suggested).map((r) => r.item);
+  it("doesn't push a sweater on a hot day just because it hasn't been worn", () => {
+    expect(suggestedTops(84).some((i) => i.type === 'sweater')).toBe(false);
+  });
+  it('suggests something warm on a cold day', () => {
+    expect(suggestedTops(48).some((i) => i.type === 'sweater')).toBe(true);
+  });
+  it("doesn't suggest a piece worn this week", () => {
+    expect(suggestedTops().every((i) => !i.lastWorn || daysBetween(i.lastWorn, '2026-10-07') >= 7)).toBe(true);
   });
 });

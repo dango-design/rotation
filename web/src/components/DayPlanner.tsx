@@ -5,11 +5,20 @@
 
 import { useState } from 'react';
 import { isComplete, SLOTS } from '@/lib/engine';
-import { nextStep, piecesFor, STEPS } from '@/lib/planning';
+import { nextStep, piecesFor, STEPS, type StepPiece } from '@/lib/planning';
 import { useStore } from '@/lib/store';
 import type { OutfitSlots, Settings, Slot } from '@/lib/types';
 import { OutfitBoard } from './OutfitBoard';
 import { Icon, Tile } from './ui';
+
+/** Ways to sort a step's pieces. Suggested keeps the planner's own order; the rest are plain sorts. */
+const SORTS: Record<string, [string, ((a: StepPiece, b: StepPiece) => number) | null]> = {
+  suggested: ['Suggested', null],
+  least: ['Least worn', (a, b) => a.item.wears - b.item.wears],
+  most: ['Most worn', (a, b) => b.item.wears - a.item.wears],
+  recent: ['Recently added', (a, b) => b.item.createdAt.localeCompare(a.item.createdAt)],
+  name: ['Name', (a, b) => a.item.name.localeCompare(b.item.name)],
+};
 
 const OCCASIONS: [Settings['occasion'], string][] = [
   ['casual', 'Casual'],
@@ -46,12 +55,15 @@ export function DayPlanner({
   const [step, setStep] = useState<Slot>(() => nextStep(initial ?? {}, st.wearableById) ?? 'top');
   const [surprises, setSurprises] = useState(0);
   const [occasion, setOccasion] = useState(st.settings.occasion);
+  const [sort, setSort] = useState('suggested');
 
   const pieces = SLOTS.filter((s) => slots[s]).map((s) => st.wearableById(slots[s])!).filter(Boolean);
   const complete = isComplete(slots, st.wearableById);
   // Clashing pieces are faded as a hint, but the outfit is the person's call.
   const ready = complete;
-  const rows = piecesFor(step, slots, st.items, st.wearableById, { occasion, today: date });
+  const suggestedOrder = piecesFor(step, slots, st.items, st.wearableById, { occasion, today: date, temp: weather?.temp });
+  const by = SORTS[sort][1];
+  const rows = by ? [...suggestedOrder].sort(by) : suggestedOrder;
   const dress = st.wearableById(slots.top)?.cat === 'dress';
   const current = STEPS.find((s) => s.slot === step)!;
 
@@ -131,17 +143,26 @@ export function DayPlanner({
         </div>
 
         <div className="planner-steps">
-          <div className="step-tabs" role="tablist" aria-label="Pieces">
-            {STEPS.map((s) => {
-              const covered = s.slot === 'bottom' && dress;
-              return (
-                <button key={s.slot} role="tab" aria-selected={step === s.slot} className={`${step === s.slot ? 'active' : ''} ${slots[s.slot] || covered ? 'done' : ''}`} onClick={() => setStep(s.slot)} disabled={covered}>
-                  {slots[s.slot] || covered ? <Icon name="check" /> : null}
-                  {s.label}
-                  {s.optional && !slots[s.slot] ? <small>optional</small> : null}
-                </button>
-              );
-            })}
+          <div className="step-toolbar">
+            <div className="step-tabs" role="tablist" aria-label="Pieces">
+              {STEPS.map((s) => {
+                const covered = s.slot === 'bottom' && dress;
+                return (
+                  <button key={s.slot} role="tab" aria-selected={step === s.slot} className={`${step === s.slot ? 'active' : ''} ${slots[s.slot] || covered ? 'done' : ''}`} onClick={() => setStep(s.slot)} disabled={covered}>
+                    {slots[s.slot] || covered ? <Icon name="check" /> : null}
+                    {s.label}
+                    {s.optional && !slots[s.slot] ? <small>optional</small> : null}
+                  </button>
+                );
+              })}
+            </div>
+            <select className="select step-sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort pieces">
+              {Object.entries(SORTS).map(([k, [label]]) => (
+                <option key={k} value={k}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
           {stepHint && <p className="step-hint">{stepHint}</p>}
           {rows.length ? (

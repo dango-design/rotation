@@ -723,3 +723,5 @@ a.nav-item { text-decoration: none; }
   .hero { grid-template-columns: 1fr; }
   .hero-visual { border-radius: var(--radius) var(--radius) 0 0; }
 }
+.step-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.step-sort { height: 34px; }
