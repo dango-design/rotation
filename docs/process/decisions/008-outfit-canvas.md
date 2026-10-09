@@ -1,6 +1,6 @@
 # 008 — The outfit board is a canvas, at true-to-life sizes
 
-**Date:** Oct 8, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 8, 2026 · **Status:** Accepted · **Milestone:** `v4-plan-and-canvas`
 
 ## Context
 

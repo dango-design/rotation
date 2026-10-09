@@ -1,6 +1,6 @@
 # 007 — Any piece is an outfit, and finer categories
 
-**Date:** Oct 8, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 8, 2026 · **Status:** Accepted · **Milestone:** `v4-plan-and-canvas`
 
 ## Context
 
