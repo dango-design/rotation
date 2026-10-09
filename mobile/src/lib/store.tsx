@@ -8,6 +8,7 @@ import { TYPES } from '@core/catalog-meta';
 import { todayISO } from '@core/dates';
 import { demoData } from '@core/demo';
 import type { Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from '@core/types';
+import { wornOn } from '@core/wear';
 import { forecast, geocode, skyWord, type Forecast } from '@core/weather';
 import { clearImages, dropImage, imageAsDataUrl, keepImage, uriFor } from './files';
 import * as persist from './persist';
@@ -173,7 +174,7 @@ function useStoreValue() {
     const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}) };
     setS((p) => ({
       ...p,
-      items: p.items.map((i) => (ids.includes(i.id) ? { ...i, wears: i.wears + 1, lastWorn: !i.lastWorn || date > i.lastWorn ? date : i.lastWorn } : i)),
+      items: p.items.map((i) => (ids.includes(i.id) ? wornOn(i, date) : i)),
       wears: [...p.wears, entry],
     }));
   }, []);
