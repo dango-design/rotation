@@ -12,7 +12,8 @@ import { Icon } from './ui';
 
 type Overlay = { type: 'add' } | { type: 'item'; id: string } | { type: 'compare'; id: string } | { type: 'list' } | null;
 
-const UICtx = createContext<{ open: (o: Overlay) => void; close: () => void } | null>(null);
+/** Opens drawers and dialogs. Shell provides it; Storybook provides one that logs what would open. */
+export const UICtx = createContext<{ open: (o: Overlay) => void; close: () => void } | null>(null);
 export const useUI = () => useContext(UICtx)!;
 
 const NAV = [

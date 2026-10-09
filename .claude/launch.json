@@ -15,6 +15,12 @@
       "autoPort": true
     },
     {
+      "name": "storybook",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "web", "run", "storybook", "--", "--no-open"],
+      "port": 6006
+    },
+    {
       "name": "app-prod",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "web", "run", "start", "--", "--port", "3100"],

@@ -36,6 +36,20 @@ npx expo start
 
 Scan the QR code with the phone's camera. See [`mobile/README.md`](mobile/README.md) for what's in it and what's next.
 
+## Storybook
+
+Every part of the app, from color tokens to full pages, in [Storybook](https://storybook.js.org), with a fixed closet, date and weather so each state looks the same every time:
+
+```bash
+cd web
+npm run storybook        # http://localhost:6006
+```
+
+- **For design review:** color tokens with contrast checks, the type scale, icons, every garment illustration in every color, button states, and each page at phone, tablet and desktop widths in light and dark, including empty and first-run states.
+- **For testing:** `npm run test-storybook` renders every story in Chromium, runs its interactions (open a drawer, remove a piece, read a product link) and checks accessibility. Stories are ready for [Chromatic](https://www.chromatic.com) visual tests: add a `CHROMATIC_PROJECT_TOKEN` secret and CI runs them on every pull request.
+
+The Introduction page in Storybook explains how stories get their data and how to add one.
+
 ## What it does
 
 - **Today:** plan each day's outfit piece by piece from what you own. Each step suggests the pieces that go with what you've picked, suit a casual, work or dressy day and the live forecast for your city, and haven't been worn this week. Sort any step by least or most worn, recently added or name. Pick any day in the week strip to plan it or log what you wore; one piece is enough. Or tap Surprise me.
@@ -65,6 +79,8 @@ With the demo closet (30 pieces from 16 stores, dresses and a skirt alongside je
 | `web/src/lib/vision/` | On-device piece finding and background removal: the two models, the decision rules, and the cutouts |
 | `web/src/lib/product-page.ts` | Reads a product page: name, price, and the photos that show the product |
 | `web/src/app/api/` | Server routes for photo tagging (Claude), reading product links, and passing store photos to the browser |
+| `web/src/stories/` | Storybook stories: foundations, components, patterns and pages, with their fixtures |
+| `web/.storybook/` | Storybook setup: fixed date, viewports and themes, Chromatic modes, stand-ins for the server and the on-device models |
 | `mockup/` | The clickable prototype from the concept phase |
 | `docs/process/` | The process log: milestones, screenshots and decision records |
 | `docs/strategy/` | Strategy snapshots for each milestone |
