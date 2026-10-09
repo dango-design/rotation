@@ -762,9 +762,15 @@ a.nav-item { text-decoration: none; }
 .planner-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .planner-head .eyebrow { color: var(--clay-ink); }
 .planner-head .outfit-name { font-size: 34px; }
-.planner-body { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr); gap: 26px; align-items: start; }
-.planner-board { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; position: sticky; top: 20px; }
+.planner-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; align-items: stretch; }
+.planner-board { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .planner-board .board { width: 100%; }
+/* The canvas sets the planner's height and the pieces scroll beside it, so the outfit is the biggest thing here and
+   reaches the bottom of the planner. Size containment keeps the pieces from stretching the row past the canvas. */
+.planner-steps { contain: size; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.planner-steps .step-grid { flex: 1; min-height: 0; margin-top: 0; overflow-y: auto; align-content: start; padding: 2px 6px 6px 2px; }
+.step-sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.step-sub .step-hint { margin: 0; flex: 1; }
 .step-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .step-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--panel); font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .step-tabs button svg { width: 14px; height: 14px; color: var(--good); }
@@ -785,15 +791,17 @@ a.nav-item { text-decoration: none; }
 .suggest-badge { position: absolute; top: 7px; left: 7px; z-index: 1; display: inline-flex; align-items: center; gap: 4px; height: 21px; padding: 0 8px; border-radius: 99px; background: var(--clay); color: #fff; font-size: 10.5px; font-weight: 600; box-shadow: 0 3px 8px rgba(181, 83, 44, 0.3); }
 .suggest-badge svg { width: 11px; height: 11px; }
 .suggest-badge ~ .step-why { color: var(--clay-ink); font-weight: 500; }
-.planner-foot { display: flex; align-items: center; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.planner-foot { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
 .planner-foot .spacer { flex: 1; }
 
 @media (max-width: 900px) {
   .plan-callout { padding: 22px 20px; }
   .callout-body h2 { font-size: 34px; }
   .planner-body { grid-template-columns: 1fr; }
-  .planner-board { position: static; }
   .planner-board .board { width: min(300px, 100%); margin: 0 auto; }
+  /* Stacked, the pieces flow under the canvas instead of scrolling beside it. */
+  .planner-steps { contain: none; }
+  .planner-steps .step-grid { overflow: visible; }
   .planner-head .outfit-name { font-size: 28px; }
 }
 
@@ -802,7 +810,6 @@ a.nav-item { text-decoration: none; }
   .hero { grid-template-columns: 1fr; }
   .hero-visual { border-radius: var(--radius) var(--radius) 0 0; }
 }
-.step-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .step-sort { height: 34px; }
 
 /* ---------- Outfit canvas ---------- */
