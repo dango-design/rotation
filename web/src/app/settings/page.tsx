@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Icon, ShopSwitch } from '@/components/ui';
+import { BoardSwatches, Icon, ShopSwitch } from '@/components/ui';
 import { KNOWN_STORES } from '@/lib/catalog-meta';
 import { todayISO } from '@/lib/dates';
 import { useStore } from '@/lib/store';
@@ -86,6 +86,12 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="card settings-section">
+        <h3>Outfit boards</h3>
+        <p>The background behind your outfits. Each one is a quiet neutral, so it won&apos;t change how a color reads. Stone helps white pieces stand out.</p>
+        <BoardSwatches labels />
       </section>
 
       <section className="card settings-section">

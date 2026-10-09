@@ -16,6 +16,12 @@
   /* Backdrop behind garments. */
   --tile: light-dark(#ece7df, #d5cec2);
   --tile-2: light-dark(#e5dfd5, #cbc4b8);
+  /* Outfit board backgrounds (Settings > Outfit boards): light neutrals with almost no hue, so colors read true.
+     Light in both themes, since product photos on white are multiplied into the board; dark mode dims them like --tile. */
+  --board-white: light-dark(#fbfbfa, #e2e2e0);
+  --board-linen: var(--tile);
+  --board-mist: light-dark(#e9e9e7, #d2d2d0);
+  --board-stone: light-dark(#d9d8d5, #c3c2bf);
   /* Neutral fill for chips and segmented controls. */
   --fill: light-dark(#ece7df, #2c2926);
   --fill-active: light-dark(#ffffff, #46423c);
@@ -49,11 +55,16 @@
   --shadow-lg: 0 24px 64px light-dark(rgba(28, 27, 25, 0.18), rgba(0, 0, 0, 0.6));
 }
 :root {
+  --board: var(--board-linen);
   --radius: 16px;
   --radius-sm: 10px;
   --serif: var(--font-serif), 'Instrument Serif', Georgia, serif;
   --sans: var(--font-sans), 'DM Sans', system-ui, -apple-system, sans-serif;
 }
+
+[data-board='white'] { --board: var(--board-white); }
+[data-board='mist'] { --board: var(--board-mist); }
+[data-board='stone'] { --board: var(--board-stone); }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -182,7 +193,7 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .tile.ghost { background: repeating-linear-gradient(-45deg, light-dark(#eaeff7, #d0d8e6) 0 8px, light-dark(#f1f4fa, #d8deea) 8px 16px); outline: 1.5px dashed var(--gap-solid); outline-offset: -1.5px; }
 
 /* Flat-lay composition */
-.flatlay { position: relative; aspect-ratio: 1 / 1.02; background: var(--tile); border-radius: var(--radius-sm); overflow: hidden; }
+.flatlay { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: var(--radius-sm); overflow: hidden; }
 .flatlay .piece { position: absolute; }
 .flatlay .piece .garment { width: 100%; height: 100%; filter: drop-shadow(0 8px 9px rgba(28, 27, 25, 0.14)); display: block; }
 .flatlay .piece.ghost .garment { filter: drop-shadow(0 0 0 transparent); opacity: 0.92; }
@@ -191,7 +202,7 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 /* ---------- Today ---------- */
 .today-grid { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(290px, 1fr); gap: 22px; align-items: start; }
 .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 1fr); }
-.hero-visual { background: var(--tile); border-radius: var(--radius) 0 0 var(--radius); display: grid; place-items: center; padding: 12px; }
+.hero-visual { background: var(--board); border-radius: var(--radius) 0 0 var(--radius); display: grid; place-items: center; padding: 12px; }
 .hero-visual .flatlay { width: 100%; background: transparent; }
 .hero-body { padding: 26px 26px 22px; display: flex; flex-direction: column; gap: 16px; }
 .hero-body h2 { font: 32px/1.05 var(--serif); font-weight: 400; }
@@ -297,7 +308,10 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 
 /* ---------- Builder ---------- */
-.board { position: relative; aspect-ratio: 1 / 1.02; background: var(--tile); border-radius: 18px; overflow: hidden; transition: box-shadow 0.15s; }
+.board { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: 18px; overflow: hidden; transition: box-shadow 0.15s; }
+/* A white board needs an edge to stand apart from the white cards around it. */
+[data-board='white'] :is(.board, .flatlay, .hero-visual) { box-shadow: inset 0 0 0 1px var(--line); }
+[data-board='white'] .hero-visual .flatlay { box-shadow: none; }
 .board.drag-over { box-shadow: inset 0 0 0 3px var(--gap-solid); }
 .board-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--ink-3); font-size: 13px; }
 .trial-tag { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 11px; border-radius: 99px; background: var(--gap); color: #fff; font-size: 11.5px; font-weight: 600; box-shadow: 0 4px 12px rgba(30, 58, 110, 0.3); }
@@ -772,6 +786,19 @@ a.nav-item { text-decoration: none; }
 .canvas-tools button:hover:not(:disabled) { background: color-mix(in srgb, var(--on-ink) 14%, transparent); }
 .canvas-tools button:disabled { opacity: 0.35; cursor: default; }
 .canvas-tools svg { width: 17px; height: 17px; }
-.canvas-tidy { position: absolute; right: 10px; bottom: 10px; z-index: 1000; height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); opacity: 0; transition: opacity 0.15s; }
-.canvas:hover .canvas-tidy, .canvas:focus-within .canvas-tidy { opacity: 1; }
-@media (hover: none) { .canvas-tidy { opacity: 1; } }
+/* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot. */
+.canvas-corner { position: absolute; right: 10px; bottom: 10px; z-index: 1000; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+.canvas-tidy { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.canvas-bg { height: 28px; padding: 0 2px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); }
+.canvas:hover .canvas-corner, .canvas:focus-within .canvas-corner { opacity: 1; }
+@media (hover: none) { .canvas-corner { opacity: 1; } }
+
+/* ---------- Board background swatches ---------- */
+.swatches { display: flex; align-items: center; gap: 2px; }
+.swatches button { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 99px; background: none; display: grid; place-items: center; }
+.swatches i { width: 16px; height: 16px; border-radius: 99px; box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18); }
+.swatches button[aria-pressed='true'] i { box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18), 0 0 0 2px #fff, 0 0 0 3.5px var(--ink); }
+.swatches.labeled { flex-wrap: wrap; gap: 6px; }
+.swatches.labeled button { width: auto; height: 32px; padding: 0 12px 0 8px; display: inline-flex; gap: 7px; border: 1px solid var(--line-2); background: var(--panel); font-weight: 600; font-size: 12.5px; color: var(--ink-2); }
+.swatches.labeled button[aria-pressed='true'] { border-color: var(--ink); color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.swatches.labeled button[aria-pressed='true'] i { box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18); }

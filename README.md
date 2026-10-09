@@ -73,5 +73,5 @@ Designed by Denise ([dango-design](https://github.com/dango-design)): research d
 ## Credits
 
 - Background removal uses the [U²-Net](https://github.com/xuebinqin/U-2-Net) `u2netp` model (Apache-2.0), run with [ONNX Runtime Web](https://onnxruntime.ai/), following [rembg](https://github.com/danielgatis/rembg)'s pre- and post-processing.
-- Pieces are told apart with [SegFormer](https://github.com/NVlabs/SegFormer) B0 fine-tuned for clothes ([mattmdjaga/segformer_b0_clothes](https://huggingface.co/mattmdjaga/segformer_b0_clothes), MIT; ONNX by [Xenova](https://huggingface.co/Xenova/segformer_b0_clothes)). SegFormer's base weights are under NVIDIA's license, which limits commercial use; see [decision 011](docs/process/decisions/011-find-the-right-piece.md).
+- Pieces are told apart with [SegFormer](https://github.com/NVlabs/SegFormer) B0 fine-tuned for clothes ([mattmdjaga/segformer_b0_clothes](https://huggingface.co/mattmdjaga/segformer_b0_clothes), MIT; ONNX by [Xenova](https://huggingface.co/Xenova/segformer_b0_clothes)). SegFormer's base weights are under NVIDIA's license, which limits commercial use; see [decision 012](docs/process/decisions/012-find-the-right-piece.md).
 - Weather from [Open-Meteo](https://open-meteo.com/).

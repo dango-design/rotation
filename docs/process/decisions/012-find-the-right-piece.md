@@ -1,4 +1,4 @@
-# 011 — Find the right piece in a photo or product page, and ask when unsure
+# 012 — Find the right piece in a photo or product page, and ask when unsure
 
 **Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** next
 
