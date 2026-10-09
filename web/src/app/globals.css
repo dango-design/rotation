@@ -580,6 +580,9 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 a.nav-item { text-decoration: none; }
 .tile img.photo, .flatlay .piece img.photo, .canvas-piece img.photo { width: 86%; height: 86%; object-fit: contain; filter: drop-shadow(0 6px 7px rgba(28, 27, 25, 0.13)); }
 .tile img.photo.on-white, .flatlay .piece img.photo.on-white, .canvas-piece img.photo.on-white { mix-blend-mode: multiply; filter: none; }
+/* Sized against the square itself. In the flow, a percentage height falls back to the photo's own height, so tall
+   photos (pants, dresses) were cut off at the bottom of a tile and stretched canvas pieces out of square. */
+.tile img.photo, .flatlay .piece img.photo, .canvas-piece img.photo { position: absolute; inset: 0; margin: auto; }
 .flatlay .piece { display: grid; place-items: center; }
 .flatlay .piece img.photo { width: 100%; height: 100%; }
 .demo-banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 16px; margin: -12px 56px 22px 0; border-radius: 12px; background: var(--note-tint); color: var(--note-ink); font-size: 13px; }
@@ -598,8 +601,24 @@ a.nav-item { text-decoration: none; }
 .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line-2); padding: 0; }
 .swatch.on { box-shadow: 0 0 0 2px var(--ink); }
 .swatch.stripe { background: repeating-linear-gradient(0deg, #EFE9DC 0 4px, #25324B 4px 7px) !important; }
-.preview-row { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: center; }
+.preview-row { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; align-items: start; }
 .preview-row .tile { border-radius: 12px; }
+.preview-col { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.preview-col .tile { width: 100%; }
+.preview-row.has-photo .tile img.photo { width: 94%; height: 94%; }
+/* Beside the photo: what the piece is. Under it: where it came from and what it cost. */
+.form-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.form-col .ai-chip { align-self: flex-start; }
+.form-pair { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 12px; }
+.form .swatches { gap: 6px; }
+.form-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+/* Laid out by the form's own width, since it also runs in the narrow edit panel. */
+.form { container-type: inline-size; }
+@container (max-width: 520px) {
+  .preview-row { grid-template-columns: 1fr; }
+  .preview-col .tile { max-width: 260px; }
+  .form-details { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
 .processing { display: flex; gap: 10px; align-items: center; color: var(--ink-2); font-size: 13px; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--ink); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -609,10 +628,32 @@ a.nav-item { text-decoration: none; }
 .piece-pick:hover { border-color: var(--ink-3); }
 .piece-pick.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink) inset; }
 .piece-pick .tile { border-radius: 9px; }
-.piece-pick img.photo.as-is { width: 100%; height: 100%; object-fit: cover; filter: none; }
+.piece-pick img.photo.as-is, .pick-big img.photo.as-is { width: 94%; height: 94%; object-fit: contain; filter: none; }
 /* On the tile, so it keeps its light-mode look in dark mode (decision 010). */
 .pick-check { position: absolute; top: 7px; right: 7px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1.5px solid var(--line-2); color: transparent; }
 .pick-check svg { width: 14px; height: 14px; }
+/* Product links: the piece large, the other cutouts beside it, and every photo on the page under them. */
+.modal:has(.pick-layout) { width: min(760px, 100%); }
+.pick-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; align-items: start; }
+.pick-layout .piece-picks { margin-top: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 400px; overflow-y: auto; padding: 2px; }
+.pick-big { display: flex; flex-direction: column; gap: 8px; }
+.pick-big .tile { border-radius: 14px; }
+.pick-big .tile img.photo { width: 92%; height: 92%; }
+.pick-caption { font-size: 13px; font-weight: 600; }
+.pick-warn { font-size: 12.5px; color: var(--warn); }
+.pick-note { font-size: 11.5px; font-weight: 500; color: var(--warn); margin-top: -4px; }
+.page-photos { margin-top: 18px; }
+.photo-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; }
+.strip-photo { position: relative; flex: none; width: 66px; aspect-ratio: 3 / 4; padding: 0; border-radius: 9px; overflow: hidden; border: 1.5px solid var(--line); background: #fff; }
+.strip-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.strip-photo:hover { border-color: var(--ink-3); }
+.strip-photo.on { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.strip-photo:disabled { cursor: progress; }
+.strip-busy { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(255, 255, 255, 0.7); }
+@media (max-width: 600px) {
+  .pick-layout { grid-template-columns: 1fr; }
+  .pick-layout .piece-picks { max-height: none; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .piece-pick.on .pick-check { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 .ai-chip { background: var(--note-tint); color: var(--note-ink); }
 .drop { border: 1.5px dashed var(--line-2); border-radius: 14px; padding: 28px; text-align: center; color: var(--ink-2); display: flex; flex-direction: column; gap: 10px; align-items: center; cursor: pointer; }

@@ -64,6 +64,8 @@ export interface Region {
   whole: boolean;
   /** Several pieces of different colors offered together, in case they are one piece. */
   together?: boolean;
+  /** The photo's edge cuts the piece off (a close-up that ends mid-leg), so it would be saved incomplete. */
+  clipped?: boolean;
 }
 
 export interface Verdict {
@@ -110,7 +112,17 @@ function regionFrom(keep: Uint8Array, soft: Float32Array, m: Maps, id: string, p
     box[2] = Math.max(box[2], x);
     box[3] = Math.max(box[3], y);
   }
-  return { id, part, label: part ? PART_LABEL[part] : 'Whole piece', area: on / (w * h), mask, box, whole };
+  return { id, part, label: part ? PART_LABEL[part] : 'Whole piece', area: on / (w * h), mask, box, whole, clipped: touchesEdge(keep, w, h) };
+}
+
+/** A piece runs off the photo when a real stretch of it lies along an edge, not just a corner or a stray cell. */
+function touchesEdge(keep: Uint8Array, w: number, h: number) {
+  const along = (len: number, at: (k: number) => number) => {
+    let n = 0;
+    for (let k = 0; k < len; k++) n += keep[at(k)];
+    return n >= Math.max(2, 0.04 * len);
+  };
+  return along(w, (x) => x) || along(w, (x) => (h - 1) * w + x) || along(h, (y) => y * w) || along(h, (y) => y * w + w - 1);
 }
 
 /** Cells of the largest blobs in a mask, dropping specks smaller than `share` of the largest. */
@@ -191,6 +203,27 @@ export function personShare(m: Pick<Maps, 'labels'>) {
   return n / m.labels.length;
 }
 
+/** A little skin or hair (a face, or hands at the edge of a close-up) with an outfit around it is someone too. */
+const SOME_PERSON = 0.002;
+
+/**
+ * Whether someone is wearing the pieces. Mostly that's how much skin and hair shows, but someone dressed head to toe
+ * in a full-length shot shows only a face and hands, and a waist-down close-up only hands; with two or more garments
+ * in the photo, that little is enough.
+ */
+export function isWorn(m: Pick<Maps, 'labels'>) {
+  const person = personShare(m);
+  if (person >= WORN) return true;
+  if (person < SOME_PERSON) return false;
+  const n = m.labels.length;
+  const parts = new Map<ParserPart, number>();
+  for (let i = 0; i < n; i++) {
+    const g = LABEL_GROUP[m.labels[i]];
+    if (g !== 'skin' && g !== 'hair' && g !== 'bg') parts.set(g, (parts.get(g) ?? 0) + 1);
+  }
+  return [...parts].filter(([g, c]) => c / n >= MIN_AREA[g]).length >= 2;
+}
+
 const dominant = (rs: Region[]) => rs.length > 0 && rs.slice(1).every((r) => r.area < DOMINANT * rs[0].area);
 
 function merge(a: Region, b: Region, part: Part): Region {
@@ -207,7 +240,7 @@ export function decide(m: Maps, hint?: Hint): Verdict {
 function verdict(m: Maps, hint?: Hint): Verdict {
   const person = personShare(m);
 
-  if (person >= WORN) {
+  if (isWorn(m)) {
     const parts = partRegions(m);
     if (!parts.length) return { kind: 'none', sure: false, regions: [], person };
     let match = hint && parts.find((r) => r.part === hint.part);
@@ -248,18 +281,23 @@ function verdict(m: Maps, hint?: Hint): Verdict {
 
 /**
  * How good a product page photo is for cutting out the product: a product shot (one object, nobody wearing it) is
- * best, then a model wearing the part the product's name describes. Earlier gallery photos win ties, since stores
- * put the main photo first.
+ * best, then a model wearing the part the product's name describes. A photo that cuts the piece off ranks well
+ * below one that shows all of it. Earlier gallery photos win ties, since stores put the main photo first, but only
+ * by a little: many stores put their product shots after the model photos.
  */
 export function photoScore(v: Verdict, index: number): number {
   if (v.kind === 'none' || !v.regions.length) return -Infinity;
   let s: number;
-  if (v.kind === 'single') s = v.plain ? 90 : 82;
-  else if (v.kind === 'worn' && v.matchesHint) s = 70 + 10 * Math.min(1, v.regions[0].area / 0.3);
+  if (v.kind === 'single') s = v.plain ? 90 : 84;
+  else if (v.kind === 'worn' && v.matchesHint) s = 66 + 12 * Math.min(1, v.regions[0].area / 0.3);
   else if (v.kind === 'worn' && v.sure) s = v.matchesHint === undefined ? 60 : 20;
   else s = 25;
-  return s - 2 * index;
+  if (v.regions[0].clipped) s -= CLIPPED;
+  return s - Math.min(index, 8);
 }
+
+/** How much a photo loses when it cuts the piece off. */
+const CLIPPED = 30;
 
 /** A score this high is a product shot early in the gallery; no later photo needs checking. */
 export const GOOD_ENOUGH = 85;

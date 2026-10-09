@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decide, LABEL_GROUP, PARTS, photoScore, type Maps, type Verdict } from './analyze';
+import { decide, isWorn, LABEL_GROUP, PARTS, photoScore, type Maps, type Verdict } from './analyze';
 
 // Parser labels (ATR).
 const BG = 0, HAIR = 2, TOP = 4, PANTS = 6, DRESS = 7, SHOE = 9, FACE = 11, ARM = 14;
@@ -67,6 +67,37 @@ describe('decide: photos of someone wearing the pieces', () => {
     const v = decide(maps((x, y) => (box(16, 2, 24, 8)(x, y) ? FACE : box(12, 8, 28, 36)(x, y) ? DRESS : BG)));
     expect(v).toMatchObject({ kind: 'worn', sure: true });
     expect(ids(v)).toEqual(['dress']);
+  });
+});
+
+/** A full-length shot: a small head over a jacket, pants and shoes, with no other skin showing. */
+const fullLength = (x: number, y: number) =>
+  box(19, 1, 21, 3)(x, y) ? HAIR : box(19, 3, 21, 5)(x, y) ? FACE : box(16, 5, 24, 16)(x, y) ? TOP : box(17, 16, 23, 34)(x, y) ? PANTS : box(17, 34, 23, 36)(x, y) ? SHOE : BG;
+
+/** A close-up from the waist down that ends mid-leg, so the pants run off the bottom of the photo. */
+const waistDown = (x: number, y: number) => (box(12, 0, 28, 6)(x, y) ? TOP : box(16, 6, 18, 9)(x, y) ? ARM : box(12, 6, 28, 40)(x, y) ? PANTS : BG);
+
+describe('decide: full-length shots and close-ups', () => {
+  it('treats a full-length shot as someone wearing the pieces, though little skin shows', () => {
+    expect(isWorn(maps(fullLength))).toBe(true);
+    const v = decide(maps(fullLength), { part: 'bottom', type: 'chinos' });
+    expect(v).toMatchObject({ kind: 'worn', sure: true, matchesHint: true });
+    expect(ids(v)[0]).toBe('bottom');
+  });
+
+  it("doesn't mistake a lone garment for someone wearing it", () => {
+    expect(isWorn(maps((x, y) => (box(8, 8, 32, 32)(x, y) ? TOP : BG)))).toBe(false);
+  });
+
+  it('treats a waist-down close-up as someone wearing the pieces, from the hands alone', () => {
+    expect(isWorn(maps(waistDown))).toBe(true);
+  });
+
+  it('marks a piece the photo cuts off', () => {
+    const v = decide(maps(waistDown), { part: 'bottom' });
+    expect(v).toMatchObject({ kind: 'worn', matchesHint: true });
+    expect(v.regions[0]).toMatchObject({ part: 'bottom', clipped: true });
+    expect(decide(maps(fullLength), { part: 'bottom' }).regions[0].clipped).toBe(false);
   });
 });
 
@@ -140,6 +171,17 @@ describe('photoScore', () => {
   it('ranks a product shot on a busy background below one on a plain background', () => {
     const scene = decide(maps((x, y) => (box(8, 8, 32, 32)(x, y) ? TOP : BG), { plain: false }), { part: 'top' });
     expect(photoScore(productShot, 0)).toBeGreaterThan(photoScore(scene, 0));
+  });
+
+  it('ranks a photo that cuts the piece off below one that shows all of it', () => {
+    const cut = decide(maps(waistDown), { part: 'bottom' });
+    const whole = decide(maps(fullLength), { part: 'bottom' });
+    expect(photoScore(whole, 3)).toBeGreaterThan(photoScore(cut, 0));
+  });
+
+  it('prefers a product shot even at the end of the gallery', () => {
+    expect(photoScore(productShot, 7)).toBeGreaterThan(photoScore(modelWearingIt, 0));
+    expect(photoScore(productShot, 7)).toBeGreaterThan(photoScore(decide(maps(fullLength), { part: 'bottom' }), 0));
   });
 
   it('never picks a photo with nothing in it', () => {

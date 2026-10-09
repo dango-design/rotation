@@ -5,7 +5,7 @@ import { nearestSwatch, swatchByName, TYPES } from '@/lib/catalog-meta';
 import { hintFrom, PART_TYPE, pathWords, type Hint } from '@/lib/garment-hints';
 import { useStore } from '@/lib/store';
 import type { GarmentType } from '@/lib/types';
-import { findInPhoto, findInProduct, toJpegBase64, type Found, type Piece } from '@/lib/vision/find';
+import { findInPhoto, findInProduct, findInProductPhoto, photoUrl, toJpegBase64, type Found, type Piece } from '@/lib/vision/find';
 import { warmUp } from '@/lib/vision/models';
 import { ItemForm, type ItemFields } from './ItemForm';
 import { Icon } from './ui';
@@ -87,6 +87,8 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
   const [found, setFound] = useState<Session | null>(null);
   const [error, setError] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  /** The page photo being searched after the person picked it. */
+  const [busyPhoto, setBusyPhoto] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const urls = useRef<string[]>([]);
   const track = (u: string) => (urls.current.push(u), u);
@@ -190,6 +192,23 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
     setLinkUrl('');
   };
 
+  /** The person picked a photo from the page: show its cutout, finding the product in it first if it wasn't checked. */
+  const pickPhoto = async (i: number) => {
+    const f = found;
+    if (!f?.product) return;
+    const have = f.pieces.find((p) => p.photo === i && p.cutout) ?? f.pieces.find((p) => p.photo === i);
+    if (have) return setFound({ ...f, selected: [have.id] });
+    setError('');
+    setBusyPhoto(i);
+    try {
+      const pieces = (await findInProductPhoto(f.product.images[i], i, f.hint)).map((p) => ({ ...p, url: track(URL.createObjectURL(p.blob)) }));
+      setFound((cur) => cur && { ...cur, pieces: [...pieces, ...cur.pieces], selected: [pieces[0].id] });
+    } catch {
+      setError("Couldn't read that photo. Try another one.");
+    }
+    setBusyPhoto(null);
+  };
+
   const toggle = (id: string) =>
     setFound((f) => {
       if (!f) return f;
@@ -203,14 +222,17 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
   const pickLede =
     found?.from === 'link'
       ? found.sure
-        ? 'Here is what we found on the page. Pick the right piece, or use the photo as it is.'
-        : "This page has a few photos, and we couldn't tell for sure which piece is the product. Pick it, or use the photo as it is."
+        ? "Here's the piece we found. If it isn't right, or the photo cuts it off, pick another cutout or another photo from the page."
+        : "We couldn't tell for sure which piece is the product. Pick it, or choose a photo from the page that shows all of it."
       : cutouts > 1
         ? `We found ${cutouts} pieces in your photo. Pick the ones you want to add; each gets its own details next.`
         : found?.sure
           ? 'Pick the cutout, or use the photo as it is.'
           : "We couldn't find one clear piece in this photo. Pick the cutout if it looks right, or use the photo as it is.";
   const chosen = found?.selected.length ?? 0;
+  // On a product page: the piece shown large, and every photo on the page to pick from.
+  const shownPick = found?.pieces.find((p) => p.id === found.selected[0]) ?? found?.pieces[0];
+  const pagePhotos = found?.from === 'link' ? (found.product?.images.slice(0, 12) ?? []) : [];
 
   return (
     <>
@@ -281,27 +303,72 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
             <>
               <h2>{found.from === 'link' ? 'Which one is it?' : cutouts > 1 ? 'Which pieces?' : 'Does this look right?'}</h2>
               <p className="lede">{pickLede}</p>
-              <div className="piece-picks" role="group" aria-label="Pieces found">
-                {found.pieces.map((p) => {
-                  const on = found.selected.includes(p.id);
-                  return (
-                    <button key={p.id} type="button" className={`piece-pick ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(p.id)}>
-                      <div className="tile">
-                        <img className={`photo ${p.cutout ? '' : 'as-is'}`} src={p.url} alt="" />
-                        <span className="pick-check" aria-hidden="true">
-                          <Icon name="check" />
-                        </span>
-                      </div>
-                      <span>{p.label}</span>
-                    </button>
-                  );
-                })}
+              <div className={found.from === 'link' ? 'pick-layout' : undefined}>
+                {found.from === 'link' && shownPick && (
+                  <div className="pick-big">
+                    <div className="tile">
+                      <img className={`photo ${shownPick.cutout ? '' : 'as-is'}`} src={shownPick.url} alt={shownPick.label} />
+                    </div>
+                    <span className="pick-caption">
+                      {shownPick.label}
+                      {shownPick.photo !== undefined && pagePhotos.length > 1 ? ` · photo ${shownPick.photo + 1} of ${pagePhotos.length}` : ''}
+                    </span>
+                    {shownPick.clipped && <span className="pick-warn">The photo cuts this piece off. Try another photo from the page.</span>}
+                  </div>
+                )}
+                <div className="piece-picks" role="group" aria-label="Pieces found">
+                  {found.pieces.map((p) => {
+                    const on = found.selected.includes(p.id);
+                    return (
+                      <button key={p.id} type="button" className={`piece-pick ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(p.id)}>
+                        <div className="tile">
+                          <img className={`photo ${p.cutout ? '' : 'as-is'}`} src={p.url} alt="" />
+                          <span className="pick-check" aria-hidden="true">
+                            <Icon name="check" />
+                          </span>
+                        </div>
+                        <span>{p.label}</span>
+                        {p.clipped && <small className="pick-note">Cut off by the photo</small>}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+              {pagePhotos.length > 1 && (
+                <div className="page-photos">
+                  <div className="group-label">Photos on the page</div>
+                  <div className="photo-strip" role="group" aria-label="Photos on the product page">
+                    {pagePhotos.map((u, i) => {
+                      const on = shownPick?.photo === i;
+                      return (
+                        <button
+                          key={u}
+                          type="button"
+                          className={`strip-photo ${on ? 'on' : ''}`}
+                          aria-pressed={on}
+                          aria-label={`Use photo ${i + 1} from the page`}
+                          disabled={busyPhoto !== null}
+                          onClick={() => pickPhoto(i)}
+                        >
+                          <img src={photoUrl(u)} alt="" loading="lazy" />
+                          {busyPhoto === i && (
+                            <span className="strip-busy">
+                              <span className="spinner" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="meta-line">Pick the photo that shows the whole piece, and we&apos;ll cut it out.</p>
+                </div>
+              )}
+              {error && <p className="error-note">{error}</p>}
               <div className="modal-actions">
                 <button type="button" className="btn ghost" onClick={() => setStep(found.from === 'link' ? { kind: 'link' } : { kind: 'choose' })}>
                   Back
                 </button>
-                <button type="button" className="btn primary" disabled={!chosen} onClick={() => add(found, found.selected)}>
+                <button type="button" className="btn primary" disabled={!chosen || busyPhoto !== null} onClick={() => add(found, found.selected)}>
                   {found.from === 'link' ? 'Use this one' : chosen > 1 ? `Add ${chosen} pieces` : 'Add this piece'}
                 </button>
               </div>
@@ -346,17 +413,13 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
               <h2>Check the details</h2>
               <p className="lede">Type and color decide what it pairs with. Price makes cost per wear work.</p>
               {error && <p className="error-note">{error}</p>}
-              {found && found.pieces.length > 1 && found.total <= 1 && (
-                <button type="button" className="link" style={{ margin: '10px 0 4px', fontSize: 13 }} onClick={() => setStep({ kind: 'pick' })}>
-                  Not the right piece? Choose another
-                </button>
-              )}
               <ItemForm
                 key={`${found?.index ?? 0}-${step.url ?? ''}`}
                 initial={step.initial}
                 previewUrl={step.url}
                 aiTagged={step.ai}
                 submitLabel={found && found.queue.length ? 'Add and go to the next piece' : 'Add to closet'}
+                onChangePhoto={found && found.total <= 1 && (found.pieces.length > 1 || (found.product?.images.length ?? 0) > 1) ? () => setStep({ kind: 'pick' }) : undefined}
                 onSubmit={(f) => save(f, step.blob)}
                 onCancel={() => {
                   setFound(null);

@@ -2,7 +2,7 @@
    Returns the cutouts best first and whether it is sure; when it isn't, the person picks. */
 
 import type { Hint, Part } from '../garment-hints';
-import { decide, GOOD_ENOUGH, personShare, photoScore, SURE_SCORE, WORN, type Maps, type Region, type Verdict } from './analyze';
+import { decide, GOOD_ENOUGH, isWorn, photoScore, SURE_SCORE, type Maps, type Region, type Verdict } from './analyze';
 import { applyGuided, components, dilate, guidedCoefficients, plainBorder, resize } from './masks';
 import { parse, salient, SALIENT_SIZE } from './models';
 
@@ -10,8 +10,8 @@ import { parse, salient, SALIENT_SIZE } from './models';
 const MAX_SIDE = 1200;
 /** Longest side the edge refinement is computed at. */
 const GUIDE_SIDE = 400;
-/** Product page photos checked at most. */
-const MAX_PHOTOS = 6;
+/** Product page photos checked at most. Stores often put their product shots after several model photos. */
+const MAX_PHOTOS = 10;
 
 export interface Piece {
   id: string;
@@ -23,6 +23,10 @@ export interface Piece {
   cutout: boolean;
   /** Several pieces offered together, in case they are one. */
   together?: boolean;
+  /** The photo's edge cuts the piece off. */
+  clipped?: boolean;
+  /** Which of the product page's photos it came from. */
+  photo?: number;
 }
 
 export interface Found {
@@ -36,6 +40,8 @@ export interface Found {
 
 interface Photo {
   key: string;
+  /** Position in the product page's gallery. */
+  index?: number;
   W: number;
   H: number;
   canvas: HTMLCanvasElement;
@@ -72,7 +78,7 @@ function encode(c: HTMLCanvasElement, type: string, quality?: number) {
 }
 
 /** Decode a photo, run both models and decide what it shows. */
-async function load(blob: Blob, key: string, hint?: Hint): Promise<Photo> {
+async function load(blob: Blob, key: string, hint?: Hint, index?: number): Promise<Photo> {
   const bmp = await createImageBitmap(blob);
   const s = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
   const W = Math.max(1, Math.round(bmp.width * s));
@@ -89,7 +95,7 @@ async function load(blob: Blob, key: string, hint?: Hint): Promise<Photo> {
 
   // The parser runs first. On a photo of someone, its own foreground is enough and the outline model is skipped.
   const parsed = await parse(c);
-  const worn = personShare(parsed) >= WORN;
+  const worn = isWorn(parsed);
   const sal = worn ? parsed.fg : await salient(c);
   const salSize = worn ? parsed.w : SALIENT_SIZE;
   const maps: Maps = {
@@ -98,7 +104,7 @@ async function load(blob: Blob, key: string, hint?: Hint): Promise<Photo> {
     rgba: scaled(c, parsed.w, parsed.h),
     plain: plainBorder(scaled(c, 96, 96), 96, 96).plain,
   };
-  return { key, W, H, canvas: c, rgba, sal, salSize, maps, verdict: decide(maps, hint) };
+  return { key, index, W, H, canvas: c, rgba, sal, salSize, maps, verdict: decide(maps, hint) };
 }
 
 /** Cut one region out of the photo: coarse mask → snapped to the photo's edges → islands dropped → cropped. */
@@ -176,6 +182,8 @@ async function cut(photo: Photo, region: Region): Promise<Piece> {
     label: region.label,
     part: region.part,
     together: region.together,
+    clipped: region.clipped,
+    photo: photo.index,
     blob: encode(crop, 'image/png'),
     rgb: cnt ? [rs / cnt, gsum / cnt, bs / cnt] : [200, 200, 200],
     cutout: true,
@@ -191,7 +199,14 @@ async function asIs(photo: Photo): Promise<Piece> {
       const i = (y * W + x) * 4;
       [r, g, b, n] = [r + rgba[i], g + rgba[i + 1], b + rgba[i + 2], n + 1];
     }
-  return { id: `${photo.key}:photo`, label: 'Photo as it is', blob: encode(photo.canvas, 'image/jpeg', 0.9), rgb: n ? [r / n, g / n, b / n] : [200, 200, 200], cutout: false };
+  return {
+    id: `${photo.key}:photo`,
+    label: 'Photo as it is',
+    blob: encode(photo.canvas, 'image/jpeg', 0.9),
+    rgb: n ? [r / n, g / n, b / n] : [200, 200, 200],
+    cutout: false,
+    photo: photo.index,
+  };
 }
 
 async function cutAll(photo: Photo, regions: Region[]) {
@@ -215,18 +230,14 @@ export async function findInPhoto(file: Blob): Promise<Found> {
  */
 export async function findInProduct(urls: string[], hint: Hint | undefined, onProgress?: (done: number, total: number) => void): Promise<Found | null> {
   const list = urls.slice(0, MAX_PHOTOS);
-  const blobs = list.map((u) =>
-    fetch(`/api/image?url=${encodeURIComponent(u)}`)
-      .then((r) => (r.ok ? r.blob() : null))
-      .catch(() => null),
-  );
+  const blobs = list.map(fetchPhoto);
   const checked: { photo: Photo; score: number }[] = [];
   for (let i = 0; i < list.length; i++) {
     onProgress?.(i + 1, list.length);
     const blob = await blobs[i];
     if (!blob) continue;
     try {
-      const photo = await load(blob, `p${i}`, hint);
+      const photo = await load(blob, `p${i}`, hint, i);
       const score = photoScore(photo.verdict, i);
       checked.push({ photo, score });
       if (score >= GOOD_ENOUGH) break;
@@ -247,6 +258,22 @@ export async function findInProduct(urls: string[], hint: Hint | undefined, onPr
   }
   pieces.push(await asIs(best.photo));
   return { sure: sure && pieces[0].cutout, pieces, guess: best.score >= SURE_SCORE ? pieces[0].id : undefined };
+}
+
+/** A store's photo, through Rotation's own image route (store image hosts rarely allow reading them on a canvas). */
+export const photoUrl = (url: string) => `/api/image?url=${encodeURIComponent(url)}`;
+
+const fetchPhoto = (url: string) =>
+  fetch(photoUrl(url))
+    .then((r) => (r.ok ? r.blob() : null))
+    .catch(() => null);
+
+/** The product cut out of one photo the person picked from the page, best guess first, then the photo as it is. */
+export async function findInProductPhoto(url: string, index: number, hint: Hint | undefined): Promise<Piece[]> {
+  const blob = await fetchPhoto(url);
+  if (!blob) throw new Error("Couldn't load that photo.");
+  const photo = await load(blob, `p${index}`, hint, index);
+  return [...(await cutAll(photo, photo.verdict.regions.slice(0, 3))), await asIs(photo)];
 }
 
 /** A small JPEG of an image on a white background, as base64, for photo tagging. */
