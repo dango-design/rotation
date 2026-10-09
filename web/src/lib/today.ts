@@ -2,6 +2,7 @@
    matched to the day's occasion and weather, and explained in plain words. */
 
 import { ago, daysBetween } from './dates';
+import { isAccessory } from './catalog-meta';
 import { allBases, check } from './engine';
 import type { Item, OutfitSlots, Settings } from './types';
 
@@ -65,7 +66,12 @@ export function suggest(
     closet.filter((i) => i.cat === cat && check([...pieces(slots), i]).ok).sort((a, b) => fresh(b) - fresh(a) || b.wears - a.wears);
   const layer = needLayer ? fitting('outer')[0] : undefined;
   if (layer) slots.outer = layer.id;
-  const acc = fitting('acc')[0];
+  // Finish it with a bag and a piece of jewelry when they fit; a hat or scarf only when there's no bag.
+  const bag = fitting('bag')[0];
+  if (bag) slots.bag = bag.id;
+  const jewelry = fitting('jewelry')[0];
+  if (jewelry) slots.jewelry = jewelry.id;
+  const acc = bag ? undefined : fitting('acc')[0];
   if (acc) slots.acc = acc.id;
 
   const reasons: Reason[] = [];
@@ -81,7 +87,7 @@ export function suggest(
   } else {
     reasons.push({ icon: 'cloud', strong: 'Weather unknown.', text: 'Add your city in Settings for weather-aware outfits.' });
   }
-  const stale = pieces(slots).filter((i) => i.cat !== 'acc').sort((a, b) => since(b) - since(a))[0];
+  const stale = pieces(slots).filter((i) => !isAccessory(i.cat)).sort((a, b) => since(b) - since(a))[0];
   if (stale)
     reasons.push({
       icon: 'builder',

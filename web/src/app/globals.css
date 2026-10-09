@@ -292,7 +292,7 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .verdict.bad { background: var(--warn-tint); color: var(--warn); }
 .verdict.todo { background: var(--panel); color: var(--ink-3); border: 1px solid var(--line); }
 
-.slot-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 14px 0 6px; padding: 3px; background: var(--tile); border-radius: 12px; }
+.slot-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 14px 0 6px; padding: 3px; background: var(--tile); border-radius: 12px; }
 .slot-tabs button { border: 0; background: none; height: 30px; border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .slot-tabs button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
 .group { margin-top: 14px; }

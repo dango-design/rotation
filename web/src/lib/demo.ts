@@ -28,7 +28,7 @@ const SEED: Seed[] = [
   { id: 's1', name: 'Court Sneakers', brand: 'Nike', source: 'email', type: 'sneakers', cat: 'shoes', color: '#F5F4F0', colorName: 'White', tone: 'neutral', f: 1.5, price: 90, wears: 64, bought: '2024-03-09', daysAgo: 1, size: '9.5' },
   { id: 's2', name: 'Chelsea Boots', brand: 'Blundstone', store: 'Nordstrom', source: 'email', type: 'boots', cat: 'shoes', color: '#5E3F2C', colorName: 'Rustic Brown', tone: 'neutral', f: 2, price: 230, wears: 33, bought: '2023-11-02', daysAgo: 3, size: '9.5' },
   { id: 's3', name: 'Penny Loafers', brand: 'G.H. Bass', store: 'Amazon', source: 'email', type: 'loafers', cat: 'shoes', color: '#4A2E22', colorName: 'Dark Brown', tone: 'neutral', f: 2.5, price: 150, wears: 5, bought: '2026-01-05', daysAgo: 122, size: '9.5' },
-  { id: 'a1', name: 'Canvas Tote', brand: 'Madewell', source: 'email', type: 'tote', cat: 'acc', color: '#E8E0CC', colorName: 'Ecru', tone: 'neutral', f: 1.5, price: 38, wears: 40, bought: '2025-07-07', daysAgo: 3, size: 'One size' },
+  { id: 'a1', name: 'Canvas Tote', brand: 'Madewell', source: 'email', type: 'tote', cat: 'bag', color: '#E8E0CC', colorName: 'Ecru', tone: 'neutral', f: 1.5, price: 38, wears: 40, bought: '2025-07-07', daysAgo: 3, size: 'One size' },
   { id: 'a2', name: 'Rib-Knit Beanie', brand: 'Old Navy', source: 'email', type: 'beanie', cat: 'acc', color: '#A3532F', colorName: 'Rust', tone: 'rust', f: 1, price: 12.99, wears: 10, bought: '2025-12-09', daysAgo: 218, size: 'One size' },
   { id: 'a3', name: 'Washed Baseball Cap', brand: 'H&M', source: 'email', type: 'cap', cat: 'acc', color: '#2A3654', colorName: 'Navy', tone: 'neutral', f: 1, price: 14.99, wears: 18, bought: '2025-08-02', daysAgo: 1, size: 'One size' },
 ];
@@ -44,7 +44,7 @@ export function demoData() {
   const id = (short: string) => `demo-${short}`;
   const mon = weekStart(today);
   const plans: Plan[] = [
-    { date: today, name: 'Client presentation', slots: { outer: id('o2'), top: id('t3'), bottom: id('b1'), shoes: id('s2'), acc: id('a1') } },
+    { date: today, name: 'Client presentation', slots: { outer: id('o2'), top: id('t3'), bottom: id('b1'), shoes: id('s2'), bag: id('a1') } },
     { date: addDays(today, 1), name: 'Client lunch', slots: { top: id('t7'), bottom: id('b3'), shoes: id('s3') } },
     { date: addDays(today, 2), name: 'Errands', slots: { outer: id('o1'), top: id('t1'), bottom: id('b2'), shoes: id('s1') } },
     { date: addDays(today, 3), name: 'Dinner out', slots: { outer: id('o4'), top: id('t9'), bottom: id('b5'), shoes: id('s3') } },

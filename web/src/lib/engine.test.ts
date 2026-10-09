@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
-import { check, duplicate, fitsBoard, rankPieces, totalOutfits, unlock, whyLine } from './engine';
+import { TYPES } from './catalog-meta';
+import { check, duplicate, fitsBoard, isComplete, rankPieces, slotOf, totalOutfits, unlock, whyLine } from './engine';
+import { garmentSvg } from './garments';
 import { nextStep, piecesFor } from './planning';
 import { RANGE } from './today';
 import { daysBetween } from './dates';
-import type { Item } from './types';
+import type { GarmentType, Item } from './types';
 
 const { items } = demoData();
 const byShort = (s: string) => items.find((i) => i.id === `demo-${s}`)!;
@@ -124,5 +126,28 @@ describe('suggestions follow the season, not just the calendar', () => {
   });
   it("doesn't suggest a piece worn this week", () => {
     expect(suggestedTops().every((i) => !i.lastWorn || daysBetween(i.lastWorn, '2026-10-07') >= 7)).toBe(true);
+  });
+});
+
+describe('one-pieces, bags and jewelry', () => {
+  const make = (type: GarmentType, extra: Partial<Item> = {}): Item => ({
+    id: `x-${type}`, name: TYPES[type].label, brand: '', source: 'manual', type, cat: TYPES[type].cat,
+    color: '#232323', colorName: 'Black', tone: 'neutral', f: TYPES[type].f, wears: 0, createdAt: '', ...extra,
+  });
+  it('treats a jumpsuit like a dress: it covers the bottom', () => {
+    expect(check([make('jumpsuit'), byShort('b2')]).ok).toBe(false);
+    expect(isComplete({ top: 'x-jumpsuit', shoes: byShort('s1').id }, (id) => (id === 'x-jumpsuit' ? make('jumpsuit') : items.find((i) => i.id === id)))).toBe(true);
+  });
+  it('leaves bags and jewelry out of the dressiness check', () => {
+    expect(check([byShort('t6'), make('clutch'), make('necklace', { f: 3 })]).ok).toBe(true);
+  });
+  it('gives bags and jewelry their own outfit slots', () => {
+    expect(slotOf(make('crossbody'))).toBe('bag');
+    expect(slotOf(make('earrings'))).toBe('jewelry');
+    expect(slotOf(make('belt'))).toBe('acc');
+  });
+  it('draws every garment type', () => {
+    const tee = garmentSvg('tee', '#232323');
+    for (const t of Object.keys(TYPES).filter((t) => t !== 'tee')) expect(garmentSvg(t, '#232323')).not.toBe(tee);
   });
 });

@@ -5,6 +5,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CATALOG } from './catalog';
+import { TYPES } from './catalog-meta';
 import * as store from './db';
 import { todayISO } from './dates';
 import { demoData } from './demo';
@@ -35,6 +36,18 @@ interface State {
 
 const EMPTY: State = { ready: false, demo: false, items: [], images: {}, outfits: [], plans: [], wears: [], settings: DEFAULT_SETTINGS, list: [] };
 
+/* Closets saved before bags and jewelry had their own categories kept every accessory in one "acc" slot.
+   Each piece's category now comes from its type, and a bag or piece of jewelry moves to its own slot. */
+function migrate<T extends { slots: OutfitSlots }>(list: T[], items: Item[]): T[] {
+  return list.map((o) => {
+    const it = o.slots.acc ? items.find((i) => i.id === o.slots.acc) : undefined;
+    if (!it || it.cat === 'acc') return o;
+    const { acc, ...rest } = o.slots;
+    return { ...o, slots: { ...rest, [it.cat === 'dress' ? 'top' : it.cat]: acc } };
+  });
+}
+const withCats = (items: Item[]) => items.map((i) => (TYPES[i.type] && TYPES[i.type].cat !== i.cat ? { ...i, cat: TYPES[i.type].cat } : i));
+
 const uid = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
 function useStoreValue() {
@@ -62,14 +75,15 @@ function useStoreValue() {
       .then((d) => {
         const images: Record<string, string> = {};
         d.images.forEach((blob, id) => (images[id] = URL.createObjectURL(blob)));
+        const items = withCats(d.items).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
         setS({
           ready: true,
           demo: false,
-          items: d.items.sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+          items,
           images,
-          outfits: d.outfits,
-          plans: d.plans,
-          wears: d.wears,
+          outfits: migrate(d.outfits, items),
+          plans: migrate(d.plans, items),
+          wears: migrate(d.wears, items),
           settings: { ...DEFAULT_SETTINGS, ...d.settings },
           list: d.list ?? [],
         });
@@ -258,7 +272,8 @@ function useStoreValue() {
       store.putSettings({ ...DEFAULT_SETTINGS, ...d.settings }),
       store.putList(d.list ?? []),
     ]);
-    setS({ ready: true, demo: false, items: d.items, images, outfits: d.outfits ?? [], plans: d.plans ?? [], wears: d.wears ?? [], settings: { ...DEFAULT_SETTINGS, ...d.settings }, list: d.list ?? [] });
+    const items = withCats(d.items);
+    setS({ ready: true, demo: false, items, images, outfits: migrate(d.outfits ?? [], items), plans: migrate(d.plans ?? [], items), wears: migrate(d.wears ?? [], items), settings: { ...DEFAULT_SETTINGS, ...d.settings }, list: d.list ?? [] });
   }, []);
 
   /** Keeps demo mode on while moving around the app. */

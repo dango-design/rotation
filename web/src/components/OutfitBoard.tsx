@@ -9,7 +9,7 @@ import type { OutfitSlots, Piece, Slot } from '@/lib/types';
 import { useUI } from './Shell';
 import { Art, Icon, LAYOUT, money } from './ui';
 
-export const SLOT_LABEL: Record<Slot, string> = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', acc: 'Extra' };
+export const SLOT_LABEL: Record<Slot, string> = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', bag: 'Bag', jewelry: 'Jewelry', acc: 'Accessory' };
 
 export function OutfitBoard({
   slots,

@@ -1,13 +1,15 @@
-export type Cat = 'top' | 'dress' | 'bottom' | 'outer' | 'shoes' | 'acc';
-/** Board slots. A dress sits in the top slot and makes the bottom slot unnecessary. */
-export type Slot = 'outer' | 'top' | 'bottom' | 'shoes' | 'acc';
+export type Cat = 'top' | 'dress' | 'bottom' | 'outer' | 'shoes' | 'bag' | 'jewelry' | 'acc';
+/** Board slots. A dress or jumpsuit sits in the top slot and makes the bottom slot unnecessary. */
+export type Slot = 'outer' | 'top' | 'bottom' | 'shoes' | 'bag' | 'jewelry' | 'acc';
 
 export type GarmentType =
-  | 'tee' | 'pockettee' | 'longsleeve' | 'sweater' | 'shirt' | 'linenshirt' | 'hoodie' | 'cardigan' | 'dress'
+  | 'tee' | 'pockettee' | 'longsleeve' | 'sweater' | 'shirt' | 'linenshirt' | 'hoodie' | 'cardigan' | 'dress' | 'jumpsuit'
   | 'denimjacket' | 'chorejacket' | 'blazer' | 'trench' | 'coat' | 'puffer'
-  | 'jeans' | 'loosejeans' | 'chinos' | 'trousers' | 'widetrousers' | 'joggers' | 'skirt'
+  | 'jeans' | 'loosejeans' | 'chinos' | 'trousers' | 'widetrousers' | 'joggers' | 'skirt' | 'shorts'
   | 'sneakers' | 'boots' | 'loafers'
-  | 'tote' | 'cap' | 'beanie';
+  | 'tote' | 'crossbody' | 'backpack' | 'clutch'
+  | 'necklace' | 'earrings' | 'bracelet' | 'watch'
+  | 'cap' | 'beanie' | 'scarf' | 'belt' | 'sunglasses';
 
 export type Denim = 'light' | 'mid' | 'dark';
 export type Source = 'photo' | 'link' | 'manual' | 'email' | 'demo';

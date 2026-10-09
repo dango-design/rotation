@@ -4,7 +4,7 @@
    Each step lists your pieces for that slot, suggests the two that fit best, and fades the ones that clash. */
 
 import { useState } from 'react';
-import { isComplete, SLOTS } from '@/lib/engine';
+import { SLOTS } from '@/lib/engine';
 import { nextStep, piecesFor, STEPS, type StepPiece } from '@/lib/planning';
 import { useStore } from '@/lib/store';
 import type { OutfitSlots, Settings, Slot } from '@/lib/types';
@@ -58,9 +58,8 @@ export function DayPlanner({
   const [sort, setSort] = useState('suggested');
 
   const pieces = SLOTS.filter((s) => slots[s]).map((s) => st.wearableById(slots[s])!).filter(Boolean);
-  const complete = isComplete(slots, st.wearableById);
-  // Clashing pieces are faded as a hint, but the outfit is the person's call.
-  const ready = complete;
+  // Any one piece is an outfit worth planning or logging; clashing pieces are only faded as a hint.
+  const ready = pieces.length > 0;
   const suggestedOrder = piecesFor(step, slots, st.items, st.wearableById, { occasion, today: date, temp: weather?.temp });
   const by = SORTS[sort][1];
   const rows = by ? [...suggestedOrder].sort(by) : suggestedOrder;
@@ -92,7 +91,8 @@ export function DayPlanner({
     setSurprises((n) => n + 1);
     setStep(nextStep(s, st.wearableById) ?? 'top');
   };
-  const after = nextStep(slots, st.wearableById, step);
+  // Every step can be skipped; Skip moves on to the next one in order.
+  const following = STEPS[STEPS.findIndex((s) => s.slot === step) + 1]?.slot;
 
   const stepHint =
     step === 'outer' && weather
@@ -151,7 +151,6 @@ export function DayPlanner({
                   <button key={s.slot} role="tab" aria-selected={step === s.slot} className={`${step === s.slot ? 'active' : ''} ${slots[s.slot] || covered ? 'done' : ''}`} onClick={() => setStep(s.slot)} disabled={covered}>
                     {slots[s.slot] || covered ? <Icon name="check" /> : null}
                     {s.label}
-                    {s.optional && !slots[s.slot] ? <small>optional</small> : null}
                   </button>
                 );
               })}
@@ -182,11 +181,11 @@ export function DayPlanner({
               ))}
             </div>
           ) : (
-            <p className="empty-note">No {current.label.toLowerCase()} pieces in your closet yet.</p>
+            <p className="empty-note">No {current.plural} in your closet yet.</p>
           )}
           <div className="planner-foot">
-            {current.optional && !slots[step] && after && after !== step && (
-              <button className="btn ghost sm" onClick={() => setStep(after)}>
+            {!slots[step] && following && (
+              <button className="btn ghost sm" onClick={() => setStep(following)}>
                 Skip
               </button>
             )}

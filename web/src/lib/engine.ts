@@ -1,12 +1,13 @@
 /* Outfit engine: rule-based pairing and the Outfit Unlock score.
-   A complete outfit is a top, a bottom and shoes, or a dress and shoes, with an optional layer and accessory.
+   For counting and suggesting, a complete outfit is a top, a bottom and shoes, or a dress or jumpsuit and shoes,
+   with an optional layer, bag, jewelry and accessory. People can still plan or log any set of pieces.
    Nothing here weights any store: pieces are ranked by the value they add to this closet. */
 
-import { TYPES, CATS } from './catalog-meta';
+import { TYPES, CATS, isAccessory } from './catalog-meta';
 import { plural } from './format';
 import type { Cat, Item, OutfitSlots, Piece, Slot, Wearable } from './types';
 
-export const SLOTS: Slot[] = ['outer', 'top', 'bottom', 'shoes', 'acc'];
+export const SLOTS: Slot[] = ['outer', 'top', 'bottom', 'shoes', 'bag', 'jewelry', 'acc'];
 export const slotOf = (w: { cat: Cat }): Slot => (w.cat === 'dress' ? 'top' : w.cat);
 
 /** Non-neutral tones that work together. Any other pair of different non-neutral tones clashes. */
@@ -30,13 +31,13 @@ export type Verdict = { ok: true } | { ok: false; reason: string };
 export function check(items: Wearable[]): Verdict {
   const list = items.filter(Boolean);
   if (list.some((i) => i.cat === 'dress') && list.some((i) => i.cat === 'bottom'))
-    return { ok: false, reason: 'A dress already covers the bottom half' };
+    return { ok: false, reason: `A ${list.find((i) => i.cat === 'dress')!.type === 'jumpsuit' ? 'jumpsuit' : 'dress'} already covers the bottom half` };
   for (let i = 0; i < list.length; i++)
     for (let j = i + 1; j < list.length; j++) {
       const reason = clash(list[i], list[j]);
       if (reason) return { ok: false, reason };
     }
-  const worn = list.filter((i) => i.cat !== 'acc');
+  const worn = list.filter((i) => !isAccessory(i.cat));
   if (worn.length > 1) {
     const hi = worn.reduce((a, b) => (b.f > a.f ? b : a));
     const lo = worn.reduce((a, b) => (b.f < a.f ? b : a));
@@ -84,14 +85,14 @@ const piecesOf = (o: OutfitSlots, get: (id: string) => Wearable) =>
 export function outfitsWith(c: Wearable, closet: Wearable[]): OutfitSlots[] {
   const get = lookup(closet, c);
   if (c.cat === 'outer') return bases(closet).filter((o) => check([...piecesOf(o, get), c]).ok).map((o) => ({ ...o, outer: c.id }));
-  if (c.cat === 'acc') return bases(closet).filter((o) => check([...piecesOf(o, get), c]).ok).map((o) => ({ ...o, acc: c.id }));
+  if (isAccessory(c.cat)) return bases(closet).filter((o) => check([...piecesOf(o, get), c]).ok).map((o) => ({ ...o, [slotOf(c)]: c.id }));
   return bases(closet.filter((i) => i.id !== c.id), c);
 }
 
 /** Outfit Unlock: outfits that only become possible with this piece.
     A new layer only counts outfits that no owned layer already works with. Accessories unlock nothing. */
 export function unlock(c: Wearable, closet: Wearable[]): number {
-  if (c.cat === 'acc') return 0;
+  if (isAccessory(c.cat)) return 0;
   if (c.cat !== 'outer') return outfitsWith(c, closet).length;
   const get = lookup(closet);
   const layers = pool(closet, 'outer');
@@ -123,7 +124,7 @@ export interface Pick {
 /** Suggested pieces ranked by Rank = Unlock × style × (1 − duplication). Commission is not part of it. */
 export function rankPieces(catalog: Piece[], closet: Item[]): Pick[] {
   return catalog
-    .filter((p) => p.cat !== 'acc')
+    .filter((p) => !isAccessory(p.cat))
     .map((piece) => {
       const u = unlock(piece, closet);
       const dup = duplicate(piece, closet);
@@ -158,7 +159,7 @@ export function whyLine(p: Wearable, closet: Item[]): string {
 /** Owned pieces that pair with an item, most-worn first. */
 export function pairsWith(item: Item, closet: Item[]): Item[] {
   return closet
-    .filter((i) => i.id !== item.id && slotOf(i) !== slotOf(item) && i.cat !== 'acc')
+    .filter((i) => i.id !== item.id && slotOf(i) !== slotOf(item) && !isAccessory(i.cat))
     .filter((i) => check([item, i]).ok)
     .sort((a, b) => b.wears - a.wears);
 }

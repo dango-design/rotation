@@ -28,7 +28,7 @@ const BADGE: Record<string, [string, string]> = {
 };
 
 /** The closet grid filter that matches a board slot. */
-const SLOT_CAT: Record<Slot, Cat> = { outer: 'outer', top: 'top', bottom: 'bottom', shoes: 'shoes', acc: 'acc' };
+const SLOT_CAT: Record<Slot, Cat> = { outer: 'outer', top: 'top', bottom: 'bottom', shoes: 'shoes', bag: 'bag', jewelry: 'jewelry', acc: 'acc' };
 
 export default function Closet() {
   const st = useStore();
