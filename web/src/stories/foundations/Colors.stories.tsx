@@ -22,7 +22,7 @@ const GROUPS: { title: string; note: string; tokens: Token[] }[] = [
   },
   {
     title: 'Ink and lines',
-    note: 'Three steps of text. --ink-3 passes AA on the canvas and panels but not on --tile; text on tiles uses --ink-2.',
+    note: 'Three steps of text. --ink-3 passes AA on the canvas and panels but not on --tile (4.35:1), so text on tiles should use --ink-2.',
     tokens: [
       { name: '--ink', use: 'Headings, body text, primary buttons, active nav' },
       { name: '--ink-2', use: 'Secondary text, descriptions' },
@@ -139,7 +139,7 @@ const PAIRS: { fg: string; bg: string; where: string }[] = [
   { fg: '--ink-3', bg: '--panel', where: 'Meta lines and captions on cards' },
   { fg: '--ink-3', bg: '--bg', where: 'Eyebrows on the page' },
   { fg: '--ink-3', bg: '--panel-2', where: 'Sidebar tagline and section labels' },
-  { fg: '--ink-3', bg: '--tile', where: 'Not used: text on tiles is --ink-2' },
+  { fg: '--ink-3', bg: '--tile', where: 'The empty-canvas hint; should be --ink-2' },
   { fg: '--on-ink', bg: '--ink', where: 'Primary buttons, active nav, filter chips, toasts' },
   { fg: '#ffffff', bg: '--gap-solid', where: 'Gap buttons, unlock card, summary bar' },
   { fg: 'rgba(255, 255, 255, 0.7)', bg: '--gap-solid', where: 'Unlock card eyebrow (white at 70%)' },

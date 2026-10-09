@@ -30,8 +30,9 @@ const meta = {
   ],
   parameters: {
     layout: 'padded',
-    // Known issues: canvas pieces are buttons holding the trial tag's Compare button (nested-interactive), and the
-    // tag is clipped at the canvas edge. Reported, not failed.
+    // Known issues: a suggested piece on the canvas is a button holding its Compare button (nested-interactive) and is
+    // named differently from its visible tag (label-content-name-mismatch); the empty-canvas hint is --ink-3 on --tile,
+    // 4.35:1 (color-contrast). Reported, not failed.
     a11y: { test: 'todo' },
   },
   // The side-panel layout; narrower windows get the bottom sheet (see AsBottomSheet).

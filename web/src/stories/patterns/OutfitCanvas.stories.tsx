@@ -38,12 +38,7 @@ const meta = {
   component: Canvas,
   args: { slots: outfit, onLayout: fn(), onRemove: fn() },
   argTypes: { slots: { control: 'object' }, layout: { control: 'object' } },
-  parameters: {
-    layout: 'padded',
-    store: demoCloset,
-    // Known issue: pieces are buttons that can hold the trial tag's Compare button (nested-interactive). Reported, not failed.
-    a11y: { test: 'todo' },
-  },
+  parameters: { layout: 'padded', store: demoCloset },
 } satisfies Meta<typeof Canvas>;
 
 export default meta;
@@ -118,9 +113,14 @@ export const DeleteWithKeyboard: Story = {
 /** A suggested piece, outlined in gap blue with its price and a link to compare stores. */
 export const WithSuggestedPiece: Story = {
   args: { slots: { outer: id('o1'), top: id('t3'), bottom: 'p-chino-khaki', shoes: id('s3') } },
+  // Known issue: the piece is a button holding its Compare button (nested-interactive), named differently from its
+  // visible tag (label-content-name-mismatch). Reported, not failed.
+  parameters: { a11y: { test: 'todo' } },
 };
 
 /** Nothing on it yet. */
 export const Empty: Story = {
   args: { slots: {} },
+  // Known issue: the hint is --ink-3 on --tile, 4.35:1 (color-contrast). Reported, not failed.
+  parameters: { a11y: { test: 'todo' } },
 };
