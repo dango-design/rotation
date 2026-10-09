@@ -20,6 +20,8 @@ export const TYPES: Record<GarmentType, { label: string; plural: string; cat: Ca
   hoodie: { label: 'Hoodie or sweatshirt', plural: 'hoodies', cat: 'top', f: 1 },
   cardigan: { label: 'Cardigan', plural: 'cardigans', cat: 'top', f: 2 },
   dress: { label: 'Dress', plural: 'dresses', cat: 'dress', f: 2 },
+  shirtdress: { label: 'Shirt dress', plural: 'shirt dresses', cat: 'dress', f: 2 },
+  slipdress: { label: 'Slip dress', plural: 'slip dresses', cat: 'dress', f: 2.5 },
   jeans: { label: 'Straight or slim jeans', plural: 'jeans', cat: 'bottom', f: 1.5 },
   loosejeans: { label: 'Loose or wide jeans', plural: 'loose jeans', cat: 'bottom', f: 1.5 },
   chinos: { label: 'Chinos', plural: 'chinos', cat: 'bottom', f: 2 },
@@ -35,13 +37,14 @@ export const TYPES: Record<GarmentType, { label: string; plural: string; cat: Ca
   puffer: { label: 'Puffer', plural: 'puffers', cat: 'outer', f: 1 },
   sneakers: { label: 'Sneakers', plural: 'sneakers', cat: 'shoes', f: 1.5 },
   boots: { label: 'Boots', plural: 'boots', cat: 'shoes', f: 2 },
-  loafers: { label: 'Loafers or flats', plural: 'loafers', cat: 'shoes', f: 2.5 },
+  loafers: { label: 'Loafers', plural: 'loafers', cat: 'shoes', f: 2.5 },
+  flats: { label: 'Flats', plural: 'flats', cat: 'shoes', f: 2 },
   tote: { label: 'Bag', plural: 'bags', cat: 'acc', f: 1.5 },
   cap: { label: 'Cap', plural: 'caps', cat: 'acc', f: 1 },
   beanie: { label: 'Beanie', plural: 'beanies', cat: 'acc', f: 1 },
 };
 
-const PAIRS = new Set<GarmentType>(['jeans', 'loosejeans', 'chinos', 'trousers', 'widetrousers', 'joggers', 'sneakers', 'boots', 'loafers']);
+const PAIRS = new Set<GarmentType>(['jeans', 'loosejeans', 'chinos', 'trousers', 'widetrousers', 'joggers', 'sneakers', 'boots', 'loafers', 'flats']);
 
 /** "one pair of chinos", "one cardigan". */
 export const onePhrase = (t: GarmentType) => (PAIRS.has(t) ? `one pair of ${TYPES[t].plural.toLowerCase()}` : `one ${TYPES[t].label.toLowerCase()}`);

@@ -283,6 +283,36 @@ function dress(c: Pal) {
   );
 }
 
+function shirtdress(c: Pal) {
+  const sil = 'M80 18 Q100 30 120 18 L140 24 Q156 32 162 56 L168 82 L148 90 L136 62 Q134 80 126 94 L156 186 Q100 194 44 186 L74 94 Q66 80 64 62 L52 90 L32 82 L38 56 Q44 32 60 24 Z';
+  return (
+    fillPath(sil, c) + sheen(sil) +
+    p('M80 18 Q100 10 120 18 L100 32 Z', `fill="${c.I}"`) +
+    line('M103 32 L103 188', c.D, 1) +
+    [46, 62, 78, 114, 134, 154, 174].map((y) => dot(100, y, 2.2, c.L, c.D)).join('') +
+    fillPath('M100 32 L82 14 L72 22 L87 46 Z', c) + fillPath('M100 32 L118 14 L128 22 L113 46 Z', c) +
+    line('M165.5 72 L146 80', c.D) + line('M34.5 72 L54 80', c.D) +
+    line('M84 100 L70 180 M118 100 L132 180', c.D, 1, 'opacity=".35"') +
+    fillPath('M71 88 L129 88 L128 99 L72 99 Z', c) +
+    fillPath('M104 98 L114 134 L120 131 L109 98 Z', c) + fillPath('M100 98 L94 130 L100 132 L105 98 Z', c) +
+    fillPath('M97 86 h12 v14 h-12 Z', c) +
+    line('M47 178 Q100 186 153 178', c.D)
+  );
+}
+
+function slipdress(c: Pal) {
+  const sil = 'M80 42 Q100 58 120 42 L125 52 Q130 70 122 94 Q132 140 146 186 Q100 194 54 186 Q68 140 78 94 Q70 70 75 52 Z';
+  return (
+    line('M84 45 L88 8', c.D, 2.2) + line('M116 45 L112 8', c.D, 2.2) +
+    fillPath(sil, c) + sheen(sil) +
+    line('M80 42 Q100 58 120 42', c.D, 1.6) +
+    line('M86 52 Q100 64 114 52', c.D, 1, 'opacity=".4"') +
+    line('M112 62 Q118 120 134 182', '#ffffff', 6, 'opacity=".12"') +
+    line('M92 98 Q90 140 78 184 M108 98 Q112 140 124 184', c.D, 1, 'opacity=".3"') +
+    line('M57 180 Q100 188 143 180', c.D)
+  );
+}
+
 function skirt(c: Pal) {
   const sil = 'M64 26 L136 26 L162 178 Q100 190 38 178 Z';
   return (
@@ -346,6 +376,20 @@ function loafer(c: Pal) {
   );
 }
 
+function flat(c: Pal) {
+  const dark = lum(c.F) < 0.16;
+  const hole = dark ? '#0b0b0b' : c.I;
+  const upper = 'M30 150 L30 132 Q30 126 37 126 Q62 132 88 134 Q114 136 132 128 Q164 118 181 132 Q189 140 187 150 Z';
+  return (
+    fillPath(upper, c) + sheen(upper) +
+    p('M36 128 Q62 134 88 135 Q112 136 130 130 Q102 125 72 125 Q48 124 36 128 Z', `fill="${hole}"`) +
+    line('M33 128 Q62 135 88 136 Q114 137 131 129', c.D, 1.6) +
+    p('M127 129 l-9 -5 l0 10 Z M133 129 l9 -5 l0 10 Z', `fill="${c.D}"`) + dot(130, 129, 2.2, c.D) +
+    p('M26 150 L190 150 L190 154 Q190 156 188 156 L28 156 Q26 156 26 154 Z', `fill="${SOLE}"`) +
+    p('M26 153 L50 153 L50 160 L28 160 Z', `fill="${SOLE}"`)
+  );
+}
+
 /* ---------- Accessories ---------- */
 function tote(c: Pal) {
   const body = 'M46 70 L154 70 L162 182 L38 182 Z';
@@ -394,6 +438,8 @@ const DRAW: Record<string, (c: Pal) => string> = {
   hoodie,
   cardigan,
   dress,
+  shirtdress,
+  slipdress,
   skirt,
   denimjacket,
   chorejacket,
@@ -410,6 +456,7 @@ const DRAW: Record<string, (c: Pal) => string> = {
   sneakers: (c) => pair(sneaker, c),
   boots: (c) => pair(boot, c),
   loafers: (c) => pair(loafer, c),
+  flats: (c) => pair(flat, c),
   tote,
   cap,
   beanie,
