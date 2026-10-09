@@ -1,6 +1,6 @@
 # 006 — Build the outfit first, suggest along the way
 
-**Date:** Oct 7, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 7, 2026 · **Status:** Accepted · **Milestone:** `v4-plan-and-canvas`
 
 ## Context
 
