@@ -1,0 +1,35 @@
+# Unit tests, story tests (every story rendered in Chromium, with its play function and accessibility checks),
+# and Chromatic visual tests once a CHROMATIC_PROJECT_TOKEN secret is added to the repo.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Chromatic compares against earlier builds and only snapshots stories affected by the change (TurboSnap).
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test-storybook
+      - name: Visual tests (Chromatic)
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        run: npm run chromatic

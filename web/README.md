@@ -15,3 +15,14 @@ Optional `.env.local`:
 ```bash
 ANTHROPIC_API_KEY=your-key   # turns on photo tagging with Claude
 ```
+
+## Storybook
+
+```bash
+npm run storybook          # http://localhost:6006
+npm run test-storybook     # every story in Chromium: renders, interactions, accessibility
+npm run build-storybook    # static build in storybook-static/
+npm run chromatic          # visual tests; needs CHROMATIC_PROJECT_TOKEN
+```
+
+The story tests need a browser once: `npx playwright install chromium`.

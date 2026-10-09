@@ -1,7 +1,8 @@
 'use client';
 
 /* App state. Real closets persist to IndexedDB on the device; `?demo` loads Jordan's demo closet
-   in memory only, so it can be explored and shared without touching anyone's data. */
+   in memory only, so it can be explored and shared without touching anyone's data. A fixture (Storybook)
+   is also held in memory, with the weather given instead of fetched, so every render is repeatable. */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CATALOG } from './catalog';
@@ -13,7 +14,7 @@ import { forecast, geocode, skyWord, type Forecast } from './weather';
 
 export const DEFAULT_SETTINGS: Settings = { city: '', favoriteStores: [], showShop: true, occasion: 'work' };
 
-interface Draft {
+export interface Draft {
   name: string;
   slots: OutfitSlots;
   focus: Slot;
@@ -33,20 +34,47 @@ interface State {
   list: ListEntry[];
 }
 
+/** A closet held in memory for Storybook and tests. Nothing loads from or saves to the device. */
+export interface Fixture extends Partial<Pick<State, 'demo' | 'items' | 'images' | 'outfits' | 'plans' | 'wears' | 'list'>> {
+  settings?: Partial<Settings>;
+  /** Used as is; a fixture never fetches the weather. */
+  weather?: Forecast | null;
+  draft?: Draft;
+  /** Open the outfit board beside the closet. */
+  building?: boolean;
+}
+
 const EMPTY: State = { ready: false, demo: false, items: [], images: {}, outfits: [], plans: [], wears: [], settings: DEFAULT_SETTINGS, list: [] };
 
 const uid = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
-function useStoreValue() {
-  const [s, setS] = useState<State>(EMPTY);
-  const [draft, setDraft] = useState<Draft>({ name: 'New outfit', slots: {}, focus: 'top' });
+function useStoreValue(fixture?: Fixture) {
+  const [s, setS] = useState<State>(() =>
+    fixture
+      ? {
+          ready: true,
+          demo: fixture.demo ?? false,
+          items: fixture.items ?? [],
+          images: fixture.images ?? {},
+          outfits: fixture.outfits ?? [],
+          plans: fixture.plans ?? [],
+          wears: fixture.wears ?? [],
+          settings: { ...DEFAULT_SETTINGS, ...fixture.settings },
+          list: fixture.list ?? [],
+        }
+      : EMPTY,
+  );
+  /** Set once: a fixture keeps its data in memory and its weather fixed. */
+  const [fixed] = useState(() => (fixture ? { weather: fixture.weather ?? null } : null));
+  const [draft, setDraft] = useState<Draft>(fixture?.draft ?? { name: 'New outfit', slots: {}, focus: 'top' });
   /** The outfit board is open beside the closet. */
-  const [building, setBuilding] = useState(false);
+  const [building, setBuilding] = useState(fixture?.building ?? false);
   const [forecastFor, setForecastFor] = useState<{ key: string; data: Forecast | null } | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
+    if (fixed) return;
     const demo = new URLSearchParams(window.location.search).has('demo');
     if (demo) {
       // Deferred so the first render matches the server; demo mode is chosen once per page load.
@@ -75,21 +103,21 @@ function useStoreValue() {
         });
       })
       .catch(() => setS({ ...EMPTY, ready: true }));
-  }, []);
+  }, [fixed]);
 
   // Weather for the saved city; a forecast for an old city is ignored.
   const { lat, lon } = s.settings;
   const placeKey = lat !== undefined && lon !== undefined ? `${lat},${lon}` : '';
   useEffect(() => {
-    if (!placeKey) return;
+    if (!placeKey || fixed) return;
     const [la, lo] = placeKey.split(',').map(Number);
     forecast(la, lo)
       .then((data) => setForecastFor({ key: placeKey, data }))
       .catch(() => setForecastFor({ key: placeKey, data: null }));
-  }, [placeKey]);
-  const weather = placeKey && forecastFor?.key === placeKey ? forecastFor.data : null;
+  }, [placeKey, fixed]);
+  const weather = fixed ? fixed.weather : placeKey && forecastFor?.key === placeKey ? forecastFor.data : null;
 
-  const persist = useCallback(<T,>(fn: () => Promise<T>) => (s.demo ? undefined : void fn().catch(() => {})), [s.demo]);
+  const persist = useCallback(<T,>(fn: () => Promise<T>) => (s.demo || fixed ? undefined : void fn().catch(() => {})), [s.demo, fixed]);
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
@@ -306,8 +334,8 @@ function useStoreValue() {
 type Store = ReturnType<typeof useStoreValue>;
 const Ctx = createContext<Store | null>(null);
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const value = useStoreValue();
+export function StoreProvider({ children, fixture }: { children: React.ReactNode; fixture?: Fixture }) {
+  const value = useStoreValue(fixture);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

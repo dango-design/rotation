@@ -24,6 +24,20 @@ echo "ANTHROPIC_API_KEY=your-key" > web/.env.local
 
 Run the tests with `npm test` inside `web/`.
 
+## Storybook
+
+Every part of the app, from color tokens to full pages, in [Storybook](https://storybook.js.org), with a fixed closet, date and weather so each state looks the same every time:
+
+```bash
+cd web
+npm run storybook        # http://localhost:6006
+```
+
+- **For design review:** color tokens with contrast checks, the type scale, icons, every garment illustration in every color, button states, and each page at phone, tablet and desktop widths, including empty and first-run states.
+- **For testing:** `npm run test-storybook` renders every story in Chromium, runs its interactions (open a drawer, remove a piece, read a product link) and checks accessibility. Stories are ready for [Chromatic](https://www.chromatic.com) visual tests: add a `CHROMATIC_PROJECT_TOKEN` secret and CI runs them on every pull request.
+
+The Introduction page in Storybook explains how stories get their data and how to add one.
+
 ## What it does
 
 - **Today:** an outfit for each day from what you own, set for a casual, work or dressy day, using the live forecast for your city. It favors pieces you haven't worn lately. Pick any day in the week strip to plan it or log what you wore.
@@ -51,6 +65,8 @@ With the demo closet (24 pieces from 15 stores), the engine finds 100 outfits, a
 | `web/src/lib/engine.ts` | Pairing rules and the Outfit Unlock score |
 | `web/src/lib/bgremove.ts` | On-device background removal |
 | `web/src/app/api/` | Server routes for photo tagging (Claude) and reading product links |
+| `web/src/stories/` | Storybook stories: foundations, components, patterns and pages, with their fixtures |
+| `web/.storybook/` | Storybook setup: fixed date, viewports, Chromatic modes, stand-ins for the server and background removal |
 | `mockup/` | The clickable prototype from the concept phase |
 | `docs/process/` | The process log: milestones, screenshots and decision records |
 | `docs/strategy/` | Strategy snapshots for each milestone |

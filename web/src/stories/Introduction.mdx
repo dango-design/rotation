@@ -1,0 +1,44 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# Rotation in Storybook
+
+Every part of Rotation, from color tokens to full pages, rendered from the real app code with a fixed closet, a fixed date and fixed weather. Use it to review design changes, check states that are hard to reach in the app, and catch visual regressions before they ship.
+
+## What's here
+
+- **Foundations.** Color tokens with live contrast checks, the type scale as built, surfaces and elevation, icons, and every garment illustration in every color.
+- **Components.** Buttons (with hover, focus and pressed states), chips and controls, garment tiles, outfit flat lays, and feedback: verdicts, toasts, banners, empty states.
+- **Patterns.** The outfit board, piece details, shopping (compare stores, the list), adding a piece, the piece form, and the app frame.
+- **Pages.** Today, Closet, Fill the gap, and the You pages, in their main states, including empty and first-run.
+
+## Reviewing a design
+
+- **Viewports.** The viewport menu in the toolbar has Rotation's breakpoints: phone (390, the 900px layout), tablet (1024, the 1180px layout), laptop (1280, the 1320px layout) and desktop (1440).
+- **States.** Stories with a play function act out a step (open a drawer, remove a piece, read a link) and stop on the result. The **Interactions** panel replays each step.
+- **Accessibility.** The **Accessibility** panel runs axe on each story, and violations fail the story tests. Stories that show a known issue in the app are marked `a11y: { test: 'todo' }` with a comment naming it: the panel still lists it, and the tests pass until it's fixed.
+- **Docs pages.** Components tagged for docs have a page listing their props and stories.
+
+## Where the data comes from
+
+Stories never touch your own closet or the network:
+
+- **The closet** is Jordan's demo closet (24 pieces from 15 stores), the same one the app shows at `?demo`, held in memory. Smaller closets cover the empty and edge states. See `src/stories/fixtures.ts`.
+- **The date** is Thursday, October 8, 2026 at 9am, so the week strip always has worn, empty and planned days, and the greeting says good morning. A story can set `parameters.now`.
+- **The weather** is a fixed San Francisco week: fog today, rain midweek.
+- **The server** (photo tagging and product links) is answered by `.storybook/api.ts`, as a server without an Anthropic key. A story can set `parameters.api`.
+- **Background removal** is replaced by a mock, so the photo flow runs without downloading the model.
+
+## For developers
+
+```bash
+npm run storybook          # http://localhost:6006
+npm run test-storybook     # every story in Chromium: renders, play functions, accessibility
+npm run build-storybook    # static build in storybook-static/
+npm run chromatic          # visual tests; needs CHROMATIC_PROJECT_TOKEN
+```
+
+The story tests need a browser once: `npx playwright install chromium`.
+
+**Adding a story.** Stories live in `src/stories/`, grouped like the sidebar. Give a story its closet with `parameters.store` (a function returning a fixture), wrap pages in the `inShell` decorator, and set `nextjs.navigation.pathname` so the right tab is active. Pages are snapshotted at phone, tablet and desktop (`pageModes` in `.storybook/modes.ts`); components at Chromatic's default width.
