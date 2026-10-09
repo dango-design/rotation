@@ -10,6 +10,7 @@ import * as store from './db';
 import { todayISO } from './dates';
 import { demoData } from './demo';
 import type { Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
+import { wornOn } from './wear';
 import { forecast, geocode, skyWord, type Forecast } from './weather';
 
 export const DEFAULT_SETTINGS: Settings = { city: '', favoriteStores: [], showShop: true, occasion: 'work' };
@@ -157,7 +158,7 @@ function useStoreValue() {
       const ids = Object.values(slots).filter(Boolean) as string[];
       const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}) };
       setS((p) => {
-        const items = p.items.map((i) => (ids.includes(i.id) ? { ...i, wears: i.wears + 1, lastWorn: date } : i));
+        const items = p.items.map((i) => (ids.includes(i.id) ? wornOn(i, date) : i));
         persist(async () => {
           await store.putWear(entry);
           await Promise.all(items.filter((i) => ids.includes(i.id)).map(store.putItem));
