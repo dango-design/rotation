@@ -39,6 +39,8 @@ export const CATALOG: Piece[] = [
   // Dresses
   piece('p-dress-black', 'Black Midi Dress', 'dress', 'Black', 0.8, [['Zara', 'Midi Dress', 49.9], ['Madewell', 'Midi Dress', 128], ['Banana Republic', 'Midi Dress', 140]]),
   piece('p-dress-sage', 'Sage Midi Dress', 'dress', 'Sage', 0.72, [['H&M', 'Midi Dress', 34.99], ['Madewell', 'Midi Dress', 128]]),
+  piece('p-shirtdress-white', 'White Shirt Dress', 'shirtdress', 'White', 0.78, [['Gap', 'Poplin Shirt Dress', 79.95], ['J.Crew', 'Cotton Poplin Shirt Dress', 118]]),
+  piece('p-slipdress-black', 'Black Slip Dress', 'slipdress', 'Black', 0.74, [['Zara', 'Satin Slip Dress', 45.9], ['Madewell', 'Satin Slip Dress', 118]]),
   // Bottoms
   piece('p-chino-khaki', 'Light Straight Chinos', 'chinos', 'Khaki', 0.96, [['Uniqlo', 'Chino Pants', 39.9], ['Gap', 'Straight Khakis', 59.95], ['J.Crew', 'Classic Chino', 79.5]]),
   piece('p-chino-navy', 'Navy Chinos', 'chinos', 'Navy', 0.8, [['Uniqlo', 'Chino Pants', 39.9], ['J.Crew', 'Classic Chino', 79.5]]),
@@ -60,6 +62,7 @@ export const CATALOG: Piece[] = [
   piece('p-boots-brown', 'Brown Chelsea Boots', 'boots', 'Brown', 0.86, [['Nordstrom', 'Chelsea Boot', 230], ['Madewell', 'Chelsea Boot', 198]]),
   piece('p-boots-black', 'Black Chelsea Boots', 'boots', 'Black', 0.78, [['Nordstrom', 'Chelsea Boot', 230], ['Zara', 'Chelsea Boot', 89.9]]),
   piece('p-loafers-black', 'Black Loafers', 'loafers', 'Black', 0.8, [['Amazon', 'Penny Loafer', 150], ['J.Crew', 'Leather Loafer', 168]]),
+  piece('p-flats-black', 'Black Ballet Flats', 'flats', 'Black', 0.8, [['Target', 'Ballet Flats', 29.99], ['Madewell', 'Ballet Flat', 128], ['J.Crew', 'Leather Ballet Flat', 98]]),
 ];
 
 export const pieceById = (id: string) => CATALOG.find((p) => p.id === id);

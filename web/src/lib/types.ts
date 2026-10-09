@@ -1,13 +1,16 @@
-export type Cat = 'top' | 'dress' | 'bottom' | 'outer' | 'shoes' | 'acc';
-/** Board slots. A dress sits in the top slot and makes the bottom slot unnecessary. */
-export type Slot = 'outer' | 'top' | 'bottom' | 'shoes' | 'acc';
+export type Cat = 'top' | 'dress' | 'bottom' | 'outer' | 'shoes' | 'bag' | 'jewelry' | 'acc';
+/** Board slots. A dress or jumpsuit sits in the top slot and makes the bottom slot unnecessary. */
+export type Slot = 'outer' | 'top' | 'bottom' | 'shoes' | 'bag' | 'jewelry' | 'acc';
 
 export type GarmentType =
-  | 'tee' | 'pockettee' | 'longsleeve' | 'sweater' | 'shirt' | 'linenshirt' | 'hoodie' | 'cardigan' | 'dress'
+  | 'tee' | 'pockettee' | 'longsleeve' | 'sweater' | 'shirt' | 'linenshirt' | 'hoodie' | 'cardigan'
+  | 'dress' | 'shirtdress' | 'slipdress' | 'jumpsuit'
   | 'denimjacket' | 'chorejacket' | 'blazer' | 'trench' | 'coat' | 'puffer'
-  | 'jeans' | 'loosejeans' | 'chinos' | 'trousers' | 'widetrousers' | 'joggers' | 'skirt'
-  | 'sneakers' | 'boots' | 'loafers'
-  | 'tote' | 'cap' | 'beanie';
+  | 'jeans' | 'loosejeans' | 'chinos' | 'trousers' | 'widetrousers' | 'joggers' | 'skirt' | 'shorts'
+  | 'sneakers' | 'boots' | 'loafers' | 'flats'
+  | 'tote' | 'crossbody' | 'backpack' | 'clutch'
+  | 'necklace' | 'earrings' | 'bracelet' | 'watch'
+  | 'cap' | 'beanie' | 'scarf' | 'belt' | 'sunglasses';
 
 export type Denim = 'light' | 'mid' | 'dark';
 export type Source = 'photo' | 'link' | 'manual' | 'email' | 'demo';
@@ -52,10 +55,24 @@ export type Wearable = Pick<Item, 'id' | 'name' | 'type' | 'cat' | 'color' | 'co
 
 export type OutfitSlots = Partial<Record<Slot, string>>;
 
+/** Where one piece sits on an outfit canvas, in % of the canvas width: left, top, width (pieces are square), stacking order.
+    `id` is the piece it was set for; a different piece in the slot keeps the spot but gets its own true size. */
+export interface PieceLayout {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  z: number;
+}
+
+/** A hand-arranged outfit. Slots without an entry are placed automatically. */
+export type Layout = Partial<Record<Slot, PieceLayout>>;
+
 export interface Outfit {
   id: string;
   name: string;
   slots: OutfitSlots;
+  layout?: Layout;
   createdAt: string;
 }
 
@@ -64,6 +81,7 @@ export interface Plan {
   date: string;
   name: string;
   slots: OutfitSlots;
+  layout?: Layout;
 }
 
 /** Outfits actually worn, one entry per wear. */
@@ -71,6 +89,7 @@ export interface WearEntry {
   id: string;
   date: string;
   slots: OutfitSlots;
+  layout?: Layout;
 }
 
 export interface StoreOption {

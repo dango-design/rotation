@@ -283,6 +283,36 @@ function dress(c: Pal) {
   );
 }
 
+function shirtdress(c: Pal) {
+  const sil = 'M80 18 Q100 30 120 18 L140 24 Q156 32 162 56 L168 82 L148 90 L136 62 Q134 80 126 94 L156 186 Q100 194 44 186 L74 94 Q66 80 64 62 L52 90 L32 82 L38 56 Q44 32 60 24 Z';
+  return (
+    fillPath(sil, c) + sheen(sil) +
+    p('M80 18 Q100 10 120 18 L100 32 Z', `fill="${c.I}"`) +
+    line('M103 32 L103 188', c.D, 1) +
+    [46, 62, 78, 114, 134, 154, 174].map((y) => dot(100, y, 2.2, c.L, c.D)).join('') +
+    fillPath('M100 32 L82 14 L72 22 L87 46 Z', c) + fillPath('M100 32 L118 14 L128 22 L113 46 Z', c) +
+    line('M165.5 72 L146 80', c.D) + line('M34.5 72 L54 80', c.D) +
+    line('M84 100 L70 180 M118 100 L132 180', c.D, 1, 'opacity=".35"') +
+    fillPath('M71 88 L129 88 L128 99 L72 99 Z', c) +
+    fillPath('M104 98 L114 134 L120 131 L109 98 Z', c) + fillPath('M100 98 L94 130 L100 132 L105 98 Z', c) +
+    fillPath('M97 86 h12 v14 h-12 Z', c) +
+    line('M47 178 Q100 186 153 178', c.D)
+  );
+}
+
+function slipdress(c: Pal) {
+  const sil = 'M80 42 Q100 58 120 42 L125 52 Q130 70 122 94 Q132 140 146 186 Q100 194 54 186 Q68 140 78 94 Q70 70 75 52 Z';
+  return (
+    line('M84 45 L88 8', c.D, 2.2) + line('M116 45 L112 8', c.D, 2.2) +
+    fillPath(sil, c) + sheen(sil) +
+    line('M80 42 Q100 58 120 42', c.D, 1.6) +
+    line('M86 52 Q100 64 114 52', c.D, 1, 'opacity=".4"') +
+    line('M112 62 Q118 120 134 182', '#ffffff', 6, 'opacity=".12"') +
+    line('M92 98 Q90 140 78 184 M108 98 Q112 140 124 184', c.D, 1, 'opacity=".3"') +
+    line('M57 180 Q100 188 143 180', c.D)
+  );
+}
+
 function skirt(c: Pal) {
   const sil = 'M64 26 L136 26 L162 178 Q100 190 38 178 Z';
   return (
@@ -291,6 +321,32 @@ function skirt(c: Pal) {
     line('M62 40 L138 40', c.D) +
     line('M84 42 L70 180 M100 42 L100 184 M116 42 L130 180', c.D, 1, 'opacity=".35"') +
     line('M41 170 Q100 181 159 170', c.D)
+  );
+}
+
+function jumpsuit(c: Pal) {
+  const sil = 'M76 14 L90 14 Q100 30 110 14 L124 14 L134 40 Q138 64 132 86 L150 188 L108 188 L100 112 L92 188 L50 188 L68 86 Q62 64 66 40 Z';
+  return (
+    fillPath(sil, c) + sheen(sil) +
+    line('M90 14 Q100 30 110 14', c.D, 2) +
+    p('M68 84 Q100 92 132 84 L132 94 Q100 102 68 94 Z', `fill="${c.D}" opacity=".22"`) +
+    line('M68 89 Q100 97 132 89', c.D, 1.4) +
+    line('M100 36 L100 86', c.D, 1, 'opacity=".5"') + dot(100, 48, 2, c.D) + dot(100, 64, 2, c.D) +
+    line('M78 40 L76 70 M122 40 L124 70', c.D, 1, 'opacity=".4"') +
+    line('M100 112 L100 98', c.D, 1) + line('M74 120 L64 182 M126 120 L136 182', c.D, 1, 'opacity=".35"')
+  );
+}
+
+function shorts(c: Pal) {
+  const sil = 'M54 44 L146 44 L158 136 L110 140 L100 96 L90 140 L42 136 Z';
+  return (
+    fillPath(sil, c) + sheen(sil) +
+    line('M53 58 L147 58', c.D) +
+    p('M68 42 h5 v17 h-5 Z', `fill="${c.F}" stroke="${c.D}" stroke-width="1"`) +
+    p('M127 42 h5 v17 h-5 Z', `fill="${c.F}" stroke="${c.D}" stroke-width="1"`) +
+    dot(100, 51, 2.2, c.D) + line('M106 59 L106 84 Q106 90 100 92', c.D, 1) +
+    line('M72 58 L58 82', c.D) + line('M128 58 L142 82', c.D) +
+    line('M44 126 L90 130 M110 130 L156 126', c.D, 1, 'opacity=".5"')
   );
 }
 
@@ -346,6 +402,20 @@ function loafer(c: Pal) {
   );
 }
 
+function flat(c: Pal) {
+  const dark = lum(c.F) < 0.16;
+  const hole = dark ? '#0b0b0b' : c.I;
+  const upper = 'M30 150 L30 132 Q30 126 37 126 Q62 132 88 134 Q114 136 132 128 Q164 118 181 132 Q189 140 187 150 Z';
+  return (
+    fillPath(upper, c) + sheen(upper) +
+    p('M36 128 Q62 134 88 135 Q112 136 130 130 Q102 125 72 125 Q48 124 36 128 Z', `fill="${hole}"`) +
+    line('M33 128 Q62 135 88 136 Q114 137 131 129', c.D, 1.6) +
+    p('M127 129 l-9 -5 l0 10 Z M133 129 l9 -5 l0 10 Z', `fill="${c.D}"`) + dot(130, 129, 2.2, c.D) +
+    p('M26 150 L190 150 L190 154 Q190 156 188 156 L28 156 Q26 156 26 154 Z', `fill="${SOLE}"`) +
+    p('M26 153 L50 153 L50 160 L28 160 Z', `fill="${SOLE}"`)
+  );
+}
+
 /* ---------- Accessories ---------- */
 function tote(c: Pal) {
   const body = 'M46 70 L154 70 L162 182 L38 182 Z';
@@ -384,6 +454,112 @@ function beanie(c: Pal) {
   );
 }
 
+function crossbody(c: Pal) {
+  const body = 'M50 106 Q50 96 60 96 L140 96 Q150 96 150 106 L150 168 Q150 178 140 178 L60 178 Q50 178 50 168 Z';
+  const strap = mix(c.F, '#000000', 0.25);
+  return (
+    line('M58 100 Q44 24 100 18 Q156 24 142 100', strap, 4) +
+    fillPath(body, c) + sheen(body) +
+    p('M50 106 Q50 96 60 96 L140 96 Q150 96 150 106 L150 138 Q100 150 50 138 Z', `fill="${mix(c.F, '#000000', 0.07)}" stroke="${c.E}" stroke-width="1.5" stroke-linejoin="round"`) +
+    `<rect x="93" y="136" width="14" height="10" rx="2" fill="${COPPER}"/>` +
+    dash('M56 132 Q100 143 144 132', c.D)
+  );
+}
+
+function backpack(c: Pal) {
+  const body = 'M54 56 Q54 30 100 30 Q146 30 146 56 L150 176 Q150 186 140 186 L60 186 Q50 186 50 176 Z';
+  return (
+    line('M88 32 Q88 14 100 14 Q112 14 112 32', mix(c.F, '#000000', 0.25), 5) +
+    fillPath(body, c) + sheen(body) +
+    line('M60 70 Q100 58 140 70', c.D, 1.4) + dash('M62 76 Q100 64 138 76', c.D) +
+    p('M70 116 Q70 108 78 108 L122 108 Q130 108 130 116 L130 166 Q130 172 124 172 L76 172 Q70 172 70 166 Z', `fill="${mix(c.F, '#000000', 0.08)}" stroke="${c.E}" stroke-width="1.3"`) +
+    line('M74 120 L126 120', c.D, 1) + dot(100, 116, 2.4, COPPER)
+  );
+}
+
+function clutch(c: Pal) {
+  const body = 'M28 80 L172 80 L172 146 Q172 154 164 154 L36 154 Q28 154 28 146 Z';
+  return (
+    fillPath(body, c) + sheen(body) +
+    p('M28 80 L172 80 L100 124 Z', `fill="${mix(c.F, '#000000', 0.08)}" stroke="${c.E}" stroke-width="1.5" stroke-linejoin="round"`) +
+    dot(100, 120, 4.5, COPPER, '#8A6532')
+  );
+}
+
+/* Jewelry is drawn in its metal or stone color. */
+function necklace(c: Pal) {
+  return (
+    line('M48 30 Q50 124 100 136 Q150 124 152 30', c.E, 4.6) +
+    line('M48 30 Q50 124 100 136 Q150 124 152 30', c.F, 3, 'stroke-dasharray="3 2.4"') +
+    p('M100 138 Q112 152 100 172 Q88 152 100 138 Z', `fill="${c.F}" stroke="${c.E}" stroke-width="1.5"`) +
+    line('M97 148 Q100 145 103 150', '#ffffff', 1.4, 'opacity=".6"')
+  );
+}
+
+function earrings(c: Pal) {
+  const hoop = (x: number) =>
+    `<circle cx="${x}" cy="112" r="34" fill="none" stroke="${c.E}" stroke-width="10"/>` +
+    `<circle cx="${x}" cy="112" r="34" fill="none" stroke="${c.F}" stroke-width="7"/>` +
+    line(`M${x - 20} 86 Q${x - 6} 80 ${x + 8} 82`, '#ffffff', 2, 'opacity=".5"') +
+    dot(x, 74, 6, c.F, c.E);
+  return hoop(60) + hoop(140);
+}
+
+function bracelet(c: Pal) {
+  return (
+    `<ellipse cx="100" cy="104" rx="70" ry="44" fill="none" stroke="${c.E}" stroke-width="15"/>` +
+    `<ellipse cx="100" cy="104" rx="70" ry="44" fill="none" stroke="${c.F}" stroke-width="11"/>` +
+    p('M44 82 Q70 62 110 62', 'fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".45"') +
+    dot(100, 148, 7, c.F, c.E)
+  );
+}
+
+function watch(c: Pal) {
+  const strap = 'M80 18 L120 18 L120 182 L80 182 Z';
+  return (
+    fillPath(strap, c) + sheen(strap) +
+    line('M84 150 L116 150 M84 162 L116 162', c.D, 1.2, 'opacity=".6"') + dot(100, 156, 2.2, c.D) +
+    `<circle cx="100" cy="100" r="40" fill="#C9CDD1" stroke="#8D9297" stroke-width="2"/>` +
+    `<circle cx="100" cy="100" r="32" fill="#F6F5F1" stroke="#B5B9BD" stroke-width="1.2"/>` +
+    line('M100 100 L100 78 M100 100 L114 108', '#2A2826', 2.2) + dot(100, 100, 2.6, '#2A2826') +
+    `<rect x="138" y="95" width="7" height="10" rx="2" fill="#B5B9BD"/>`
+  );
+}
+
+function scarf(c: Pal) {
+  const loop = 'M56 24 Q100 50 144 24 L138 72 Q100 92 62 72 Z';
+  const tailL = 'M70 74 L60 176 L92 178 L96 84 Z';
+  const tailR = 'M108 84 L116 168 L146 160 L130 72 Z';
+  let fringe = '';
+  for (let x = 62; x <= 90; x += 5) fringe += line(`M${x} 178 L${x - 1} 188`, c.D, 1.2);
+  for (let i = 0; i <= 5; i++) fringe += line(`M${117 + i * 5.4} ${167 - i * 1.4} L${118 + i * 5.4} ${177 - i * 1.4}`, c.D, 1.2);
+  return (
+    fillPath(tailR, { ...c, fill: mix(c.F, '#000000', 0.08) }) +
+    fillPath(loop, c) + sheen(loop) + fillPath(tailL, c) + sheen(tailL) + fringe +
+    line('M66 36 Q100 58 134 36', c.D, 1, 'opacity=".4"') + line('M78 96 L72 168', c.D, 1, 'opacity=".35"')
+  );
+}
+
+function belt(c: Pal) {
+  const strap = 'M12 88 L188 88 L188 112 L12 112 Z';
+  let holes = '';
+  for (let x = 128; x <= 168; x += 10) holes += dot(x, 100, 2.2, c.D);
+  return (
+    fillPath(strap, c) + sheen(strap) + dash('M14 92 L186 92', mix(c.F, '#ffffff', 0.35)) + dash('M14 108 L186 108', mix(c.F, '#ffffff', 0.35)) + holes +
+    `<rect x="40" y="78" width="34" height="44" rx="5" fill="none" stroke="${COPPER}" stroke-width="5"/>` +
+    line('M57 80 L57 120', COPPER, 3)
+  );
+}
+
+function sunglasses(c: Pal) {
+  const lens = (x: number) => `<path d="M${x - 34} 90 Q${x - 34} 80 ${x - 24} 80 L${x + 24} 80 Q${x + 34} 80 ${x + 34} 92 Q${x + 32} 132 ${x} 132 Q${x - 32} 132 ${x - 34} 92 Z" fill="${c.F}" stroke="${c.E}" stroke-width="4"/>`;
+  return (
+    line('M28 88 L8 74 M172 88 L192 74', c.E, 4) +
+    lens(62) + lens(138) + line('M96 90 Q100 82 104 90', c.E, 4) +
+    line('M40 94 Q46 86 58 86 M116 94 Q122 86 134 86', '#ffffff', 2.4, 'opacity=".4"')
+  );
+}
+
 const DRAW: Record<string, (c: Pal) => string> = {
   tee: (c) => tee(c),
   pockettee: (c) => tee(c, { pocket: true }),
@@ -394,7 +570,11 @@ const DRAW: Record<string, (c: Pal) => string> = {
   hoodie,
   cardigan,
   dress,
+  shirtdress,
+  slipdress,
+  jumpsuit,
   skirt,
+  shorts,
   denimjacket,
   chorejacket,
   blazer,
@@ -410,9 +590,20 @@ const DRAW: Record<string, (c: Pal) => string> = {
   sneakers: (c) => pair(sneaker, c),
   boots: (c) => pair(boot, c),
   loafers: (c) => pair(loafer, c),
+  flats: (c) => pair(flat, c),
   tote,
+  crossbody,
+  backpack,
+  clutch,
+  necklace,
+  earrings,
+  bracelet,
+  watch,
   cap,
   beanie,
+  scarf,
+  belt,
+  sunglasses,
 };
 
 /* pattern: 'stripe' renders a Breton stripe using the shared <pattern> in index.html */
