@@ -38,11 +38,11 @@ export const Playground: Story = {
   args: { type: 'chorejacket', color: '#5E6243' },
 };
 
-/** All 28 types, by category, in a color typical for each. */
+/** Every type, by category, in a color typical for each. */
 export const AllTypes: Story = {
   args: { type: 'tee', color: '#F4F2EC' },
   render: () => {
-    const typical: Partial<Record<GarmentType, string>> = { jeans: '#46658C', loosejeans: '#9DB6CF', denimjacket: '#5B7BA3', chinos: '#C4AE84', trench: '#C7B693', coat: '#B48A5A', boots: '#5E3F2C', loafers: '#4A2E22', puffer: '#1E1E1E', blazer: '#26324A', chorejacket: '#5E6243', beanie: '#A3532F', cap: '#2A3654', sweater: '#B48A5A', hoodie: '#A9A8A4', joggers: '#1F1F21', trousers: '#3E3E41', widetrousers: '#D7CBB3', dress: '#232323', skirt: '#6B2633', cardigan: '#D7CBB3', shirt: '#B7CBE2', linenshirt: '#E9E1CF', pockettee: '#232323', longsleeve: '#2F4A3A', tote: '#E8E0CC' };
+    const typical: Partial<Record<GarmentType, string>> = { jeans: '#46658C', loosejeans: '#9DB6CF', denimjacket: '#5B7BA3', chinos: '#C4AE84', trench: '#C7B693', coat: '#B48A5A', boots: '#5E3F2C', loafers: '#4A2E22', puffer: '#1E1E1E', blazer: '#26324A', chorejacket: '#5E6243', beanie: '#A3532F', cap: '#2A3654', sweater: '#B48A5A', hoodie: '#A9A8A4', joggers: '#1F1F21', trousers: '#3E3E41', widetrousers: '#D7CBB3', dress: '#232323', skirt: '#6B2633', cardigan: '#D7CBB3', shirt: '#B7CBE2', linenshirt: '#E9E1CF', pockettee: '#232323', longsleeve: '#2F4A3A', tote: '#E8E0CC', shirtdress: '#5E6243', slipdress: '#6B2633', jumpsuit: '#26324A', shorts: '#C4AE84', flats: '#232323', crossbody: '#5E3F2C', backpack: '#3E3E41', clutch: '#B48A5A', necklace: '#C9962E', earrings: '#C9962E', bracelet: '#C9962E', watch: '#3E3E41', scarf: '#A3532F', belt: '#5E3F2C', sunglasses: '#232323' };
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
         {CATS.map((c) => (

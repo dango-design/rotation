@@ -9,6 +9,7 @@ import { GarmentDefs } from '../src/components/GarmentDefs';
 import { UICtx } from '../src/components/Shell';
 import { fontVariables } from '../src/lib/fonts';
 import { StoreProvider, type Fixture } from '../src/lib/store';
+import { THEME_KEY } from '../src/lib/theme-script';
 import { stubApi, type ApiRoutes } from './api';
 import { VIEWPORTS } from './modes';
 import { resetRouter, withAppRouter } from './router';
@@ -42,8 +43,20 @@ const withApp: Decorator = (Story, { parameters, id }) => {
   );
 };
 
+/* Light or dark, from the toolbar (or a Chromatic mode). Written the way Settings saves it, so the app's own theme
+   code (Shell keeps <html data-theme> in sync with the saved choice) agrees. Never "match device", so a snapshot
+   doesn't depend on the machine that took it. */
+const withTheme: Decorator = (Story, { globals }) => {
+  const theme = globals.theme === 'dark' ? 'dark' : 'light';
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {}
+  document.documentElement.dataset.theme = theme;
+  return <Story />;
+};
+
 const preview: Preview = {
-  decorators: [withApp, withAppRouter],
+  decorators: [withApp, withAppRouter, withTheme],
   async beforeEach({ parameters }) {
     resetRouter();
     MockDate.set((parameters.now as string | undefined) ?? NOW);
@@ -58,11 +71,12 @@ const preview: Preview = {
     docs: { theme },
     nextjs: { navigation: { pathname: '/' } },
     viewport: { options: VIEWPORTS },
+    // The page canvas is --bg already; these swap it for other surfaces, in the current theme.
     backgrounds: {
       options: {
-        canvas: { name: 'Canvas (--bg)', value: '#f3f0ea' },
-        panel: { name: 'Panel (--panel)', value: '#ffffff' },
-        gap: { name: 'Gap blue (--gap)', value: '#1e3a6e' },
+        panel: { name: 'Panel (--panel)', value: 'var(--panel)' },
+        tile: { name: 'Tile (--tile)', value: 'var(--tile)' },
+        gap: { name: 'Gap blue (--gap-solid)', value: 'var(--gap-solid)' },
       },
     },
     controls: { matchers: { color: /(background|color)$/i, date: /Date$/i } },
@@ -78,9 +92,21 @@ const preview: Preview = {
       pauseAnimationAtEnd: true,
     },
   },
-  initialGlobals: {
-    backgrounds: { value: 'canvas' },
+  globalTypes: {
+    theme: {
+      description: 'Light or dark theme',
+      toolbar: {
+        title: 'Theme',
+        icon: 'mirror',
+        items: [
+          { value: 'light', title: 'Light', icon: 'sun' },
+          { value: 'dark', title: 'Dark', icon: 'moon' },
+        ],
+        dynamicTitle: true,
+      },
+    },
   },
+  initialGlobals: { theme: 'light' },
 };
 
 export default preview;

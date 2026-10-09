@@ -1,5 +1,6 @@
 /* Viewports at the widths where Rotation's layout changes (globals.css breakpoints: 900, 1180, 1320px),
-   and the Chromatic modes that snapshot them. Pages use `pageModes`; components keep Chromatic's default. */
+   and the Chromatic modes that snapshot them. Pages use `pageModes`; components that change in the dark use
+   `themeModes`; everything else keeps Chromatic's default. */
 
 export const VIEWPORTS = {
   phone: { name: 'Phone · 390 (≤ 900 layout)', styles: { width: '390px', height: '844px' }, type: 'mobile' },
@@ -9,11 +10,15 @@ export const VIEWPORTS = {
 } as const;
 
 export const modes = {
-  phone: { viewport: 'phone' },
-  tablet: { viewport: 'tablet' },
-  laptop: { viewport: 'laptop' },
-  desktop: { viewport: 'desktop' },
+  phone: { viewport: 'phone', theme: 'light' },
+  tablet: { viewport: 'tablet', theme: 'light' },
+  laptop: { viewport: 'laptop', theme: 'light' },
+  desktop: { viewport: 'desktop', theme: 'light' },
+  'desktop dark': { viewport: 'desktop', theme: 'dark' },
 } as const;
 
-/** Full pages: the three layouts people actually get. */
-export const pageModes = { phone: modes.phone, tablet: modes.tablet, desktop: modes.desktop };
+/** Full pages: the three layouts people actually get, and the desktop one in dark. */
+export const pageModes = { phone: modes.phone, tablet: modes.tablet, desktop: modes.desktop, 'desktop dark': modes['desktop dark'] };
+
+/** A component or foundation page in both themes. */
+export const themeModes = { light: { theme: 'light' }, dark: { theme: 'dark' } } as const;

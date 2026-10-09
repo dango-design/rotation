@@ -4,10 +4,11 @@ import Today from '@/app/page';
 import { pageModes } from '../../../.storybook/modes';
 import { router } from '../../../.storybook/router';
 import { inShell, settled } from '../decorators';
-import { demoCloset, emptyCloset, oneTee, savedOutfits } from '../fixtures';
+import { demoCloset, emptyCloset, oneTee, openToday, savedOutfits } from '../fixtures';
 
-/* Getting dressed. The week strip picks a day; the card shows what was worn, what is planned, or a suggestion with
-   the reasons for it. Stories run on Thursday, October 8, 2026 at 9am, so the strip has worn, empty and planned days. */
+/* Getting dressed. The week strip picks a day; a planned day shows its outfit, and a day with nothing planned asks for
+   one, built piece by piece with suggestions along the way. Stories run on Thursday, October 8, 2026 at 9am, so the
+   strip has worn, empty and planned days. */
 
 const meta = {
   title: 'Pages/Today',
@@ -30,11 +31,26 @@ type Story = StoryObj<typeof meta>;
 /** Jordan's closet: today's planned outfit, the week, the forecast, and the piece that would unlock the most outfits. */
 export const Planned: Story = {};
 
-/** "Suggest instead" swaps the plan for a suggestion and explains it: the occasion, the weather, what hasn't been worn lately. */
-export const Suggestion: Story = {
+/** Nothing planned for today: a blank canvas, with the weather and three ways to start. */
+export const BlankDay: Story = {
+  parameters: { store: () => openToday({ outfits: savedOutfits() }) },
+};
+
+/** Planning today piece by piece, in place of the outfit card. */
+export const PlanningToday: Story = {
+  parameters: { store: openToday },
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Suggest instead' }));
-    await expect(canvas.getByText("Today's outfit")).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: "Plan today's outfit" }));
+    await expect(canvas.getByRole('article', { name: 'Plan today' })).toBeVisible();
+  },
+};
+
+/** "Change" reopens a planned day in the planner. */
+export const ChangingAPlan: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Change' }));
+    await expect(canvas.getByRole('article', { name: 'Plan today' })).toBeVisible();
+    await expect(canvas.getByLabelText('Outfit name')).toHaveValue('Client presentation');
   },
 };
 
@@ -46,30 +62,30 @@ export const WornYesterday: Story = {
   },
 };
 
-/** A past day with nothing logged offers to log a saved outfit. */
+/** A past day with nothing logged asks what was worn. */
 export const NothingLogged: Story = {
   parameters: { store: () => demoCloset({ outfits: savedOutfits() }) },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Tuesday, October 6/ }));
-    await expect(canvas.getByRole('heading', { name: 'Nothing logged' })).toBeVisible();
+    await expect(canvas.getByRole('heading', { name: 'What did you wear on Tuesday?' })).toBeVisible();
   },
 };
 
-/** Picking a saved outfit or a suggestion for a day. */
-export const PickASavedOutfit: Story = {
-  parameters: { store: () => demoCloset({ outfits: savedOutfits() }) },
+/** Picking one of your saved outfits for a day. */
+export const UseASavedOutfit: Story = {
+  parameters: { store: () => openToday({ outfits: savedOutfits() }) },
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Saved outfits' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Use a saved outfit' }));
     await settled();
-    await expect(canvas.getByRole('dialog', { name: 'Plan an outfit' })).toBeVisible();
+    await expect(canvas.getByRole('dialog', { name: 'Plan a saved outfit' })).toBeVisible();
   },
 };
 
-/** The pencil opens the outfit on the board in the closet. A behavior test only; it looks like Planned. */
-export const ChangeOnTheBoard: Story = {
+/** "Style it" on a piece you haven't worn lately opens it on the board in the closet. A behavior test only. */
+export const StyleAForgottenPiece: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Change it on the outfit board' }));
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Style it' })[0]);
     await expect(router().push).toHaveBeenCalledWith('/closet');
   },
 };
@@ -94,7 +110,7 @@ export const NewCloset: Story = {
   parameters: { store: emptyCloset },
 };
 
-/** Not enough for an outfit yet: says what's missing. */
-export const AlmostThere: Story = {
+/** One piece is already enough to plan a day with. */
+export const OnePiece: Story = {
   parameters: { store: oneTee },
 };

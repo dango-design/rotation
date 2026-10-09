@@ -27,7 +27,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** All 24 pieces, newest first, each badged with how it was added. */
+/** All 30 pieces, newest first, each badged with how it was added. */
 export const Pieces: Story = {};
 
 /** Filtered to shoes and sorted by cost per wear: the card shows the number it's sorted by. */
@@ -35,7 +35,7 @@ export const FilteredAndSorted: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: /^Shoes/ }));
     await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Sort' }), 'cpw');
-    await expect(canvas.getAllByText(/\/wear$/)).toHaveLength(3);
+    await expect(canvas.getAllByText(/\/wear$/)).toHaveLength(4);
   },
 };
 
