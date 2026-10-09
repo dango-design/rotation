@@ -8,16 +8,14 @@ import { addDays, shortDate, todayISO } from '@/lib/dates';
 import { check, forSlot, isComplete, SLOTS } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
+import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
-import { Art, Icon, LAYOUT, money, ShopSwitch, Tile } from './ui';
-
-export const SLOT_LABEL: Record<Slot, string> = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', acc: 'Extra' };
+import { Icon, money, ShopSwitch, Tile } from './ui';
 
 export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; onFocus: (slot: Slot) => void }) {
   const st = useStore();
   const ui = useUI();
   const { draft, setDraft } = st;
-  const [dragOver, setDragOver] = useState(false);
   const today = todayISO();
   const [planDate, setPlanDate] = useState(draft.date && draft.date >= today ? draft.date : addDays(today, 1));
   const slots = draft.slots;
@@ -44,43 +42,6 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
     setDraft({ ...draft, slots: next, focus: slot });
   };
 
-  const slotEl = (s: Slot) => {
-    const [l, t, w] = LAYOUT[s];
-    const it = slots[s] ? st.wearableById(slots[s]) : undefined;
-    const focused = draft.focus === s ? 'focused' : '';
-    const box = { left: `${l + w * 0.18}%`, top: `${t + w * 0.18}%`, width: `${w * 0.64}%`, aspectRatio: '1' };
-    if (s === 'bottom' && dressOn)
-      return (
-        <div key={s} className="slot empty" style={{ ...box, opacity: 0.6 }}>
-          Dress covers this
-        </div>
-      );
-    if (!it)
-      return (
-        <div key={s} className={`slot empty ${focused}`} role="button" tabIndex={0} onClick={() => focus(s)} onKeyDown={(e) => e.key === 'Enter' && focus(s)} style={box}>
-          + {SLOT_LABEL[s]}
-        </div>
-      );
-    const isTrial = !('wears' in it);
-    const pos = it.cat === 'dress' ? [46, 4, 52] : [l, t, w];
-    return (
-      <div key={s} className={`slot ${focused} ${isTrial ? 'trial' : ''}`} role="button" tabIndex={0} aria-label={it.name} onClick={() => focus(s)} onKeyDown={(e) => e.key === 'Enter' && focus(s)} style={{ left: `${pos[0]}%`, top: `${pos[1]}%`, width: `${pos[2]}%`, aspectRatio: '1' }}>
-        <Art w={it} />
-        <button className="slot-x" onClick={(e) => (e.stopPropagation(), remove(s))} aria-label={`Remove ${it.name}`}>
-          <Icon name="x" />
-        </button>
-        {isTrial && (
-          <div className="trial-tag">
-            Not in your closet · from {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
-            <button className="btn" onClick={(e) => (e.stopPropagation(), ui.open({ type: 'compare', id: it.id }))}>
-              Compare stores
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <aside className="card outfit-panel" aria-label="Outfit board">
       <div className="panel-head">
@@ -92,22 +53,11 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
       <p className="panel-hint">Click or drag pieces from your closet onto the board. Faded pieces don&apos;t go with this outfit.</p>
 
-      <div
-        className={`board ${dragOver ? 'drag-over' : ''}`}
-        onDragOver={(e) => (e.preventDefault(), setDragOver(true))}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          onPut(e.dataTransfer.getData('text/plain'));
-        }}
-      >
-        {SLOTS.map(slotEl)}
-      </div>
+      <OutfitBoard slots={slots} focus={draft.focus} onFocus={focus} onRemove={remove} onDrop={onPut} />
 
       <div className="board-status">
         {!complete ? (
-          <span className="verdict empty">
+          <span className="verdict todo">
             <Icon name="info" />
             Add a top, bottom and shoes (or a dress and shoes)
           </span>

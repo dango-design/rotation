@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { DayPlanner } from '@/components/DayPlanner';
 import { useUI } from '@/components/Shell';
 import { Flatlay, Icon, money, Tile } from '@/components/ui';
 import { onePhrase, TYPES } from '@/lib/catalog-meta';
@@ -12,49 +13,41 @@ import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
 import { suggest } from '@/lib/today';
-import type { OutfitSlots, Settings } from '@/lib/types';
+import type { OutfitSlots } from '@/lib/types';
 import { skyWord } from '@/lib/weather';
-
-const OCCASIONS: [Settings['occasion'], string][] = [
-  ['casual', 'Casual'],
-  ['work', 'Work'],
-  ['dressy', 'Dressy'],
-];
 
 function greeting() {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-/* Today is the day view and the week planner in one: the strip picks a day, and the outfit card shows
-   what was worn, what is planned, or a suggestion for it. */
+type Planning = { day: string; mode: 'plan' | 'log'; slots?: OutfitSlots; name: string; offset: number };
+
+/* Today is the day view and the week planner in one. The strip picks a day; a day with nothing planned
+   asks for an outfit, which is built piece by piece with suggestions along the way. */
 export default function Today() {
   const st = useStore();
   const ui = useUI();
   const router = useRouter();
   const today = todayISO();
   const [day, setDay] = useState(today);
-  const [shuf, setShuf] = useState({ day: today, n: 0 });
+  const [planning, setPlanning] = useState<Planning | null>(null);
   const [picking, setPicking] = useState(false);
-  const shuffle = shuf.day === day ? shuf.n : 0;
   const isToday = day === today;
   const past = day < today;
   const start = weekStart(day);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-
-  const suggestFor = (date: string, n: number) => {
-    if (date === today)
-      return suggest(st.items, { occasion: st.settings.occasion, today: date, shuffle: n, temp: st.weather?.now, sky: st.weather?.sky, skyWord: st.skyWord });
-    const wx = st.weather?.days.find((d) => d.date === date);
-    return suggest(st.items, { occasion: st.settings.occasion, today: date, shuffle: n, temp: wx?.high, sky: wx?.sky, skyWord: wx ? skyWord(wx.sky) : undefined });
-  };
-
-  const plan = st.plans.find((p) => p.date === day);
-  const worn = st.wears.filter((w) => w.date === day).at(-1);
-  const suggestion = past ? null : suggestFor(day, shuffle);
-  const showPlan = plan && shuffle === 0;
-  const slots = worn?.slots ?? (showPlan ? plan.slots : suggestion?.slots);
   const picks = useMemo(() => rankPieces(st.catalog, st.items).filter((p) => p.unlock > 0 && p.dup.level < 1), [st.catalog, st.items]);
+
+  const wxFor = (date: string) => {
+    if (date === today && st.weather) return { temp: st.weather.now, sky: st.weather.sky, word: st.skyWord ?? '' };
+    const d = st.weather?.days.find((x) => x.date === date);
+    return d ? { temp: d.high, sky: d.sky, word: skyWord(d.sky) } : undefined;
+  };
+  const suggestFor = (date: string, n: number, occasion = st.settings.occasion) => {
+    const wx = wxFor(date);
+    return suggest(st.items, { occasion, today: date, shuffle: n, temp: wx?.temp, sky: wx?.sky, skyWord: wx?.word });
+  };
 
   if (!st.items.length) {
     return (
@@ -77,9 +70,14 @@ export default function Today() {
     );
   }
 
+  const plan = st.plans.find((p) => p.date === day);
+  const worn = st.wears.filter((w) => w.date === day).at(-1);
+  const slots = worn?.slots ?? plan?.slots;
+  const weekday = isToday ? 'today' : fmt(day, { weekday: 'long' });
   const dayName = isToday ? 'today' : fmt(day, { weekday: 'long', month: 'short', day: 'numeric' });
   const pieces = slots ? SLOTS.filter((s) => slots[s]).map((s) => st.itemById(slots[s])).filter(Boolean) : [];
   const lead = st.settings.showShop ? picks[0] : undefined;
+  const wx = wxFor(day);
   const redis = st.items
     .filter((i) => i.cat !== 'acc' && (!i.lastWorn || daysBetween(i.lastWorn, today) > 30))
     .sort((a, b) => (a.lastWorn ?? '').localeCompare(b.lastWorn ?? ''))
@@ -87,25 +85,35 @@ export default function Today() {
   const thisWeek = weekStart(today);
   const weekLabel =
     start === thisWeek ? 'This week' : start === addDays(thisWeek, 7) ? 'Next week' : start === addDays(thisWeek, -7) ? 'Last week' : `Week of ${fmt(start, { month: 'short', day: 'numeric' })}`;
-  const title = worn ? (plan?.name ?? 'Nice choice') : showPlan ? plan.name : suggestion?.title;
+  const isPlanning = planning?.day === day;
+  // A complete outfit is possible at all (there is something to suggest).
+  const idea = suggestFor(day, 0);
+  const canBuild = !!idea;
 
-  const pickDay = (d: string) => (setDay(d), setPicking(false));
-  const reshuffle = () => setShuf({ day, n: shuffle + 1 });
-  const choose = (name: string, s: OutfitSlots) => {
+  const startPlanning = (d: string, opts: { slots?: OutfitSlots; offset?: number; name?: string } = {}) => {
+    setDay(d);
     setPicking(false);
-    setShuf({ day, n: 0 });
-    if (past) {
-      st.wear(s, day);
+    const label = d === today ? "Today's outfit" : `${fmt(d, { weekday: 'long' })}'s outfit`;
+    setPlanning({ day: d, mode: d < today ? 'log' : 'plan', slots: opts.slots, offset: opts.offset ?? 0, name: opts.name ?? label });
+  };
+  const surpriseMe = () => {
+    if (idea) startPlanning(day, { slots: idea.slots, offset: 1 });
+  };
+  const pickDay = (d: string) => {
+    setDay(d);
+    setPicking(false);
+    if (planning && planning.day !== d) setPlanning(null);
+  };
+  const finish = (name: string, s: OutfitSlots, logDay = day) => {
+    setPlanning(null);
+    setPicking(false);
+    if (logDay < today) {
+      st.wear(s, logDay);
       st.toast('Logged as worn');
     } else {
-      st.setPlan(day, { name, slots: s });
-      st.toast(isToday ? 'Planned for today' : `Planned for ${fmt(day, { weekday: 'long' })}`);
+      st.setPlan(logDay, { name, slots: s });
+      st.toast(logDay === today ? 'Planned for today' : `Planned for ${fmt(logDay, { weekday: 'long' })}`);
     }
-  };
-  const edit = () => {
-    if (!slots) return;
-    st.build({ name: title ?? 'Today', slots, focus: 'top', date: day });
-    router.push(st.href('/closet'));
   };
 
   return (
@@ -129,13 +137,6 @@ export default function Today() {
                 &nbsp;for weather-aware outfits
               </>
             )}
-          </div>
-          <div className="seg occasion-seg" role="group" aria-label="Occasion">
-            {OCCASIONS.map(([v, l]) => (
-              <button key={v} className={st.settings.occasion === v ? 'active' : ''} onClick={() => (st.updateSettings({ occasion: v }), setShuf({ day, n: 0 }))}>
-                {l}
-              </button>
-            ))}
           </div>
         </div>
       </header>
@@ -167,61 +168,68 @@ export default function Today() {
           {days.map((d) => {
             const p = st.plans.find((x) => x.date === d);
             const w = st.wears.filter((x) => x.date === d).at(-1);
-            const wx = st.weather?.days.find((x) => x.date === d);
+            const dwx = st.weather?.days.find((x) => x.date === d);
             const s = w?.slots ?? p?.slots;
+            const open = !s && d >= today;
             return (
               <button
                 key={d}
-                className={`strip-day ${d === day ? 'selected' : ''} ${d === today ? 'is-today' : ''}`}
-                onClick={() => pickDay(d)}
+                className={`strip-day ${d === day ? 'selected' : ''} ${d === today ? 'is-today' : ''} ${open ? 'open' : ''}`}
+                // An open day goes straight to planning; any other day is shown below.
+                onClick={() => (open && canBuild ? startPlanning(d) : pickDay(d))}
                 aria-pressed={d === day}
-                aria-label={`${fmt(d, { weekday: 'long', month: 'long', day: 'numeric' })}${w ? ', worn' : p ? `, ${p.name}` : ''}`}
+                aria-label={`${fmt(d, { weekday: 'long', month: 'long', day: 'numeric' })}${w ? ', worn' : p ? `, ${p.name}` : open ? ', plan an outfit' : ''}`}
               >
                 <span className="strip-head">
                   <span>
                     <span className="d">{d === today ? 'Today' : fmt(d, { weekday: 'short' })}</span>
                     <span className="n">{fmt(d, { day: 'numeric' })}</span>
                   </span>
-                  {wx && (
+                  {dwx && (
                     <span className="wx">
-                      <Icon name={wx.sky} />
-                      {wx.high}°
+                      <Icon name={dwx.sky} />
+                      {dwx.high}°
                     </span>
                   )}
                 </span>
-                {s ? <Flatlay slots={s} /> : <span className="strip-empty">{d < today ? '–' : <Icon name="plus" />}</span>}
-                <span className="strip-label">{w ? <span className="worn-dot">Worn</span> : (p?.name ?? '')}</span>
+                {s ? (
+                  <Flatlay slots={s} />
+                ) : (
+                  <span className="strip-empty">
+                    {open ? <Icon name="plus" /> : '–'}
+                  </span>
+                )}
+                <span className="strip-label">{w ? <span className="worn-dot">Worn</span> : (p?.name ?? (open ? 'Plan it' : ''))}</span>
               </button>
             );
           })}
         </div>
       </section>
 
-      <section className={`today-grid ${lead ? '' : 'solo'}`}>
-        {slots ? (
+      <section className={`today-grid ${lead && !isPlanning ? '' : 'solo'}`}>
+        {isPlanning ? (
+          <DayPlanner
+            key={`${planning.day}-${planning.offset}-${planning.slots ? 'seeded' : 'blank'}`}
+            date={day}
+            dayLabel={weekday}
+            mode={planning.mode}
+            initial={planning.slots}
+            initialName={planning.name}
+            weather={wx ? { temp: wx.temp, word: wx.word } : undefined}
+            surprise={(n, occasion) => suggestFor(day, n + planning.offset, occasion)?.slots ?? null}
+            onDone={(name, s) => finish(name, s)}
+            onCancel={() => setPlanning(null)}
+          />
+        ) : slots ? (
           <article className="card hero">
             <div className="hero-visual">
               <Flatlay slots={slots} />
             </div>
             <div className="hero-body">
               <div>
-                <div className="eyebrow">
-                  {worn ? `Worn ${isToday ? 'today' : `on ${dayName}`}` : showPlan ? `Planned for ${dayName}` : isToday ? "Today's outfit" : `An idea for ${dayName}`}
-                </div>
-                <h2>{title}</h2>
+                <div className="eyebrow">{worn ? `Worn ${isToday ? 'today' : `on ${dayName}`}` : `Planned for ${dayName}`}</div>
+                <h2>{worn ? (plan?.name ?? 'Nice choice') : plan!.name}</h2>
               </div>
-              {!worn && !showPlan && suggestion && (
-                <ul className="reasons">
-                  {suggestion.reasons.map((r) => (
-                    <li key={r.strong}>
-                      <Icon name={r.icon} />
-                      <span>
-                        <b>{r.strong}</b> {r.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
               <div className="piece-list">
                 {pieces.map((it) => (
                   <button key={it!.id} className="piece-row" style={{ border: 0, borderBottom: '1px solid var(--line)', background: 'none', textAlign: 'left', width: '100%' }} onClick={() => ui.open({ type: 'item', id: it!.id })}>
@@ -239,52 +247,61 @@ export default function Today() {
                   </span>
                 ) : (
                   <>
-                    {!past || plan ? (
-                      day <= today ? (
-                        <button className="btn primary" onClick={() => (st.wear(slots, day), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn'))}>
-                          <Icon name="check" />
-                          {isToday ? 'Wear this' : 'Wore it'}
-                        </button>
-                      ) : showPlan ? null : (
-                        <button className="btn primary" onClick={() => choose(suggestion!.title, slots)}>
-                          <Icon name="planner" />
-                          Plan this
-                        </button>
-                      )
-                    ) : null}
+                    {day <= today && (
+                      <button className="btn primary" onClick={() => (st.wear(slots, day), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn'))}>
+                        <Icon name="check" />
+                        {isToday ? 'Wear this' : 'Wore it'}
+                      </button>
+                    )}
                     {!past && (
-                      <button className="btn" onClick={reshuffle}>
-                        <Icon name="shuffle" />
-                        {showPlan ? 'Suggest instead' : 'Shuffle'}
+                      <button className="btn" onClick={() => startPlanning(day, { slots: plan!.slots, name: plan!.name })}>
+                        <Icon name="pencil" />
+                        Change
                       </button>
                     )}
-                    {st.outfits.length > 0 && (
-                      <button className="btn ghost" onClick={() => setPicking(true)}>
-                        Saved outfits
-                      </button>
-                    )}
-                    {showPlan && (
-                      <button className="btn ghost" onClick={() => (st.setPlan(day, null), st.toast('Plan cleared'))}>
-                        Clear plan
-                      </button>
-                    )}
+                    <button className="btn ghost" onClick={() => (st.setPlan(day, null), st.toast('Plan cleared'))}>
+                      Clear plan
+                    </button>
                   </>
                 )}
-                <button className="btn ghost" onClick={edit} aria-label="Change it on the outfit board">
-                  <Icon name="builder" />
-                </button>
               </div>
             </div>
           </article>
-        ) : past ? (
-          <article className="card empty">
-            <h2>Nothing logged</h2>
-            <p>Nothing was logged for {dayName}.{st.outfits.length ? ' If you wore one of your saved outfits, log it here.' : ''}</p>
-            {st.outfits.length > 0 && (
-              <button className="btn primary" onClick={() => setPicking(true)}>
-                Log a saved outfit
-              </button>
-            )}
+        ) : canBuild ? (
+          <article className={`card plan-callout ${past ? 'is-past' : ''}`}>
+            <div className="callout-body">
+              <div className="eyebrow">{past ? `Nothing logged · ${dayName}` : `Nothing planned · ${dayName}`}</div>
+              <h2>{past ? `What did you wear on ${weekday}?` : isToday ? "Today's a blank canvas." : `${weekday}'s a blank canvas.`}</h2>
+              <p>
+                {past
+                  ? 'Log it piece by piece so Rotation knows what you reach for.'
+                  : 'Start with a piece you feel like wearing. Rotation suggests what goes with it as you build.'}
+              </p>
+              {!past && wx && (
+                <p className="callout-wx">
+                  <Icon name={wx.sky} />
+                  {wx.temp}° and {wx.word}
+                  {wx.temp < 66 ? ', so bring a layer' : ''}
+                </p>
+              )}
+              <div className="callout-actions">
+                <button className="btn primary" onClick={() => startPlanning(day)}>
+                  <Icon name="plus" />
+                  {past ? 'Log an outfit' : `Plan ${isToday ? "today's" : `${weekday}'s`} outfit`}
+                </button>
+                {st.outfits.length > 0 && (
+                  <button className="btn" onClick={() => setPicking(true)}>
+                    Use a saved outfit
+                  </button>
+                )}
+                {!past && (
+                  <button className="btn ghost" onClick={surpriseMe}>
+                    <Icon name="shuffle" />
+                    Surprise me
+                  </button>
+                )}
+              </div>
+            </div>
           </article>
         ) : (
           <article className="card empty">
@@ -304,7 +321,7 @@ export default function Today() {
           </article>
         )}
 
-        {lead && (
+        {lead && !isPlanning && (
           <aside className="today-side">
             <article className="card unlock-card">
               <div className="eyebrow">Fill the gap</div>
@@ -363,27 +380,17 @@ export default function Today() {
         <>
           <div className="backdrop" onClick={() => setPicking(false)} />
           <div className="modal-wrap">
-            <div className="modal" role="dialog" aria-label={past ? 'Log an outfit' : 'Plan an outfit'}>
+            <div className="modal" role="dialog" aria-label={past ? 'Log a saved outfit' : 'Plan a saved outfit'}>
               <button className="icon-btn close" onClick={() => setPicking(false)} aria-label="Close">
                 <Icon name="x" />
               </button>
               <h2>
                 {past ? 'Log' : 'Plan'} {fmt(day, { weekday: 'long', month: 'short', day: 'numeric' })}
               </h2>
-              <p className="lede">{past ? 'Which of your saved outfits did you wear?' : 'Pick a suggestion or one of your saved outfits.'}</p>
+              <p className="lede">{past ? 'Which of your saved outfits did you wear?' : 'Pick one of your saved outfits.'}</p>
               <div className="picker">
-                {!past &&
-                  [0, 1, 2].map((n) => {
-                    const s = suggestFor(day, n);
-                    return s ? (
-                      <button key={`s${n}`} onClick={() => choose(s.title, s.slots)}>
-                        <Flatlay slots={s.slots} />
-                        Suggestion {n + 1}
-                      </button>
-                    ) : null;
-                  })}
                 {st.outfits.map((o) => (
-                  <button key={o.id} onClick={() => choose(o.name, o.slots)}>
+                  <button key={o.id} onClick={() => finish(o.name, o.slots)}>
                     <Flatlay slots={o.slots} />
                     {o.name}
                   </button>
