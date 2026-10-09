@@ -1,4 +1,4 @@
-# 010 — Board backgrounds are a few light neutrals, set once
+# 011 — Board backgrounds are a few light neutrals, set once
 
 **Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** next
 
@@ -32,4 +32,4 @@ Decorative backgrounds show up in apps built around sharing and collage. Apps bu
 
 - No charcoal, colors, patterns or photo backgrounds for now. Those suit sharing a look. Revisit them when there's a way to share or export an outfit, and save the background with each outfit then.
 - A dark background would first need product photos to have their white background removed, so they no longer rely on blending.
-- Light and dark mode ([#9](https://github.com/dango-design/rotation/pull/9)) dims the board in dark mode instead of inverting it, which fits this decision. Whichever of the two lands second needs to give the four board colors dark-mode values.
+- In dark mode ([010](010-light-and-dark-mode.md)) each background dims a little, like the closet tiles, instead of turning dark. The board stays a light surface inside a dark interface.

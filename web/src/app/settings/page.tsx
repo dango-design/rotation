@@ -5,9 +5,17 @@ import { BoardSwatches, Icon, ShopSwitch } from '@/components/ui';
 import { KNOWN_STORES } from '@/lib/catalog-meta';
 import { todayISO } from '@/lib/dates';
 import { useStore } from '@/lib/store';
+import { setThemePref, useThemePref, type ThemePref } from '@/lib/theme';
+
+const THEMES: { value: ThemePref; label: string }[] = [
+  { value: 'system', label: 'Match device' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
 
 export default function SettingsPage() {
   const st = useStore();
+  const theme = useThemePref();
   const [city, setCity] = useState(st.settings.city);
   const [cityError, setCityError] = useState('');
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
@@ -69,6 +77,24 @@ export default function SettingsPage() {
       </section>
 
       <section className="card settings-section">
+        <h3>Appearance</h3>
+        <p>Rotation follows your device&apos;s light or dark setting unless you pick one here. The choice is saved in this browser.</p>
+        <div className="seg" role="group" aria-label="Theme" style={{ alignSelf: 'flex-start' }}>
+          {THEMES.map((t) => (
+            <button key={t.value} className={theme === t.value ? 'active' : ''} aria-pressed={theme === t.value} onClick={() => setThemePref(t.value)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="card settings-section">
+        <h3>Outfit boards</h3>
+        <p>The background behind your outfits. Each one is a quiet neutral, so it won&apos;t change how a color reads. Stone helps white pieces stand out.</p>
+        <BoardSwatches labels />
+      </section>
+
+      <section className="card settings-section">
         <h3>Shopping</h3>
         <p>Suggestions list your favorite stores first, then the lowest price. They never change which pieces are recommended.</p>
         <ShopSwitch />
@@ -79,12 +105,6 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
-      </section>
-
-      <section className="card settings-section">
-        <h3>Outfit boards</h3>
-        <p>The background behind your outfits. Each one is a quiet neutral, so it won&apos;t change how a color reads. Stone helps white pieces stand out.</p>
-        <BoardSwatches labels />
       </section>
 
       <section className="card settings-section">
