@@ -22,6 +22,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | [003](decisions/003-name-rotation.md) | Name the app Rotation | Oct 6, 2026 |
 | [004](decisions/004-build-local-first.md) | Build the first version local-first | Oct 6, 2026 |
 | [005](decisions/005-three-tabs.md) | Consolidate to three tabs, and keep stats in the background | Oct 7, 2026 |
+| [006](decisions/006-find-the-right-piece.md) | Find the right piece in a photo or product page, and ask when unsure (proposed) | Oct 8, 2026 |
 
 ## Capturing a milestone
 

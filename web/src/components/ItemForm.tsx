@@ -83,7 +83,7 @@ export function ItemForm({
   return (
     <form className="form" onSubmit={submit}>
       <div className="preview-row">
-        <div className="tile">{previewUrl ? <img className={`photo ${initial.source === 'link' ? 'on-white' : ''}`} src={previewUrl} alt="" /> : <Art w={preview} />}</div>
+        <div className="tile">{previewUrl ? <img className={`photo ${initial.source === 'link' && !initial.cutout ? 'on-white' : ''}`} src={previewUrl} alt="" /> : <Art w={preview} />}</div>
         <div>
           {aiTagged && (
             <span className="chip ai-chip" style={{ marginBottom: 8 }}>

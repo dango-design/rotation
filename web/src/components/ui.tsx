@@ -49,15 +49,15 @@ export function Icon({ name }: { name: string }) {
 export const money = (n: number) => '$' + n.toFixed(2);
 
 /** A garment as a background-removed photo, a product photo, or the illustration fallback. */
-export function Art({ w }: { w?: Wearable & { imageId?: string; source?: string } }) {
+export function Art({ w }: { w?: Wearable & { imageId?: string; source?: string; cutout?: boolean } }) {
   const { imageFor } = useStore();
   if (!w) return null;
   const url = imageFor(w);
-  if (url) return <img className={`photo ${w.source === 'link' ? 'on-white' : ''}`} src={url} alt="" />;
+  if (url) return <img className={`photo ${w.source === 'link' && !w.cutout ? 'on-white' : ''}`} src={url} alt="" />;
   return <span style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: garmentSvg(w.type, w.color, w.pattern) }} />;
 }
 
-export function Tile({ w, className = '' }: { w?: Wearable & { imageId?: string; source?: string }; className?: string }) {
+export function Tile({ w, className = '' }: { w?: Wearable & { imageId?: string; source?: string; cutout?: boolean }; className?: string }) {
   return (
     <div className={`tile ${className}`}>
       <Art w={w} />
