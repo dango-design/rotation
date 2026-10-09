@@ -2,11 +2,12 @@
    The browser then picks the right photo and removes its background on the device. */
 
 import { readProductPage } from '@/lib/product-page';
-import { safeFetch } from '@/lib/server/safe-fetch';
+import { rateLimited, safeFetch } from '@/lib/server/safe-fetch';
 
 const MAX_HTML = 3_000_000;
 
 export async function POST(request: Request) {
+  if (rateLimited(request, 'link', 20)) return Response.json({ error: 'Too many links at once; try again in a minute.' }, { status: 429 });
   const body = await request.json().catch(() => null);
   if (typeof body?.url !== 'string') return Response.json({ error: 'Send a product link.' }, { status: 400 });
 

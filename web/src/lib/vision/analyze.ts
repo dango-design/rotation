@@ -5,25 +5,25 @@
    outfit is cut by garment. Without a person (a product shot, a flat lay, a piece on a hanger) each separate object
    is a piece, cut with the salient mask. When more than one piece could be the one, the person is asked. */
 
-import { PART_LABEL, type Hint, type Part } from '../garment-hints';
+import { PART_LABEL, type Hint, type ParserPart, type Part } from '../garment-hints';
 import { components, dilate, type Box } from './masks';
 import { colorPieces } from './split';
 
-export const PARTS: Part[] = ['top', 'bottom', 'dress', 'shoes', 'bag', 'hat'];
+export const PARTS: ParserPart[] = ['top', 'bottom', 'dress', 'shoes', 'bag', 'hat', 'scarf', 'belt', 'sunglasses'];
 
-type Group = Part | 'skin' | 'hair' | 'bg' | 'other';
+type Group = ParserPart | 'skin' | 'hair' | 'bg';
 
-/** What each parser label (ATR) means here. Belts, scarves and sunglasses aren't pieces Rotation tracks. */
+/** What each parser label (ATR) means here. */
 export const LABEL_GROUP: Group[] = [
   'bg', // 0 background
   'hat', // 1 hat
   'hair', // 2 hair
-  'other', // 3 sunglasses
+  'sunglasses', // 3 sunglasses
   'top', // 4 upper clothes (tops, jackets and coats)
   'bottom', // 5 skirt
   'bottom', // 6 pants
   'dress', // 7 dress
-  'other', // 8 belt
+  'belt', // 8 belt
   'shoes', // 9 left shoe
   'shoes', // 10 right shoe
   'skin', // 11 face
@@ -32,7 +32,7 @@ export const LABEL_GROUP: Group[] = [
   'skin', // 14 left arm
   'skin', // 15 right arm
   'bag', // 16 bag
-  'other', // 17 scarf
+  'scarf', // 17 scarf
 ];
 
 /** Model outputs on a common grid. */
@@ -42,7 +42,7 @@ export interface Maps {
   /** Most likely parser label per cell. */
   labels: Uint8Array;
   /** Parser probability of each part per cell. */
-  prob: Record<Part, Float32Array>;
+  prob: Record<ParserPart, Float32Array>;
   /** Salient-object mask, 0..1 (on photos of people, the parser's own foreground). */
   salient: Float32Array;
   /** The photo at grid size, RGBA, for telling touching pieces apart by color. */
@@ -82,7 +82,7 @@ export interface Verdict {
 }
 
 /** Smallest share of the photo each part needs to count. */
-const MIN_AREA: Record<Part, number> = { top: 0.02, bottom: 0.02, dress: 0.03, shoes: 0.004, bag: 0.006, hat: 0.004 };
+const MIN_AREA: Record<ParserPart, number> = { top: 0.02, bottom: 0.02, dress: 0.03, shoes: 0.004, bag: 0.006, hat: 0.004, scarf: 0.006, belt: 0.003, sunglasses: 0.002 };
 /** Share of skin and hair that means someone is in the photo. */
 export const WORN = 0.025;
 /** A piece dominates when every other piece is smaller than this share of it. */

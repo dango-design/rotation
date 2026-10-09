@@ -10,7 +10,9 @@ describe('hintFrom', () => {
     ['Heavyweight Hoodie', 'top', 'hoodie'],
     ['Classic Denim Jacket', 'top', 'denimjacket'],
     ['Wool Overcoat', 'top', 'coat'],
-    ['Shirt Dress', 'dress', 'dress'],
+    ['Shirt Dress', 'dress', 'shirtdress'],
+    ['Satin Slip Dress', 'dress', 'slipdress'],
+    ['Utility Jumpsuit', 'dress', 'jumpsuit'],
     ['Linen Midi Dress', 'dress', 'dress'],
     ['90s Loose Jeans', 'bottom', 'loosejeans'],
     ['Bootcut Jeans', 'bottom', 'loosejeans'],
@@ -23,7 +25,18 @@ describe('hintFrom', () => {
     ['High-Top Sneakers', 'shoes', 'sneakers'],
     ['Chelsea Boot', 'shoes', 'boots'],
     ['Penny Loafer', 'shoes', 'loafers'],
+    ['Leather Ballet Flats', 'shoes', 'flats'],
     ['Canvas Tote Bag', 'bag', 'tote'],
+    ['Mini Crossbody Bag', 'bag', 'crossbody'],
+    ['Nylon Belt Bag', 'bag', 'crossbody'],
+    ['Everyday Backpack', 'bag', 'backpack'],
+    ['Gold Chain Necklace', 'jewelry', 'necklace'],
+    ['Small Hoop Earrings', 'jewelry', 'earrings'],
+    ['Field Watch', 'jewelry', 'watch'],
+    ['Wool Scarf', 'scarf', 'scarf'],
+    ['Leather Belt', 'belt', 'belt'],
+    ['Round Sunglasses', 'sunglasses', 'sunglasses'],
+    ['Cargo Shorts', 'bottom', 'shorts'],
     ['Ribbed Beanie', 'hat', 'beanie'],
     ['Cap-Sleeve Top', 'top', 'tee'],
   ])('%s → %s (%s)', (title, part, type) => {
@@ -31,7 +44,7 @@ describe('hintFrom', () => {
   });
 
   it('knows the part even when the type is unclear', () => {
-    expect(hintFrom('Cargo Shorts')).toEqual({ part: 'bottom' });
+    expect(hintFrom('Cargo Pants')).toEqual({ part: 'bottom' });
     expect(hintFrom('Strappy Sandals')).toEqual({ part: 'shoes' });
   });
 

@@ -5,7 +5,7 @@
 
 import type * as Ort from 'onnxruntime-web';
 import { LABEL_GROUP, PARTS } from './analyze';
-import type { Part } from '../garment-hints';
+import type { ParserPart } from '../garment-hints';
 
 const ORT_VERSION = '1.30.0';
 const MEAN = [0.485, 0.456, 0.406];
@@ -81,7 +81,7 @@ export interface Parsed {
   w: number;
   h: number;
   labels: Uint8Array;
-  prob: Record<Part, Float32Array>;
+  prob: Record<ParserPart, Float32Array>;
   /** Probability of anything but background: clothing or a person. */
   fg: Float32Array;
 }
@@ -96,7 +96,7 @@ export async function parse(img: CanvasImageSource): Promise<Parsed> {
   const data = logits.data as Float32Array;
   const n = w * h;
   const labels = new Uint8Array(n);
-  const prob = Object.fromEntries(PARTS.map((p) => [p, new Float32Array(n)])) as Record<Part, Float32Array>;
+  const prob = Object.fromEntries(PARTS.map((p) => [p, new Float32Array(n)])) as Record<ParserPart, Float32Array>;
   const fg = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     let max = -Infinity;
@@ -109,7 +109,7 @@ export async function parse(img: CanvasImageSource): Promise<Parsed> {
     let sum = 0;
     for (let c = 0; c < classes; c++) sum += Math.exp(data[c * n + i] - max);
     for (let c = 0; c < classes; c++) {
-      const g = LABEL_GROUP[c] as Part;
+      const g = LABEL_GROUP[c] as ParserPart;
       if (g in prob) prob[g][i] += Math.exp(data[c * n + i] - max) / sum;
     }
     fg[i] = 1 - Math.exp(data[i] - max) / sum;

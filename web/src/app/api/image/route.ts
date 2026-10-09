@@ -1,11 +1,14 @@
 /* Passes a product photo from a store's site to the browser, so it can be read on a canvas for background removal
-   (most store image hosts don't allow cross-origin reads). Raster images from public hosts only. */
+   (most store image hosts don't allow cross-origin reads). Raster images from public hosts only, for Rotation's own
+   pages, a few dozen a minute. */
 
-import { IMAGE_TYPES, safeFetch } from '@/lib/server/safe-fetch';
+import { fromAnotherSite, IMAGE_TYPES, rateLimited, safeFetch } from '@/lib/server/safe-fetch';
 
 const MAX_IMAGE = 8_000_000;
 
 export async function GET(request: Request) {
+  if (fromAnotherSite(request)) return Response.json({ error: 'Not available to other sites.' }, { status: 403 });
+  if (rateLimited(request, 'image', 60)) return Response.json({ error: 'Too many photos at once; try again in a minute.' }, { status: 429 });
   const url = new URL(request.url).searchParams.get('url');
   if (!url) return Response.json({ error: 'Send an image link.' }, { status: 400 });
 

@@ -58,3 +58,26 @@ export async function safeFetch(raw: string, accept: string, maxBytes: number) {
 
 /** Raster image types the browser can decode for background removal. SVG is excluded: it can carry scripts. */
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+
+const hits = new Map<string, number[]>();
+
+/**
+ * Whether a caller has made more than `perMinute` requests to `route` in the last minute. Best effort: counts are
+ * kept in memory per server instance, by the address the request came from.
+ */
+export function rateLimited(request: Request, route: string, perMinute: number) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'local';
+  const key = `${route} ${ip}`;
+  const now = Date.now();
+  const recent = (hits.get(key) ?? []).filter((t) => now - t < 60_000);
+  recent.push(now);
+  if (hits.size > 10_000) hits.clear();
+  hits.set(key, recent);
+  return recent.length > perMinute;
+}
+
+/** Browsers say when a request comes from another site; those are refused so other pages can't use these routes. */
+export function fromAnotherSite(request: Request) {
+  const site = request.headers.get('sec-fetch-site');
+  return site === 'cross-site' || site === 'same-site';
+}
