@@ -508,8 +508,9 @@ h3.small { font: 600 15px/1.3 var(--sans); }
   .nav-item svg { display: none; }
   .main { padding: 22px 16px 96px; }
   h1 { font-size: 36px; }
-  .hero { grid-template-columns: 1fr; }
-  .hero-visual { border-radius: var(--radius) var(--radius) 0 0; }
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .hero-body { padding: 20px 20px 18px; }
+  .hero-body h2 { font-size: 26px; }
   .today-side, .rediscover, .ins-grid, .lanes, .more-picks { grid-template-columns: 1fr; }
   .pick { grid-template-columns: 1fr; }
   .trip-body { grid-template-columns: 1fr; }
@@ -715,4 +716,10 @@ a.nav-item { text-decoration: none; }
   .planner-board { position: static; }
   .planner-board .board { width: min(300px, 100%); margin: 0 auto; }
   .planner-head .outfit-name { font-size: 28px; }
+}
+
+/* The outfit card stays side by side until a phone is too narrow for both halves. */
+@media (max-width: 600px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-visual { border-radius: var(--radius) var(--radius) 0 0; }
 }
