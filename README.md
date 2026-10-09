@@ -27,7 +27,7 @@ Run the tests with `npm test` inside `web/`.
 ## What it does
 
 - **Today:** plan each day's outfit piece by piece from what you own. Each step suggests the pieces that go with what you've picked, suit a casual, work or dressy day and the live forecast for your city, and haven't been worn this week. Sort any step by least or most worn, recently added or name. Pick any day in the week strip to plan it or log what you wore; one piece is enough. Or tap Surprise me.
-- **Closet:** add pieces by photo (the background is removed on your device), product link, or description. Tops, dresses and jumpsuits, bottoms (including skirts and shorts), outerwear, shoes, bags, jewelry and accessories. Open the outfit board beside your closet to build and save outfits, with a live pairing check that fades pieces that don't go. The board works like a design canvas: drag, resize and layer pieces, which start at true-to-life sizes, and the arrangement is saved with the outfit.
+- **Closet:** add pieces by photo, product link, or description. Rotation finds each piece in a photo and removes the background on your device; a photo of an outfit or a flat lay can add several pieces at once. For a product link it finds the product among the page's photos. When it can't tell which piece you mean, it shows what it found and asks. Tops, dresses and jumpsuits, bottoms (including skirts and shorts), outerwear, shoes, bags, jewelry and accessories. Open the outfit board beside your closet to build and save outfits, with a live pairing check that fades pieces that don't go. The board works like a design canvas: drag, resize and layer pieces, which start at true-to-life sizes, and the arrangement is saved with the outfit.
 - **Fill the gap:** the pieces that would add the most new outfits, each with store options, your size at each store, and what wasn't recommended and why.
 - **Closet report:** outfits you can make, how much of your closet you wear, cost per wear, and where your clothes come from.
 - **Your data:** everything stays in your browser. Download a backup or delete everything in Settings.
@@ -49,8 +49,9 @@ With the demo closet (30 pieces from 16 stores, dresses and a skirt alongside je
 | --- | --- |
 | `web/` | The Rotation app: Next.js, React and TypeScript |
 | `web/src/lib/engine.ts` | Pairing rules and the Outfit Unlock score |
-| `web/src/lib/bgremove.ts` | On-device background removal |
-| `web/src/app/api/` | Server routes for photo tagging (Claude) and reading product links |
+| `web/src/lib/vision/` | On-device piece finding and background removal: the two models, the decision rules, and the cutouts |
+| `web/src/lib/product-page.ts` | Reads a product page: name, price, and the photos that show the product |
+| `web/src/app/api/` | Server routes for photo tagging (Claude), reading product links, and passing store photos to the browser |
 | `mockup/` | The clickable prototype from the concept phase |
 | `docs/process/` | The process log: milestones, screenshots and decision records |
 | `docs/strategy/` | Strategy snapshots for each milestone |
@@ -72,4 +73,5 @@ Designed by Denise ([dango-design](https://github.com/dango-design)): research d
 ## Credits
 
 - Background removal uses the [U²-Net](https://github.com/xuebinqin/U-2-Net) `u2netp` model (Apache-2.0), run with [ONNX Runtime Web](https://onnxruntime.ai/), following [rembg](https://github.com/danielgatis/rembg)'s pre- and post-processing.
+- Pieces are told apart with [SegFormer](https://github.com/NVlabs/SegFormer) B0 fine-tuned for clothes ([mattmdjaga/segformer_b0_clothes](https://huggingface.co/mattmdjaga/segformer_b0_clothes), MIT; ONNX by [Xenova](https://huggingface.co/Xenova/segformer_b0_clothes)). SegFormer's base weights are under NVIDIA's license, which limits commercial use; see [decision 012](docs/process/decisions/012-find-the-right-piece.md).
 - Weather from [Open-Meteo](https://open-meteo.com/).
