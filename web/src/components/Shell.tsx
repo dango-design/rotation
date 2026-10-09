@@ -35,6 +35,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.body.style.overflow = overlay ? 'hidden' : '';
   }, [overlay]);
+  // On the root so drawers, which render outside .app, pick up the board background too.
+  useEffect(() => {
+    document.documentElement.dataset.board = st.settings.board ?? 'linen';
+  }, [st.settings.board]);
   // Close any open drawer or dialog when the page changes.
   const [prevPath, setPrevPath] = useState(pathname);
   if (pathname !== prevPath) {
