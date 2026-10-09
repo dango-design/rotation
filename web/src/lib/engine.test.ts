@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
-import { check, duplicate, fitsBoard, rankPieces, totalOutfits, unlock, whyLine } from './engine';
+import { TYPES } from './catalog-meta';
+import { check, duplicate, fitsBoard, isComplete, rankPieces, slotOf, totalOutfits, unlock, whyLine } from './engine';
+import { garmentSvg } from './garments';
+import { nextStep, piecesFor } from './planning';
+import { RANGE } from './today';
+import { daysBetween } from './dates';
+import type { GarmentType, Item } from './types';
 
 const { items } = demoData();
 const byShort = (s: string) => items.find((i) => i.id === `demo-${s}`)!;
@@ -71,5 +77,79 @@ describe('fitting pieces to the board', () => {
   });
   it('lets a dress replace the bottom', () => {
     expect(fitsBoard(pieceById('p-dress-black')!, { bottom: byShort('b2').id }, byId)).toBe(true);
+  });
+});
+
+describe('planning a day piece by piece', () => {
+  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
+  const opts = { occasion: 'work' as const, today: '2026-10-07' };
+  it('suggests two pieces that work with the picks so far', () => {
+    const slots = { top: byShort('t8').id };
+    const rows = piecesFor('bottom', slots, items, byId, opts);
+    const suggested = rows.filter((r) => r.suggested);
+    expect(suggested).toHaveLength(2);
+    expect(suggested.every((r) => r.fits)).toBe(true);
+    expect(rows.findIndex((r) => !r.fits)).toBeGreaterThan(rows.findLastIndex((r) => r.fits));
+  });
+  it('asks for the required pieces first, then the optional ones', () => {
+    expect(nextStep({}, byId)).toBe('top');
+    expect(nextStep({ top: byShort('t8').id }, byId)).toBe('bottom');
+    expect(nextStep({ top: byShort('t8').id, bottom: byShort('b2').id, shoes: byShort('s1').id }, byId)).toBe('outer');
+  });
+  it('skips the bottom when a dress is picked', () => {
+    expect(nextStep({ top: 'p-dress-black' }, byId)).toBe('shoes');
+  });
+});
+
+describe('the occasion shapes suggestions', () => {
+  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
+  const top = (occasion: 'casual' | 'work' | 'dressy') =>
+    piecesFor('top', {}, items, byId, { occasion, today: '2026-10-07' }).filter((r) => r.suggested).map((r) => r.item.f);
+  it("suggests tops at the occasion's own formality", () => {
+    for (const occasion of ['casual', 'work', 'dressy'] as const) {
+      const [lo, hi] = RANGE[occasion];
+      const fs = top(occasion);
+      if (occasion !== 'dressy') expect(fs).toHaveLength(2);
+      expect(fs.every((f) => f >= lo && f <= hi) || occasion === 'dressy').toBe(true);
+    }
+    expect(top('casual')).not.toEqual(top('work'));
+  });
+});
+
+describe('suggestions follow the season, not just the calendar', () => {
+  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
+  const suggestedTops = (temp?: number) =>
+    piecesFor('top', {}, items, byId, { occasion: 'work', today: '2026-10-07', temp }).filter((r) => r.suggested).map((r) => r.item);
+  it("doesn't push a sweater on a hot day just because it hasn't been worn", () => {
+    expect(suggestedTops(84).some((i) => i.type === 'sweater')).toBe(false);
+  });
+  it('suggests something warm on a cold day', () => {
+    expect(suggestedTops(48).some((i) => i.type === 'sweater')).toBe(true);
+  });
+  it("doesn't suggest a piece worn this week", () => {
+    expect(suggestedTops().every((i) => !i.lastWorn || daysBetween(i.lastWorn, '2026-10-07') >= 7)).toBe(true);
+  });
+});
+
+describe('one-pieces, bags and jewelry', () => {
+  const make = (type: GarmentType, extra: Partial<Item> = {}): Item => ({
+    id: `x-${type}`, name: TYPES[type].label, brand: '', source: 'manual', type, cat: TYPES[type].cat,
+    color: '#232323', colorName: 'Black', tone: 'neutral', f: TYPES[type].f, wears: 0, createdAt: '', ...extra,
+  });
+  it('treats a jumpsuit like a dress: it covers the bottom', () => {
+    expect(check([make('jumpsuit'), byShort('b2')]).ok).toBe(false);
+    expect(isComplete({ top: 'x-jumpsuit', shoes: byShort('s1').id }, (id) => (id === 'x-jumpsuit' ? make('jumpsuit') : items.find((i) => i.id === id)))).toBe(true);
+  });
+  it('leaves bags and jewelry out of the dressiness check', () => {
+    expect(check([byShort('t6'), make('clutch'), make('necklace', { f: 3 })]).ok).toBe(true);
+  });
+  it('gives bags and jewelry their own outfit slots', () => {
+    expect(slotOf(make('crossbody'))).toBe('bag');
+    expect(slotOf(make('earrings'))).toBe('jewelry');
+    expect(slotOf(make('belt'))).toBe('acc');
+  });
+  it('draws every garment type', () => {
+    const tee = garmentSvg('tee', '#232323');
+    for (const t of Object.keys(TYPES).filter((t) => t !== 'tee')) expect(garmentSvg(t, '#232323')).not.toBe(tee);
   });
 });

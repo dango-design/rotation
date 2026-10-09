@@ -6,6 +6,7 @@ import { useUI } from '@/components/Shell';
 import { Flatlay, Icon, money, Tile } from '@/components/ui';
 import { CATS } from '@/lib/catalog-meta';
 import { cpw, fitsBoard, slotOf } from '@/lib/engine';
+import { heightOf, resolveLayout, trueWidth } from '@/lib/layout';
 import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { Cat, Item, Slot } from '@/lib/types';
@@ -28,7 +29,7 @@ const BADGE: Record<string, [string, string]> = {
 };
 
 /** The closet grid filter that matches a board slot. */
-const SLOT_CAT: Record<Slot, Cat> = { outer: 'outer', top: 'top', bottom: 'bottom', shoes: 'shoes', acc: 'acc' };
+const SLOT_CAT: Record<Slot, Cat> = { outer: 'outer', top: 'top', bottom: 'bottom', shoes: 'shoes', bag: 'bag', jewelry: 'jewelry', acc: 'acc' };
 
 export default function Closet() {
   const st = useStore();
@@ -47,13 +48,20 @@ export default function Closet() {
     .sort(sort === 'fits' ? (a, b) => Number(fits(b)) - Number(fits(a)) || a.wears - b.wears : SORTS[sort][1]);
   const stores = new Set(st.items.map((i) => i.store ?? i.brand).filter(Boolean));
 
-  const put = (id: string) => {
+  const put = (id: string, at?: { x: number; y: number }) => {
     const it = st.itemById(id);
     if (!it) return;
     const slot = slotOf(it);
     const next = { ...draft.slots, [slot]: id };
     if (it.cat === 'dress') delete next.bottom;
-    setDraft({ ...draft, slots: next, focus: slot });
+    let layout = draft.layout;
+    if (at) {
+      // Dropped onto the canvas: centre it where it landed, at true size, on top of everything.
+      const w = trueWidth(it.type);
+      const z = Math.max(-1, ...Object.values(resolveLayout(draft.slots, layout, st.wearableById)).map((p) => p!.z)) + 1;
+      layout = { ...resolveLayout(draft.slots, layout, st.wearableById), [slot]: { id, w, z, x: at.x - w / 2, y: at.y - heightOf(w) / 2 } };
+    }
+    setDraft({ ...draft, slots: next, layout, focus: slot });
   };
   const startOutfit = () => {
     if (!st.building) setDraft({ name: 'New outfit', slots: {}, focus: 'top' });
@@ -190,10 +198,10 @@ export default function Closet() {
                 <article key={o.id} className="card saved-card">
                   <button
                     className="saved-open"
-                    onClick={() => (st.build({ name: o.name, slots: o.slots, focus: 'top' }), setView('pieces'), setSortPick('fits'))}
+                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, focus: 'top' }), setView('pieces'), setSortPick('fits'))}
                     aria-label={`Open ${o.name} on the board`}
                   >
-                    <Flatlay slots={o.slots} />
+                    <Flatlay slots={o.slots} layout={o.layout} />
                   </button>
                   <div className="saved-meta">
                     <b>{o.name}</b>
