@@ -24,6 +24,18 @@ echo "ANTHROPIC_API_KEY=your-key" > web/.env.local
 
 Run the tests with `npm test` inside `web/`.
 
+## Run the phone app
+
+The iPhone and Android app is in `mobile/`, built with React Native and Expo. It shares the web app's engine, so both give the same outfits and suggestions. Install Expo Go on your phone, then:
+
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+Scan the QR code with the phone's camera. See [`mobile/README.md`](mobile/README.md) for what's in it and what's next.
+
 ## What it does
 
 - **Today:** plan each day's outfit piece by piece from what you own. Each step suggests the pieces that go with what you've picked, suit a casual, work or dressy day and the live forecast for your city, and haven't been worn this week. Sort any step by least or most worn, recently added or name. Pick any day in the week strip to plan it or log what you wore; one piece is enough. Or tap Surprise me.
@@ -47,7 +59,8 @@ With the demo closet (30 pieces from 16 stores, dresses and a skirt alongside je
 
 | Path | What it is |
 | --- | --- |
-| `web/` | The Rotation app: Next.js, React and TypeScript |
+| `web/` | The Rotation web app: Next.js, React and TypeScript |
+| `mobile/` | The phone app: React Native and Expo, sharing `web/src/lib` |
 | `web/src/lib/engine.ts` | Pairing rules and the Outfit Unlock score |
 | `web/src/lib/vision/` | On-device piece finding and background removal: the two models, the decision rules, and the cutouts |
 | `web/src/lib/product-page.ts` | Reads a product page: name, price, and the photos that show the product |
