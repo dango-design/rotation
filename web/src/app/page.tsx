@@ -9,20 +9,12 @@ import { Flatlay, Icon, money, Tile } from '@/components/ui';
 import { onePhrase, TYPES } from '@/lib/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, todayISO, weekStart } from '@/lib/dates';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
-import { garmentSvg } from '@/lib/garments';
 import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
 import { suggest } from '@/lib/today';
 import type { OutfitSlots } from '@/lib/types';
 import { skyWord } from '@/lib/weather';
-
-/** The outline of an outfit waiting to happen, for the empty-day callout. */
-const GHOSTS: { type: string; cls: string }[] = [
-  { type: 'shirt', cls: 'g-top' },
-  { type: 'jeans', cls: 'g-bottom' },
-  { type: 'sneakers', cls: 'g-shoes' },
-];
 
 function greeting() {
   const h = new Date().getHours();
@@ -277,14 +269,6 @@ export default function Today() {
           </article>
         ) : canBuild ? (
           <article className={`card plan-callout ${past ? 'is-past' : ''}`}>
-            <button className="callout-art" onClick={() => startPlanning(day)} aria-label={past ? `Log ${dayName}` : `Plan ${dayName}`}>
-              {GHOSTS.map((g) => (
-                <span key={g.cls} className={`ghost-piece ${g.cls}`} dangerouslySetInnerHTML={{ __html: garmentSvg(g.type, '#E7D6C6') }} />
-              ))}
-              <span className="callout-plus">
-                <Icon name="plus" />
-              </span>
-            </button>
             <div className="callout-body">
               <div className="eyebrow">{past ? `Nothing logged · ${dayName}` : `Nothing planned · ${dayName}`}</div>
               <h2>{past ? `What did you wear on ${weekday}?` : isToday ? "Today's a blank canvas." : `${weekday}'s a blank canvas.`}</h2>

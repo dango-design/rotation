@@ -8,7 +8,7 @@ On Today, a day with nothing planned showed a finished suggested outfit in the m
 
 ## Decision
 
-- **An empty day asks for an outfit.** Under the week strip, a day with nothing planned shows a distinct callout instead of a suggestion: ghosted garments, a "blank canvas" prompt, the day's weather, and a **Plan** button. Empty days in the strip show a "+" and "Plan it"; clicking one starts planning that day.
+- **An empty day asks for an outfit.** Under the week strip, a day with nothing planned shows a distinct callout instead of a suggestion: a "blank canvas" prompt, the day's weather, and one **Plan** button. Empty days in the strip show a "+" and "Plan it"; clicking one starts planning that day.
 - **Planning is piece by piece.** The planner opens in place on Today: top, bottom, shoes, then an optional layer and extra. Each step lists your pieces for that slot. The two that go with what you've picked, suit the day's occasion, and haven't been worn lately are marked **Suggested**, with the reason ("Not worn in 79 days"). Pieces that clash fade as a hint, but any complete outfit can be planned. After each pick the planner moves to the next step, and the layer step says whether the forecast calls for one.
 - **The occasion is part of planning.** The Casual, Work and Dressy toggle moved from the page header into the planner, since it only shapes suggestions. Suggestions favor pieces at that occasion's own formality. The last choice is remembered for the next day planned.
 - **Suggestions are opt-in.** **Surprise me** fills the board with a suggested outfit to adjust, from the callout or inside the planner. **Use a saved outfit** stays available.

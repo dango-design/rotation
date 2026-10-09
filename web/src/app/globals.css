@@ -664,16 +664,7 @@ a.nav-item { text-decoration: none; }
 .strip-day.open:hover .strip-empty { background: var(--clay-tint); border-color: var(--clay); }
 .strip-day.open .strip-label { color: var(--clay); }
 
-.plan-callout { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); gap: 32px; align-items: center; padding: 28px; border: 1.5px dashed var(--clay-line); background: radial-gradient(120% 140% at 0% 0%, #fbf1ea 0%, var(--panel) 62%); }
-.callout-art { position: relative; aspect-ratio: 1; border: 0; padding: 0; border-radius: 18px; background: var(--clay-tint); transition: transform 0.2s, box-shadow 0.2s; }
-.callout-art:hover { transform: translateY(-2px) rotate(-0.6deg); box-shadow: 0 14px 30px rgba(181, 83, 44, 0.16); }
-.ghost-piece { position: absolute; opacity: 0.75; }
-.ghost-piece svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 6px 8px rgba(143, 63, 31, 0.08)); }
-.g-top { left: 6%; top: 5%; width: 52%; transform: rotate(-6deg); }
-.g-bottom { left: 50%; top: 24%; width: 44%; transform: rotate(4deg); }
-.g-shoes { left: 8%; top: 60%; width: 40%; transform: rotate(-3deg); }
-.callout-plus { position: absolute; right: 9%; bottom: 9%; width: 56px; height: 56px; border-radius: 50%; background: var(--clay); color: #fff; display: grid; place-items: center; box-shadow: 0 8px 22px rgba(181, 83, 44, 0.35); animation: nudge 2.4s ease-in-out infinite; }
-.callout-plus svg { width: 26px; height: 26px; stroke-width: 2.2; }
+.plan-callout { position: relative; overflow: hidden; padding: 32px 34px; border: 1.5px dashed var(--clay-line); background: radial-gradient(120% 140% at 0% 0%, #fbf1ea 0%, var(--panel) 62%); }
 .callout-body { display: flex; flex-direction: column; gap: 12px; }
 .callout-body .eyebrow { color: var(--clay-ink); margin: 0; }
 .callout-body h2 { font: 44px/1.02 var(--serif); font-weight: 400; letter-spacing: -0.01em; }
@@ -684,11 +675,8 @@ a.nav-item { text-decoration: none; }
 .plan-callout .btn.primary { background: var(--clay); border-color: var(--clay); }
 .plan-callout .btn.primary:hover { background: var(--clay-ink); }
 .plan-callout.is-past { border-color: var(--line-2); background: var(--panel); }
-.plan-callout.is-past .callout-art { background: var(--tile); }
-.plan-callout.is-past .callout-plus { background: var(--ink); box-shadow: var(--shadow); animation: none; }
 .plan-callout.is-past .eyebrow { color: var(--ink-3); }
 .plan-callout.is-past .btn.primary { background: var(--ink); border-color: var(--ink); }
-@keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 
 .day-planner { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
 .planner-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
@@ -721,8 +709,7 @@ a.nav-item { text-decoration: none; }
 .planner-foot .spacer { flex: 1; }
 
 @media (max-width: 900px) {
-  .plan-callout { grid-template-columns: 1fr; gap: 20px; padding: 20px; }
-  .callout-art { width: min(220px, 100%); }
+  .plan-callout { padding: 22px 20px; }
   .callout-body h2 { font-size: 34px; }
   .planner-body { grid-template-columns: 1fr; }
   .planner-board { position: static; }
