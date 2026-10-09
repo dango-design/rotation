@@ -12,7 +12,7 @@ import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
 import { Icon, money, ShopSwitch, Tile } from './ui';
 
-export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; onFocus: (slot: Slot) => void }) {
+export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: number; y: number }) => void; onFocus: (slot: Slot) => void }) {
   const st = useStore();
   const ui = useUI();
   const { draft, setDraft } = st;
@@ -31,7 +31,9 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
   const remove = (slot: Slot) => {
     const next = { ...slots };
     delete next[slot];
-    setDraft({ ...draft, slots: next, focus: slot });
+    const layout = draft.layout ? { ...draft.layout } : undefined;
+    if (layout) delete layout[slot];
+    setDraft({ ...draft, slots: next, layout, focus: slot });
   };
   const focus = (slot: Slot) => {
     setDraft({ ...draft, focus: slot });
@@ -54,7 +56,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
       <p className="panel-hint">Click or drag pieces from your closet onto the board. Faded pieces don&apos;t go with this outfit.</p>
 
-      <OutfitBoard slots={slots} focus={draft.focus} onFocus={focus} onRemove={remove} onDrop={onPut} />
+      <OutfitBoard slots={slots} layout={draft.layout} onLayout={(layout) => setDraft({ ...draft, layout })} onRemove={remove} onSelect={focus} onDrop={onPut} />
 
       <div className="board-status">
         {!verdict.ok ? (
@@ -79,10 +81,10 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
       </div>
 
       <div className="panel-actions">
-        <button className="btn primary" disabled={!ready} onClick={() => (st.saveOutfit(draft.name || 'Untitled outfit', slots), st.toast('Saved to your outfits'))}>
+        <button className="btn primary" disabled={!ready} onClick={() => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout), st.toast('Saved to your outfits'))}>
           Save outfit
         </button>
-        <button className="btn" disabled={!ready} onClick={() => (st.wear(slots), st.toast('Logged as worn today'))}>
+        <button className="btn" disabled={!ready} onClick={() => (st.wear(slots, undefined, draft.layout), st.toast('Logged as worn today'))}>
           <Icon name="check" />
           Wear today
         </button>
@@ -93,7 +95,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
       <div className="panel-plan">
         <span>Plan it for</span>
         <input type="date" className="select" value={planDate} min={today} onChange={(e) => setPlanDate(e.target.value)} aria-label="Plan date" />
-        <button className="btn sm" disabled={!ready} onClick={() => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots }), st.toast(`Planned for ${shortDate(planDate)}`))}>
+        <button className="btn sm" disabled={!ready} onClick={() => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout }), st.toast(`Planned for ${shortDate(planDate)}`))}>
           <Icon name="planner" />
           Plan
         </button>

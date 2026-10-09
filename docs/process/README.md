@@ -24,6 +24,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | [005](decisions/005-three-tabs.md) | Consolidate to three tabs, and keep stats in the background | Oct 7, 2026 |
 | [006](decisions/006-build-first-suggest-along-the-way.md) | Build the outfit first, suggest along the way | Oct 7, 2026 |
 | [007](decisions/007-any-piece-is-an-outfit.md) | Any piece is an outfit, and finer categories | Oct 8, 2026 |
+| [008](decisions/008-outfit-canvas.md) | The outfit board is a canvas, at true-to-life sizes | Oct 8, 2026 |
 
 ## Capturing a milestone
 

@@ -2,7 +2,8 @@
 
 import { garmentSvg } from '@/lib/garments';
 import { useStore } from '@/lib/store';
-import type { OutfitSlots, Slot, Wearable } from '@/lib/types';
+import { resolveLayout, stackOrder } from '@/lib/layout';
+import type { Layout, OutfitSlots, Wearable } from '@/lib/types';
 
 const ICONS: Record<string, string> = {
   today: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M5 5l1.4 1.4M17.6 17.6 19 19M2.5 12h2M19.5 12h2M5 19l1.4-1.4M17.6 6.4 19 5"/>',
@@ -23,6 +24,8 @@ const ICONS: Record<string, string> = {
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   mail: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/>',
   pencil: '<path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/>',
+  forward: '<rect x="9" y="3.5" width="11" height="11" rx="2"/><path d="M15 17.5v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h1"/>',
+  backward: '<rect x="4" y="9.5" width="11" height="11" rx="2"/><path d="M9 6.5v-1a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-1" stroke-dasharray="2.2 2"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M5 5l1.4 1.4M17.6 17.6 19 19M2.5 12h2M19.5 12h2M5 19l1.4-1.4M17.6 6.4 19 5"/>',
   fog: '<path d="M5 10a5 5 0 0 1 9.6-1.9A3.8 3.8 0 0 1 19.5 11.5"/><path d="M3 14.5h18M5 18h14M8 21.5h8"/>',
@@ -65,26 +68,18 @@ export function Tile({ w, className = '' }: { w?: Wearable & { imageId?: string;
   );
 }
 
-// [left %, top %, width %]; pieces are square.
-export const LAYOUT: Record<Slot, [number, number, number]> = { outer: [1, 3, 49], top: [47, 1, 48], bottom: [46, 40, 51], shoes: [2, 58, 44], bag: [24, 42, 27], jewelry: [36, 80, 17], acc: [36, 0, 18] };
-const LAYOUT_BARE: Partial<Record<Slot, [number, number, number]>> = { top: [3, 3, 52], bottom: [44, 30, 53], shoes: [4, 57, 44], bag: [70, 70, 28], jewelry: [82, 4, 16], acc: [60, 2, 22] };
-const DRESS_TOP: [number, number, number] = [46, 4, 52];
-const DRESS_TOP_BARE: [number, number, number] = [30, 2, 58];
-const ORDER: Slot[] = ['outer', 'top', 'bottom', 'shoes', 'bag', 'jewelry', 'acc'];
-
-export function Flatlay({ slots, className = '' }: { slots: OutfitSlots; className?: string }) {
+/** An outfit drawn as a flat lay, arranged as saved or at true-to-life sizes. */
+export function Flatlay({ slots, layout, className = '' }: { slots: OutfitSlots; layout?: Layout; className?: string }) {
   const { wearableById } = useStore();
-  const L = slots.outer ? LAYOUT : LAYOUT_BARE;
+  const placed = resolveLayout(slots, layout, wearableById);
   return (
     <div className={`flatlay ${className}`}>
-      {ORDER.filter((s) => slots[s]).map((s) => {
-        const w = wearableById(slots[s]);
-        if (!w) return null;
-        const pos = w.cat === 'dress' ? (slots.outer ? DRESS_TOP : DRESS_TOP_BARE) : (L[s] ?? LAYOUT[s]);
-        const [l, t, width] = pos;
+      {stackOrder(placed).map((s) => {
+        const w = wearableById(slots[s])!;
+        const p = placed[s]!;
         const ghost = !('wears' in w);
         return (
-          <div key={s} className={`piece ${ghost ? 'ghost' : ''}`} style={{ left: `${l}%`, top: `${t}%`, width: `${width}%`, aspectRatio: '1' }}>
+          <div key={s} className={`piece ${ghost ? 'ghost' : ''}`} style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z, aspectRatio: '1' }}>
             <Art w={w} />
           </div>
         );

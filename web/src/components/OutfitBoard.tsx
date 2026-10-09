@@ -1,63 +1,125 @@
 'use client';
 
-/* The flat-lay board with one spot per slot, shared by the outfit board in the closet and the day planner on Today. */
+/* The outfit canvas, shared by the day planner on Today and the outfit board in the closet.
+   It works like a design canvas: drag a piece to move it, drag a corner to resize it, and bring it forward or send it
+   back. Pieces start at true-to-life sizes. Keyboard: arrows nudge (Shift for bigger steps), ] and [ move a piece up
+   and down the stack (with ⌘ or Ctrl, all the way), Delete removes it, Escape deselects. */
 
-import { useState } from 'react';
-import { SLOTS } from '@/lib/engine';
+import { useRef, useState } from 'react';
+import { ASPECT, clampW, heightOf, keepVisible, resizeAround, resolveLayout, restack, stackOrder, trueWidth } from '@/lib/layout';
 import { useStore } from '@/lib/store';
-import type { OutfitSlots, Piece, Slot } from '@/lib/types';
+import type { Layout, OutfitSlots, Piece, PieceLayout, Slot } from '@/lib/types';
 import { useUI } from './Shell';
-import { Art, Icon, LAYOUT, money } from './ui';
+import { Art, Icon, money } from './ui';
 
 export const SLOT_LABEL: Record<Slot, string> = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', bag: 'Bag', jewelry: 'Jewelry', acc: 'Accessory' };
 
+type Handle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
+const CORNERS: Exclude<Handle, 'move'>[] = ['nw', 'ne', 'sw', 'se'];
+
 export function OutfitBoard({
   slots,
-  focus,
-  onFocus,
+  layout,
+  onLayout,
   onRemove,
+  onSelect,
   onDrop,
 }: {
   slots: OutfitSlots;
-  focus?: Slot | null;
-  onFocus: (slot: Slot) => void;
+  layout?: Layout;
+  onLayout: (layout: Layout | undefined) => void;
   onRemove: (slot: Slot) => void;
-  onDrop?: (id: string) => void;
+  onSelect?: (slot: Slot) => void;
+  /** A piece dragged in from the closet, with where it was dropped (in % of the canvas). */
+  onDrop?: (id: string, at: { x: number; y: number }) => void;
 }) {
   const st = useStore();
   const ui = useUI();
+  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ slot: Slot; handle: Handle; x: number; y: number; from: PieceLayout; moved: boolean } | null>(null);
+  const [live, setLive] = useState<Layout | null>(null);
+  const [picked, setPicked] = useState<Slot | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const empty = !SLOTS.some((s) => slots[s]);
 
-  const slotEl = (s: Slot) => {
-    const [l, t, w] = LAYOUT[s];
-    const it = slots[s] ? st.wearableById(slots[s]) : undefined;
-    const focused = focus === s ? 'focused' : '';
-    // Empty spots aren't drawn: the step tabs (or the closet filters) say what to add next.
-    if (!it) return null;
-    const isTrial = !('wears' in it);
-    const pos = it.cat === 'dress' ? [46, 4, 52] : [l, t, w];
-    return (
-      <div key={s} className={`slot ${focused} ${isTrial ? 'trial' : ''}`} role="button" tabIndex={0} aria-label={it.name} onClick={() => onFocus(s)} onKeyDown={(e) => e.key === 'Enter' && onFocus(s)} style={{ left: `${pos[0]}%`, top: `${pos[1]}%`, width: `${pos[2]}%`, aspectRatio: '1' }}>
-        <Art w={it} />
-        <button className="slot-x" onClick={(e) => (e.stopPropagation(), onRemove(s))} aria-label={`Remove ${it.name}`}>
-          <Icon name="x" />
-        </button>
-        {isTrial && (
-          <div className="trial-tag">
-            Not in your closet · from {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
-            <button className="btn" onClick={(e) => (e.stopPropagation(), ui.open({ type: 'compare', id: it.id }))}>
-              Compare stores
-            </button>
-          </div>
-        )}
-      </div>
-    );
+  const placed = live ?? resolveLayout(slots, layout, st.wearableById);
+  const order = stackOrder(placed);
+  const selected = picked && slots[picked] ? picked : null;
+
+  const select = (s: Slot) => {
+    setPicked(s);
+    onSelect?.(s);
   };
+  const change = (s: Slot, p: PieceLayout) => onLayout({ ...placed, [s]: p });
+
+  const start = (e: React.PointerEvent, slot: Slot, handle: Handle) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    select(slot);
+    ref.current?.focus({ preventScroll: true });
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    drag.current = { slot, handle, x: e.clientX, y: e.clientY, from: placed[slot]!, moved: false };
+  };
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    const box = ref.current?.getBoundingClientRect();
+    if (!d || !box) return;
+    const dx = ((e.clientX - d.x) / box.width) * 100;
+    const dy = ((e.clientY - d.y) / box.height) * 100;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) < 0.6) return;
+    d.moved = true;
+    const f = d.from;
+    let next: PieceLayout;
+    if (d.handle === 'move') next = keepVisible({ ...f, x: f.x + dx, y: f.y + dy });
+    else {
+      // Pieces stay square: grow by whichever way the corner moved further, keeping the opposite corner put.
+      const sx = d.handle.includes('e') ? 1 : -1;
+      const sy = d.handle.includes('s') ? 1 : -1;
+      const w = clampW(f.w + Math.max(sx * dx, sy * dy * ASPECT));
+      next = { ...f, w, x: sx > 0 ? f.x : f.x + f.w - w, y: sy > 0 ? f.y : f.y + heightOf(f.w) - heightOf(w) };
+    }
+    setLive({ ...placed, [d.slot]: next });
+  };
+  const end = () => {
+    if (drag.current?.moved && live) onLayout(live);
+    drag.current = null;
+    setLive(null);
+  };
+
+  const onKey = (e: React.KeyboardEvent) => {
+    if (!selected) return;
+    const p = placed[selected]!;
+    const step = e.shiftKey ? 5 : 1;
+    const arrows: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    if (arrows[e.key]) {
+      e.preventDefault();
+      change(selected, keepVisible({ ...p, x: p.x + arrows[e.key][0], y: p.y + arrows[e.key][1] }));
+    } else if (e.key === ']' || e.key === '[') {
+      e.preventDefault();
+      const all = e.metaKey || e.ctrlKey;
+      onLayout(restack(placed, selected, e.key === ']' ? (all ? 'front' : 'forward') : all ? 'back' : 'backward'));
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      onRemove(selected);
+      setPicked(null);
+    } else if (e.key === 'Escape') setPicked(null);
+  };
+
+  const empty = order.length === 0;
+  const sel = selected ? placed[selected] : undefined;
+  const top = order[order.length - 1];
+  const bottom = order[0];
 
   return (
     <div
-      className={`board ${dragOver ? 'drag-over' : ''}`}
+      ref={ref}
+      className={`board canvas ${dragOver ? 'drag-over' : ''}`}
+      tabIndex={empty ? -1 : 0}
+      aria-label="Outfit canvas. Select a piece, then use the arrow keys to move it."
+      onKeyDown={onKey}
+      onPointerDown={() => setPicked(null)}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={end}
       onDragOver={onDrop ? (e) => (e.preventDefault(), setDragOver(true)) : undefined}
       onDragLeave={onDrop ? () => setDragOver(false) : undefined}
       onDrop={
@@ -65,12 +127,68 @@ export function OutfitBoard({
           ? (e) => {
               e.preventDefault();
               setDragOver(false);
-              onDrop(e.dataTransfer.getData('text/plain'));
+              const box = ref.current!.getBoundingClientRect();
+              onDrop(e.dataTransfer.getData('text/plain'), { x: ((e.clientX - box.left) / box.width) * 100, y: ((e.clientY - box.top) / box.height) * 100 });
             }
           : undefined
       }
     >
-      {empty ? <span className="board-empty">Your picks show up here</span> : SLOTS.map(slotEl)}
+      {empty && <span className="board-empty">Your picks show up here</span>}
+      {order.map((s) => {
+        const it = st.wearableById(slots[s])!;
+        const p = placed[s]!;
+        const trial = !('wears' in it);
+        return (
+          <div
+            key={s}
+            className={`canvas-piece ${selected === s ? 'selected' : ''} ${trial ? 'trial' : ''}`}
+            style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z }}
+            role="button"
+            tabIndex={-1}
+            aria-label={it.name}
+            aria-pressed={selected === s}
+            onPointerDown={(e) => start(e, s, 'move')}
+          >
+            <Art w={it} />
+            {selected === s && CORNERS.map((c) => <span key={c} className={`handle ${c}`} onPointerDown={(e) => start(e, s, c)} aria-hidden="true" />)}
+            {trial && (
+              <div className="trial-tag" onPointerDown={(e) => e.stopPropagation()}>
+                Not in your closet · from {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
+                <button className="btn" onClick={() => ui.open({ type: 'compare', id: it.id })}>
+                  Compare stores
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {selected && sel && !live && (
+        <div
+          className={`canvas-tools ${sel.y < 12 ? 'below' : ''}`}
+          style={{ left: `${Math.min(Math.max(sel.x + sel.w / 2, 18), 82)}%`, top: sel.y < 12 ? `${sel.y + heightOf(sel.w)}%` : `${sel.y}%` }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button onClick={() => onLayout(restack(placed, selected, 'forward'))} disabled={selected === top} title="Bring forward  ]" aria-label="Bring forward">
+            <Icon name="forward" />
+          </button>
+          <button onClick={() => onLayout(restack(placed, selected, 'backward'))} disabled={selected === bottom} title="Send backward  [" aria-label="Send backward">
+            <Icon name="backward" />
+          </button>
+          <button onClick={() => change(selected, resizeAround(sel, trueWidth(st.wearableById(slots[selected])!.type)))} title="True-to-life size" aria-label="True-to-life size">
+            <Icon name="ruler" />
+          </button>
+          <button onClick={() => (onRemove(selected), setPicked(null))} title="Remove  Delete" aria-label="Remove from outfit">
+            <Icon name="trash" />
+          </button>
+        </div>
+      )}
+
+      {layout && !empty && (
+        <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onLayout(undefined), setPicked(null))} title="Put every piece back at its true size and spot">
+          Tidy up
+        </button>
+      )}
     </div>
   );
 }

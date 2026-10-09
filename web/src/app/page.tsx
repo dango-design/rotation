@@ -12,7 +12,7 @@ import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
 import { suggest } from '@/lib/today';
-import type { OutfitSlots } from '@/lib/types';
+import type { Layout, OutfitSlots } from '@/lib/types';
 import { skyWord } from '@/lib/weather';
 
 function greeting() {
@@ -20,7 +20,7 @@ function greeting() {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-type Planning = { day: string; mode: 'plan' | 'log'; slots?: OutfitSlots; name: string; offset: number };
+type Planning = { day: string; mode: 'plan' | 'log'; slots?: OutfitSlots; layout?: Layout; name: string; offset: number };
 
 /* Today is the day view and the week planner in one. The strip picks a day; a day with nothing planned
    asks for an outfit, which is built piece by piece with suggestions along the way. */
@@ -88,11 +88,11 @@ export default function Today() {
   // A full outfit Rotation could suggest, for "Surprise me". Planning itself only needs one piece.
   const idea = suggestFor(day, 0);
 
-  const startPlanning = (d: string, opts: { slots?: OutfitSlots; offset?: number; name?: string } = {}) => {
+  const startPlanning = (d: string, opts: { slots?: OutfitSlots; layout?: Layout; offset?: number; name?: string } = {}) => {
     setDay(d);
     setPicking(false);
     const label = d === today ? "Today's outfit" : `${fmt(d, { weekday: 'long' })}'s outfit`;
-    setPlanning({ day: d, mode: d < today ? 'log' : 'plan', slots: opts.slots, offset: opts.offset ?? 0, name: opts.name ?? label });
+    setPlanning({ day: d, mode: d < today ? 'log' : 'plan', slots: opts.slots, layout: opts.layout, offset: opts.offset ?? 0, name: opts.name ?? label });
   };
   const surpriseMe = () => {
     if (idea) startPlanning(day, { slots: idea.slots, offset: 1 });
@@ -102,14 +102,14 @@ export default function Today() {
     setPicking(false);
     if (planning && planning.day !== d) setPlanning(null);
   };
-  const finish = (name: string, s: OutfitSlots, logDay = day) => {
+  const finish = (name: string, s: OutfitSlots, layout?: Layout, logDay = day) => {
     setPlanning(null);
     setPicking(false);
     if (logDay < today) {
-      st.wear(s, logDay);
+      st.wear(s, logDay, layout);
       st.toast('Logged as worn');
     } else {
-      st.setPlan(logDay, { name, slots: s });
+      st.setPlan(logDay, { name, slots: s, ...(layout ? { layout } : {}) });
       st.toast(logDay === today ? 'Planned for today' : `Planned for ${fmt(logDay, { weekday: 'long' })}`);
     }
   };
@@ -168,6 +168,7 @@ export default function Today() {
             const w = st.wears.filter((x) => x.date === d).at(-1);
             const dwx = st.weather?.days.find((x) => x.date === d);
             const s = w?.slots ?? p?.slots;
+            const sl = w ? w.layout : p?.layout;
             const open = !s && d >= today;
             return (
               <button
@@ -191,7 +192,7 @@ export default function Today() {
                   )}
                 </span>
                 {s ? (
-                  <Flatlay slots={s} />
+                  <Flatlay slots={s} layout={sl} />
                 ) : (
                   <span className="strip-empty">
                     {open ? <Icon name="plus" /> : '–'}
@@ -212,16 +213,17 @@ export default function Today() {
             dayLabel={weekday}
             mode={planning.mode}
             initial={planning.slots}
+            initialLayout={planning.layout}
             initialName={planning.name}
             weather={wx ? { temp: wx.temp, word: wx.word } : undefined}
             surprise={(n, occasion) => suggestFor(day, n + planning.offset, occasion)?.slots ?? null}
-            onDone={(name, s) => finish(name, s)}
+            onDone={(name, s, layout) => finish(name, s, layout)}
             onCancel={() => setPlanning(null)}
           />
         ) : slots ? (
           <article className="card hero">
             <div className="hero-visual">
-              <Flatlay slots={slots} />
+              <Flatlay slots={slots} layout={worn ? worn.layout : plan?.layout} />
             </div>
             <div className="hero-body">
               <div>
@@ -246,13 +248,13 @@ export default function Today() {
                 ) : (
                   <>
                     {day <= today && (
-                      <button className="btn primary" onClick={() => (st.wear(slots, day), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn'))}>
+                      <button className="btn primary" onClick={() => (st.wear(slots, day, plan?.layout), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn'))}>
                         <Icon name="check" />
                         {isToday ? 'Wear this' : 'Wore it'}
                       </button>
                     )}
                     {!past && (
-                      <button className="btn" onClick={() => startPlanning(day, { slots: plan!.slots, name: plan!.name })}>
+                      <button className="btn" onClick={() => startPlanning(day, { slots: plan!.slots, layout: plan!.layout, name: plan!.name })}>
                         <Icon name="pencil" />
                         Change
                       </button>
@@ -372,8 +374,8 @@ export default function Today() {
               <p className="lede">{past ? 'Which of your saved outfits did you wear?' : 'Pick one of your saved outfits.'}</p>
               <div className="picker">
                 {st.outfits.map((o) => (
-                  <button key={o.id} onClick={() => finish(o.name, o.slots)}>
-                    <Flatlay slots={o.slots} />
+                  <button key={o.id} onClick={() => finish(o.name, o.slots, o.layout)}>
+                    <Flatlay slots={o.slots} layout={o.layout} />
                     {o.name}
                   </button>
                 ))}
