@@ -3,7 +3,7 @@
 import { garmentSvg } from '@/lib/garments';
 import { useStore } from '@/lib/store';
 import { resolveLayout, stackOrder } from '@/lib/layout';
-import type { Layout, OutfitSlots, Wearable } from '@/lib/types';
+import type { BoardBg, Layout, OutfitSlots, Wearable } from '@/lib/types';
 
 const ICONS: Record<string, string> = {
   today: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M5 5l1.4 1.4M17.6 17.6 19 19M2.5 12h2M19.5 12h2M5 19l1.4-1.4M17.6 6.4 19 5"/>',
@@ -97,6 +97,30 @@ export function Disclosure() {
         whether you already own something similar. Stores are listed by your favorites, then price. Products and prices shown are examples for now; when real
         store links arrive, any commission will be disclosed and will never change the ranking.
       </span>
+    </div>
+  );
+}
+
+const BOARD_BGS: [BoardBg, string][] = [
+  ['white', 'White'],
+  ['linen', 'Linen'],
+  ['mist', 'Mist'],
+  ['stone', 'Stone'],
+];
+
+/** Picks the background for every board and flat lay. The colors live in globals.css as --board-*. */
+export function BoardSwatches({ labels = false, className = '' }: { labels?: boolean; className?: string }) {
+  const { settings, updateSettings } = useStore();
+  const current = settings.board ?? 'linen';
+  return (
+    // Inside the canvas, keep clicks and keys from reaching it, so a swatch doesn't deselect or move a piece.
+    <div className={`swatches ${labels ? 'labeled' : ''} ${className}`} role="group" aria-label="Board background" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      {BOARD_BGS.map(([k, label]) => (
+        <button key={k} aria-pressed={current === k} aria-label={labels ? undefined : `${label} background`} title={labels ? undefined : label} onClick={() => updateSettings({ board: k })}>
+          <i style={{ background: `var(--board-${k})` }} />
+          {labels && label}
+        </button>
+      ))}
     </div>
   );
 }

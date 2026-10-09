@@ -103,6 +103,9 @@ export interface Piece extends Wearable {
   options: StoreOption[];
 }
 
+/** Background behind outfit boards and flat lays. All light neutrals, so they don't change how a piece's color reads. */
+export type BoardBg = 'white' | 'linen' | 'mist' | 'stone';
+
 export interface Settings {
   city: string;
   lat?: number;
@@ -110,6 +113,8 @@ export interface Settings {
   favoriteStores: string[];
   showShop: boolean;
   occasion: 'casual' | 'work' | 'dressy';
+  /** Unset means linen, the original board color. */
+  board?: BoardBg;
 }
 
 export interface ListEntry {

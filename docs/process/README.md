@@ -27,6 +27,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | [007](decisions/007-any-piece-is-an-outfit.md) | Any piece is an outfit, and finer categories | Oct 8, 2026 |
 | [008](decisions/008-outfit-canvas.md) | The outfit board is a canvas, at true-to-life sizes | Oct 8, 2026 |
 | [010](decisions/010-light-and-dark-mode.md) | Light and dark mode, with garments kept on a light backdrop | Oct 9, 2026 |
+| [011](decisions/011-neutral-board-backgrounds.md) | Board backgrounds are a few light neutrals, set once | Oct 9, 2026 |
 
 ## Capturing a milestone
 
