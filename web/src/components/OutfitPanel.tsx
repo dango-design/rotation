@@ -24,7 +24,8 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
   const verdict = check(pieces);
   const trial = pieces.filter((p) => !('wears' in p)) as Piece[];
   const dressOn = st.wearableById(slots.top)?.cat === 'dress';
-  const ready = complete && verdict.ok && trial.length === 0;
+  // Any owned piece can be saved, worn or planned; a piece you'd still have to buy can't.
+  const ready = pieces.length > 0 && trial.length === 0;
   const shop = st.settings.showShop ? forSlot(draft.focus, slots, st.items, st.catalog).shop : [];
 
   const remove = (slot: Slot) => {
@@ -56,22 +57,17 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string) => void; o
       <OutfitBoard slots={slots} focus={draft.focus} onFocus={focus} onRemove={remove} onDrop={onPut} />
 
       <div className="board-status">
-        {!complete ? (
-          <span className="verdict todo">
-            <Icon name="info" />
-            Add a top, bottom and shoes (or a dress and shoes)
-          </span>
-        ) : verdict.ok ? (
-          <span className="verdict ok">
-            <Icon name="check" />
-            These work together
-          </span>
-        ) : (
+        {!verdict.ok ? (
           <span className="verdict bad">
             <Icon name="alert" />
             {verdict.reason}
           </span>
-        )}
+        ) : complete ? (
+          <span className="verdict ok">
+            <Icon name="check" />
+            These work together
+          </span>
+        ) : null}
         {trial.length > 0 && (
           <span className="share-line">
             <Icon name="unlock" />

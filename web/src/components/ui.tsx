@@ -66,11 +66,11 @@ export function Tile({ w, className = '' }: { w?: Wearable & { imageId?: string;
 }
 
 // [left %, top %, width %]; pieces are square.
-export const LAYOUT: Record<Slot, [number, number, number]> = { outer: [1, 3, 49], top: [47, 1, 48], bottom: [46, 40, 51], shoes: [2, 58, 44], acc: [27, 41, 25] };
-const LAYOUT_BARE: Partial<Record<Slot, [number, number, number]>> = { top: [3, 3, 52], bottom: [44, 30, 53], shoes: [4, 57, 44], acc: [60, 2, 30] };
+export const LAYOUT: Record<Slot, [number, number, number]> = { outer: [1, 3, 49], top: [47, 1, 48], bottom: [46, 40, 51], shoes: [2, 58, 44], bag: [24, 42, 27], jewelry: [36, 80, 17], acc: [36, 0, 18] };
+const LAYOUT_BARE: Partial<Record<Slot, [number, number, number]>> = { top: [3, 3, 52], bottom: [44, 30, 53], shoes: [4, 57, 44], bag: [70, 70, 28], jewelry: [82, 4, 16], acc: [60, 2, 22] };
 const DRESS_TOP: [number, number, number] = [46, 4, 52];
 const DRESS_TOP_BARE: [number, number, number] = [30, 2, 58];
-const ORDER: Slot[] = ['outer', 'top', 'bottom', 'shoes', 'acc'];
+const ORDER: Slot[] = ['outer', 'top', 'bottom', 'shoes', 'bag', 'jewelry', 'acc'];
 
 export function Flatlay({ slots, className = '' }: { slots: OutfitSlots; className?: string }) {
   const { wearableById } = useStore();

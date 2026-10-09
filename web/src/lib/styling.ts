@@ -1,3 +1,4 @@
+import { isAccessory } from './catalog-meta';
 import { check, outfitsWith, slotOf } from './engine';
 import type { Item, OutfitSlots, Wearable } from './types';
 
@@ -11,7 +12,7 @@ export function bestOutfitWith(piece: Wearable, closet: Item[]): OutfitSlots {
     if (score > bestScore) [best, bestScore] = [o, score];
   }
   if (!best) return { [slotOf(piece)]: piece.id };
-  if (piece.cat !== 'outer' && piece.cat !== 'acc') {
+  if (piece.cat !== 'outer' && !isAccessory(piece.cat)) {
     const base = Object.values(best).map((id) => get(id!) ?? piece);
     const layer = closet.filter((l) => l.cat === 'outer' && check([...base, l]).ok).sort((a, b) => b.wears - a.wears)[0];
     if (layer) best = { outer: layer.id, ...best };

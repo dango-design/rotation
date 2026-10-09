@@ -6,12 +6,15 @@ import { fitsBoard, slotOf } from './engine';
 import { RANGE } from './today';
 import type { Item, OutfitSlots, Settings, Slot, Wearable } from './types';
 
-export const STEPS: { slot: Slot; label: string; optional?: boolean }[] = [
-  { slot: 'top', label: 'Top' },
-  { slot: 'bottom', label: 'Bottom' },
-  { slot: 'shoes', label: 'Shoes' },
-  { slot: 'outer', label: 'Layer', optional: true },
-  { slot: 'acc', label: 'Extra', optional: true },
+/** The order the planner walks through. Every step is a suggestion: any one piece is enough to plan or log a day. */
+export const STEPS: { slot: Slot; label: string; plural: string; optional?: boolean }[] = [
+  { slot: 'top', label: 'Top', plural: 'tops, dresses or jumpsuits' },
+  { slot: 'bottom', label: 'Bottom', plural: 'bottoms' },
+  { slot: 'shoes', label: 'Shoes', plural: 'shoes' },
+  { slot: 'outer', label: 'Layer', plural: 'layers', optional: true },
+  { slot: 'bag', label: 'Bag', plural: 'bags', optional: true },
+  { slot: 'jewelry', label: 'Jewelry', plural: 'jewelry', optional: true },
+  { slot: 'acc', label: 'Accessory', plural: 'accessories', optional: true },
 ];
 
 /** How well one piece suits the occasion: 2 at the occasion's own formality, 1 within a step of it, 0 otherwise. */
@@ -30,8 +33,8 @@ export interface StepPiece {
 }
 
 /** Pieces meant for the cold, and pieces meant for the heat. Everything else works most of the year. */
-const WARM = new Set(['sweater', 'hoodie', 'cardigan', 'coat', 'puffer', 'beanie']);
-const LIGHT = new Set(['linenshirt']);
+const WARM = new Set(['sweater', 'hoodie', 'cardigan', 'coat', 'puffer', 'beanie', 'scarf']);
+const LIGHT = new Set(['linenshirt', 'shorts']);
 
 /** How well one piece suits the day's temperature (°F): 1 a good match, 0 fine, -1 out of season. */
 export const weatherFit = (i: Wearable, temp?: number) => {

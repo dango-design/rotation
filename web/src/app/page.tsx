@@ -6,10 +6,9 @@ import { useMemo, useState } from 'react';
 import { DayPlanner } from '@/components/DayPlanner';
 import { useUI } from '@/components/Shell';
 import { Flatlay, Icon, money, Tile } from '@/components/ui';
-import { onePhrase, TYPES } from '@/lib/catalog-meta';
+import { isAccessory, onePhrase, TYPES } from '@/lib/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, todayISO, weekStart } from '@/lib/dates';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
-import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
 import { suggest } from '@/lib/today';
@@ -79,16 +78,15 @@ export default function Today() {
   const lead = st.settings.showShop ? picks[0] : undefined;
   const wx = wxFor(day);
   const redis = st.items
-    .filter((i) => i.cat !== 'acc' && (!i.lastWorn || daysBetween(i.lastWorn, today) > 30))
+    .filter((i) => !isAccessory(i.cat) && (!i.lastWorn || daysBetween(i.lastWorn, today) > 30))
     .sort((a, b) => (a.lastWorn ?? '').localeCompare(b.lastWorn ?? ''))
     .slice(0, 3);
   const thisWeek = weekStart(today);
   const weekLabel =
     start === thisWeek ? 'This week' : start === addDays(thisWeek, 7) ? 'Next week' : start === addDays(thisWeek, -7) ? 'Last week' : `Week of ${fmt(start, { month: 'short', day: 'numeric' })}`;
   const isPlanning = planning?.day === day;
-  // A complete outfit is possible at all (there is something to suggest).
+  // A full outfit Rotation could suggest, for "Surprise me". Planning itself only needs one piece.
   const idea = suggestFor(day, 0);
-  const canBuild = !!idea;
 
   const startPlanning = (d: string, opts: { slots?: OutfitSlots; offset?: number; name?: string } = {}) => {
     setDay(d);
@@ -176,7 +174,7 @@ export default function Today() {
                 key={d}
                 className={`strip-day ${d === day ? 'selected' : ''} ${d === today ? 'is-today' : ''} ${open ? 'open' : ''}`}
                 // An open day goes straight to planning; any other day is shown below.
-                onClick={() => (open && canBuild ? startPlanning(d) : pickDay(d))}
+                onClick={() => (open ? startPlanning(d) : pickDay(d))}
                 aria-pressed={d === day}
                 aria-label={`${fmt(d, { weekday: 'long', month: 'long', day: 'numeric' })}${w ? ', worn' : p ? `, ${p.name}` : open ? ', plan an outfit' : ''}`}
               >
@@ -267,7 +265,7 @@ export default function Today() {
               </div>
             </div>
           </article>
-        ) : canBuild ? (
+        ) : (
           <article className={`card plan-callout ${past ? 'is-past' : ''}`}>
             <div className="callout-body">
               <div className="eyebrow">{past ? `Nothing logged · ${dayName}` : `Nothing planned · ${dayName}`}</div>
@@ -294,7 +292,7 @@ export default function Today() {
                     Use a saved outfit
                   </button>
                 )}
-                {!past && (
+                {!past && idea && (
                   <button className="btn ghost" onClick={surpriseMe}>
                     <Icon name="shuffle" />
                     Surprise me
@@ -302,22 +300,6 @@ export default function Today() {
                 )}
               </div>
             </div>
-          </article>
-        ) : (
-          <article className="card empty">
-            <h2>Almost there</h2>
-            <p>
-              An outfit needs a top, a bottom and shoes (or a dress and shoes) that work together. You have{' '}
-              {[
-                plural(st.items.filter((i) => slotOf(i) === 'top').length, 'top'),
-                plural(st.items.filter((i) => slotOf(i) === 'bottom').length, 'bottom'),
-                plural(st.items.filter((i) => slotOf(i) === 'shoes').length, 'pair of shoes', 'pairs of shoes'),
-              ].join(', ')}.
-            </p>
-            <button className="btn primary" onClick={() => ui.open({ type: 'add' })}>
-              <Icon name="plus" />
-              Add a piece
-            </button>
           </article>
         )}
 
