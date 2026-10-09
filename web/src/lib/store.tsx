@@ -9,7 +9,7 @@ import { TYPES } from './catalog-meta';
 import * as store from './db';
 import { todayISO } from './dates';
 import { demoData } from './demo';
-import type { Item, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
+import type { Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
 import { forecast, geocode, skyWord, type Forecast } from './weather';
 
 export const DEFAULT_SETTINGS: Settings = { city: '', favoriteStores: [], showShop: true, occasion: 'work' };
@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = { city: '', favoriteStores: [], showSh
 interface Draft {
   name: string;
   slots: OutfitSlots;
+  layout?: Layout;
   focus: Slot;
   /** The day to plan it for, when it was started from a day on Today. */
   date?: string;
@@ -152,9 +153,9 @@ function useStoreValue() {
 
   /** Log an outfit as worn: adds a wear to every piece and records the day. */
   const wear = useCallback(
-    (slots: OutfitSlots, date = todayISO()) => {
+    (slots: OutfitSlots, date = todayISO(), layout?: Layout) => {
       const ids = Object.values(slots).filter(Boolean) as string[];
-      const entry: WearEntry = { id: uid(), date, slots };
+      const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}) };
       setS((p) => {
         const items = p.items.map((i) => (ids.includes(i.id) ? { ...i, wears: i.wears + 1, lastWorn: date } : i));
         persist(async () => {
@@ -168,8 +169,8 @@ function useStoreValue() {
   );
 
   const saveOutfit = useCallback(
-    (name: string, slots: OutfitSlots) => {
-      const o: Outfit = { id: uid(), name, slots, createdAt: new Date().toISOString() };
+    (name: string, slots: OutfitSlots, layout?: Layout) => {
+      const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), createdAt: new Date().toISOString() };
       setS((p) => ({ ...p, outfits: [...p.outfits, o] }));
       persist(() => store.putOutfit(o));
       return o;

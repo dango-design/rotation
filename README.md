@@ -27,7 +27,7 @@ Run the tests with `npm test` inside `web/`.
 ## What it does
 
 - **Today:** plan each day's outfit piece by piece from what you own. Each step suggests the pieces that go with what you've picked, suit a casual, work or dressy day and the live forecast for your city, and haven't been worn this week. Sort any step by least or most worn, recently added or name. Pick any day in the week strip to plan it or log what you wore; one piece is enough. Or tap Surprise me.
-- **Closet:** add pieces by photo (the background is removed on your device), product link, or description. Tops, dresses and jumpsuits, bottoms (including skirts and shorts), outerwear, shoes, bags, jewelry and accessories. Open the outfit board beside your closet to build and save outfits, with a live pairing check that fades pieces that don't go.
+- **Closet:** add pieces by photo (the background is removed on your device), product link, or description. Tops, dresses and jumpsuits, bottoms (including skirts and shorts), outerwear, shoes, bags, jewelry and accessories. Open the outfit board beside your closet to build and save outfits, with a live pairing check that fades pieces that don't go. The board works like a design canvas: drag, resize and layer pieces, which start at true-to-life sizes, and the arrangement is saved with the outfit.
 - **Fill the gap:** the pieces that would add the most new outfits, each with store options, your size at each store, and what wasn't recommended and why.
 - **Closet report:** outfits you can make, how much of your closet you wear, cost per wear, and where your clothes come from.
 - **Your data:** everything stays in your browser. Download a backup or delete everything in Settings.
