@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { DM_Sans, Instrument_Serif } from 'next/font/google';
 import { Shell } from '@/components/Shell';
 import { StoreProvider } from '@/lib/store';
+import { THEME_SCRIPT } from '@/lib/theme-script';
 import './globals.css';
 
 const sans = DM_Sans({ variable: '--font-sans', subsets: ['latin'] });
@@ -14,7 +15,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable}`}>
+    // The head script sets data-theme before React hydrates, hence suppressHydrationWarning.
+    <html lang="en" className={`${sans.variable} ${serif.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         {/* Shared definitions used by every garment illustration */}
         <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
