@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
+import { useThemeSync } from '@/lib/theme';
 import { AddItemDialog } from './AddItemDialog';
 import { CompareDrawer, ListDrawer } from './ShopDrawers';
 import { ItemDrawer } from './ItemDrawer';
@@ -26,6 +27,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const open = useCallback((o: Overlay) => setOverlay(o), []);
   const close = useCallback(() => setOverlay(null), []);
+  useThemeSync();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOverlay(null);
@@ -35,6 +37,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.body.style.overflow = overlay ? 'hidden' : '';
   }, [overlay]);
+  // On the root so drawers, which render outside .app, pick up the board background too.
+  useEffect(() => {
+    document.documentElement.dataset.board = st.settings.board ?? 'linen';
+  }, [st.settings.board]);
   // Close any open drawer or dialog when the page changes.
   const [prevPath, setPrevPath] = useState(pathname);
   if (pathname !== prevPath) {

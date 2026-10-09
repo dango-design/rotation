@@ -42,6 +42,8 @@ export interface Item {
   bought?: string;
   /** Key of the background-removed photo in the image store. */
   imageId?: string;
+  /** The photo's background is removed. Older link imports kept the store's photo on white. */
+  cutout?: boolean;
   /** Product image URL (link imports). */
   imageUrl?: string;
   link?: string;
@@ -103,6 +105,9 @@ export interface Piece extends Wearable {
   options: StoreOption[];
 }
 
+/** Background behind outfit boards and flat lays. All light neutrals, so they don't change how a piece's color reads. */
+export type BoardBg = 'white' | 'linen' | 'mist' | 'stone';
+
 export interface Settings {
   city: string;
   lat?: number;
@@ -110,6 +115,8 @@ export interface Settings {
   favoriteStores: string[];
   showShop: boolean;
   occasion: 'casual' | 'work' | 'dressy';
+  /** Unset means linen, the original board color. */
+  board?: BoardBg;
 }
 
 export interface ListEntry {
