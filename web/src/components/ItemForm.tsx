@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { CATS, KNOWN_STORES, SWATCHES, TYPES } from '@/lib/catalog-meta';
-import type { Cat, GarmentType, Item } from '@/lib/types';
+import type { GarmentType, Item } from '@/lib/types';
 import { Art, Icon } from './ui';
 
 export type ItemFields = Omit<Item, 'id' | 'createdAt' | 'wears'> & { wears?: number };
@@ -34,7 +34,6 @@ export function ItemForm({
   onCancel: () => void;
 }) {
   const [type, setType] = useState<GarmentType>(initial.type ?? 'tee');
-  const [cat, setCat] = useState<Cat>(initial.cat ?? TYPES[initial.type ?? 'tee'].cat);
   const [colorName, setColorName] = useState(initial.colorName ?? 'White');
   const [name, setName] = useState(initial.name ?? '');
   const [brand, setBrand] = useState(initial.brand ?? '');
@@ -46,13 +45,8 @@ export function ItemForm({
   const [fTouched, setFTouched] = useState(initial.f !== undefined);
 
   const swatch = SWATCHES.find((s) => s.name === colorName) ?? SWATCHES[0];
-  const typesInCat = useMemo(() => (Object.entries(TYPES) as [GarmentType, (typeof TYPES)[GarmentType]][]).filter(([, t]) => t.cat === cat), [cat]);
-
-  const pickCat = (c: Cat) => {
-    setCat(c);
-    const first = (Object.entries(TYPES) as [GarmentType, (typeof TYPES)[GarmentType]][]).find(([, t]) => t.cat === c)![0];
-    pickType(first);
-  };
+  // The category follows from the type, so one menu, grouped by category, picks both.
+  const cat = TYPES[type].cat;
   const pickType = (t: GarmentType) => {
     setType(t);
     if (!fTouched) setF(TYPES[t].f);
@@ -85,6 +79,7 @@ export function ItemForm({
 
   return (
     <form className="form" onSubmit={submit}>
+      {/* What the piece is sits beside its photo or drawing, so type and color can be checked against it. */}
       <div className={`preview-row ${previewUrl ? 'has-photo' : ''}`}>
         <div className="preview-col">
           <div className="tile">{previewUrl ? <img className={`photo ${initial.source === 'link' && !initial.cutout ? 'on-white' : ''}`} src={previewUrl} alt="" /> : <Art w={preview} />}</div>
@@ -95,9 +90,9 @@ export function ItemForm({
             </button>
           )}
         </div>
-        <div>
+        <div className="form-col">
           {aiTagged && (
-            <span className="chip ai-chip" style={{ marginBottom: 8 }}>
+            <span className="chip ai-chip">
               <Icon name="builder" />
               Suggested from the photo; check it
             </span>
@@ -106,67 +101,61 @@ export function ItemForm({
             <span>Name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${colorName} ${TYPES[type].label.toLowerCase()}`} />
           </label>
+          <div className="form-pair">
+            <label className="field">
+              <span>Type</span>
+              <select value={type} onChange={(e) => pickType(e.target.value as GarmentType)}>
+                {CATS.map((c) => (
+                  <optgroup key={c.id} label={c.label}>
+                    {(Object.entries(TYPES) as [GarmentType, (typeof TYPES)[GarmentType]][])
+                      .filter(([, t]) => t.cat === c.id)
+                      .map(([id, t]) => (
+                        <option key={id} value={id}>
+                          {t.label}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>How dressy</span>
+              <select
+                value={f}
+                onChange={(e) => {
+                  setF(Number(e.target.value));
+                  setFTouched(true);
+                }}
+              >
+                {FORMALITY.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="field">
+            <span>Color · {colorName}</span>
+            <div className="swatches">
+              {SWATCHES.map((s) => (
+                <button
+                  type="button"
+                  key={s.name}
+                  title={s.name}
+                  aria-label={s.name}
+                  aria-pressed={colorName === s.name}
+                  className={`swatch ${colorName === s.name ? 'on' : ''} ${s.pattern ? 'stripe' : ''}`}
+                  style={{ background: s.hex }}
+                  onClick={() => setColorName(s.name)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="field">
-        <span>Category</span>
-        <div className="seg" style={{ flexWrap: 'wrap', borderRadius: 14 }}>
-          {CATS.map((c) => (
-            <button type="button" key={c.id} className={cat === c.id ? 'active' : ''} onClick={() => pickCat(c.id)}>
-              {c.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid2">
-        <label className="field">
-          <span>Type</span>
-          <select value={type} onChange={(e) => pickType(e.target.value as GarmentType)}>
-            {typesInCat.map(([id, t]) => (
-              <option key={id} value={id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>How dressy</span>
-          <select
-            value={f}
-            onChange={(e) => {
-              setF(Number(e.target.value));
-              setFTouched(true);
-            }}
-          >
-            {FORMALITY.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="field">
-        <span>Color · {colorName}</span>
-        <div className="swatches">
-          {SWATCHES.map((s) => (
-            <button
-              type="button"
-              key={s.name}
-              title={s.name}
-              aria-label={s.name}
-              className={`swatch ${colorName === s.name ? 'on' : ''} ${s.pattern ? 'stripe' : ''}`}
-              style={{ background: s.hex }}
-              onClick={() => setColorName(s.name)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="grid2">
+      <div className="form-details">
         <label className="field">
           <span>Brand</span>
           <input value={brand} onChange={(e) => setBrand(e.target.value)} list="known-stores" placeholder="e.g. Uniqlo" />

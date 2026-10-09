@@ -601,16 +601,23 @@ a.nav-item { text-decoration: none; }
 .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line-2); padding: 0; }
 .swatch.on { box-shadow: 0 0 0 2px var(--ink); }
 .swatch.stripe { background: repeating-linear-gradient(0deg, #EFE9DC 0 4px, #25324B 4px 7px) !important; }
-.preview-row { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: center; }
+.preview-row { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; align-items: start; }
 .preview-row .tile { border-radius: 12px; }
 .preview-col { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .preview-col .tile { width: 100%; }
-/* A photo gets room to be checked: is it the right piece, and is all of it there? */
-.preview-row.has-photo { grid-template-columns: 220px 1fr; align-items: start; }
 .preview-row.has-photo .tile img.photo { width: 94%; height: 94%; }
-@media (max-width: 600px) {
-  .preview-row.has-photo { grid-template-columns: 1fr; }
-  .preview-row.has-photo .preview-col .tile { max-width: 300px; }
+/* Beside the photo: what the piece is. Under it: where it came from and what it cost. */
+.form-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.form-col .ai-chip { align-self: flex-start; }
+.form-pair { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 12px; }
+.form .swatches { gap: 6px; }
+.form-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+/* Laid out by the form's own width, since it also runs in the narrow edit panel. */
+.form { container-type: inline-size; }
+@container (max-width: 520px) {
+  .preview-row { grid-template-columns: 1fr; }
+  .preview-col .tile { max-width: 260px; }
+  .form-details { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 .processing { display: flex; gap: 10px; align-items: center; color: var(--ink-2); font-size: 13px; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--ink); animation: spin 0.8s linear infinite; }
