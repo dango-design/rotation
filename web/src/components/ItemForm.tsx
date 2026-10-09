@@ -20,6 +20,7 @@ export function ItemForm({
   previewUrl,
   aiTagged,
   submitLabel = 'Save',
+  onChangePhoto,
   onSubmit,
   onCancel,
 }: {
@@ -27,6 +28,8 @@ export function ItemForm({
   previewUrl?: string;
   aiTagged?: boolean;
   submitLabel?: string;
+  /** Offered under the photo when there are other photos or cutouts to choose from. */
+  onChangePhoto?: () => void;
   onSubmit: (f: ItemFields) => void;
   onCancel: () => void;
 }) {
@@ -82,8 +85,16 @@ export function ItemForm({
 
   return (
     <form className="form" onSubmit={submit}>
-      <div className="preview-row">
-        <div className="tile">{previewUrl ? <img className={`photo ${initial.source === 'link' && !initial.cutout ? 'on-white' : ''}`} src={previewUrl} alt="" /> : <Art w={preview} />}</div>
+      <div className={`preview-row ${previewUrl ? 'has-photo' : ''}`}>
+        <div className="preview-col">
+          <div className="tile">{previewUrl ? <img className={`photo ${initial.source === 'link' && !initial.cutout ? 'on-white' : ''}`} src={previewUrl} alt="" /> : <Art w={preview} />}</div>
+          {onChangePhoto && (
+            <button type="button" className="btn sm" onClick={onChangePhoto}>
+              <Icon name="camera" />
+              Change photo
+            </button>
+          )}
+        </div>
         <div>
           {aiTagged && (
             <span className="chip ai-chip" style={{ marginBottom: 8 }}>

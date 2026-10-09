@@ -84,16 +84,18 @@ export function ItemForm({
 
   return (
     <View style={{ gap: 18 }}>
-      <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-        <View style={{ width: 112 }}>
-          {previewUrl ? (
-            <View style={[styles.photo, initial.source === 'link' && { backgroundColor: C.white }]}>
-              <Image source={{ uri: previewUrl }} style={{ width: '100%', height: '100%' }} contentFit="contain" />
-            </View>
-          ) : (
-            <Tile w={preview} />
-          )}
+      {/* A photo gets the full width, so it's easy to check it's the right piece and all of it is there. */}
+      {previewUrl && (
+        <View style={[styles.photo, styles.photoBig, initial.source === 'link' && { backgroundColor: C.white }]}>
+          <Image source={{ uri: previewUrl }} style={{ width: '94%', height: '94%' }} contentFit="contain" />
         </View>
+      )}
+      <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+        {!previewUrl && (
+          <View style={{ width: 112 }}>
+            <Tile w={preview} />
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <Field label="Name">
             <TextInput value={name} onChangeText={setName} placeholder={fallbackName} placeholderTextColor={C.ink3} style={styles.input} />
@@ -200,6 +202,7 @@ function Field({ label, children, style }: { label: string; children: React.Reac
 
 const styles = StyleSheet.create({
   photo: { aspectRatio: 1, borderRadius: R.tile, backgroundColor: C.tile, overflow: 'hidden' },
+  photoBig: { width: '100%', maxWidth: 320, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', borderRadius: 16 },
   input: { height: 44, borderRadius: 12, borderWidth: 1, borderColor: C.line2, backgroundColor: C.panel, paddingHorizontal: 12, fontFamily: F.sans, fontSize: 15, color: C.ink },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   swatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(28,27,25,0.12)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
