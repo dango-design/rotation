@@ -29,7 +29,7 @@ Stories never touch your own closet or the network:
 - **The date** is Thursday, October 8, 2026 at 9am, so the week strip always has worn, empty and planned days, and the greeting says good morning. A story can set `parameters.now`.
 - **The weather** is a fixed San Francisco week: fog today, rain midweek.
 - **The server** (photo tagging and product links) is answered by `.storybook/api.ts`, as a server without an Anthropic key. A story can set `parameters.api`.
-- **Background removal** is replaced by a mock, so the photo flow runs without downloading the model.
+- **Finding pieces in photos** runs on mocks instead of the on-device models, so the photo and link flows run without downloading them. A story says what was found.
 
 ## For developers
 

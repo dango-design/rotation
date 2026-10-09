@@ -15,9 +15,11 @@ import { VIEWPORTS } from './modes';
 import { resetRouter, withAppRouter } from './router';
 import { theme } from './theme';
 
-/* Background removal downloads a model and runs it in WASM. Every export is replaced by a mock that does nothing;
-   stories that need a result set one with `mocked(removeBackground).mockResolvedValue(...)`. */
-sb.mock('../src/lib/bgremove.ts');
+/* Finding pieces in photos downloads two models and runs them in WASM. The models are replaced by mocks that do
+   nothing, and the find functions are spied on, so a story says what was "found" with
+   `mocked(findInPhoto).mockResolvedValue(...)`. */
+sb.mock('../src/lib/vision/models.ts');
+sb.mock('../src/lib/vision/find.ts', { spy: true });
 
 /* What the app's root layout does: fonts on <html>, and the shared garment <defs> once per page. */
 document.documentElement.classList.add(...fontVariables.split(' '));
