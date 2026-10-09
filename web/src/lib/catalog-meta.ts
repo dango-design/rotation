@@ -2,12 +2,17 @@ import type { Cat, Denim, GarmentType } from './types';
 
 export const CATS: { id: Cat; label: string; one: string }[] = [
   { id: 'top', label: 'Tops', one: 'top' },
-  { id: 'dress', label: 'Dresses', one: 'dress' },
+  { id: 'dress', label: 'Dresses & jumpsuits', one: 'dress or jumpsuit' },
   { id: 'bottom', label: 'Bottoms', one: 'bottom' },
   { id: 'outer', label: 'Outerwear', one: 'layer' },
   { id: 'shoes', label: 'Shoes', one: 'pair of shoes' },
+  { id: 'bag', label: 'Bags', one: 'bag' },
+  { id: 'jewelry', label: 'Jewelry', one: 'piece of jewelry' },
   { id: 'acc', label: 'Accessories', one: 'accessory' },
 ];
+
+/** Bags, jewelry and other accessories finish an outfit but never make one, and skip the formality check. */
+export const isAccessory = (cat: Cat) => cat === 'bag' || cat === 'jewelry' || cat === 'acc';
 
 /** Category, plural label and default formality (1 relaxed, 3 tailored) for each garment type. */
 export const TYPES: Record<GarmentType, { label: string; plural: string; cat: Cat; f: number }> = {
@@ -20,6 +25,9 @@ export const TYPES: Record<GarmentType, { label: string; plural: string; cat: Ca
   hoodie: { label: 'Hoodie or sweatshirt', plural: 'hoodies', cat: 'top', f: 1 },
   cardigan: { label: 'Cardigan', plural: 'cardigans', cat: 'top', f: 2 },
   dress: { label: 'Dress', plural: 'dresses', cat: 'dress', f: 2 },
+  shirtdress: { label: 'Shirt dress', plural: 'shirt dresses', cat: 'dress', f: 2 },
+  slipdress: { label: 'Slip dress', plural: 'slip dresses', cat: 'dress', f: 2.5 },
+  jumpsuit: { label: 'Jumpsuit or overalls', plural: 'jumpsuits', cat: 'dress', f: 1.5 },
   jeans: { label: 'Straight or slim jeans', plural: 'jeans', cat: 'bottom', f: 1.5 },
   loosejeans: { label: 'Loose or wide jeans', plural: 'loose jeans', cat: 'bottom', f: 1.5 },
   chinos: { label: 'Chinos', plural: 'chinos', cat: 'bottom', f: 2 },
@@ -27,6 +35,7 @@ export const TYPES: Record<GarmentType, { label: string; plural: string; cat: Ca
   widetrousers: { label: 'Wide-leg trousers', plural: 'wide-leg trousers', cat: 'bottom', f: 2.5 },
   joggers: { label: 'Joggers', plural: 'joggers', cat: 'bottom', f: 1 },
   skirt: { label: 'Skirt', plural: 'skirts', cat: 'bottom', f: 2 },
+  shorts: { label: 'Shorts', plural: 'shorts', cat: 'bottom', f: 1 },
   denimjacket: { label: 'Denim jacket', plural: 'denim jackets', cat: 'outer', f: 1.5 },
   chorejacket: { label: 'Chore or work jacket', plural: 'chore jackets', cat: 'outer', f: 2 },
   blazer: { label: 'Blazer', plural: 'blazers', cat: 'outer', f: 3 },
@@ -35,13 +44,24 @@ export const TYPES: Record<GarmentType, { label: string; plural: string; cat: Ca
   puffer: { label: 'Puffer', plural: 'puffers', cat: 'outer', f: 1 },
   sneakers: { label: 'Sneakers', plural: 'sneakers', cat: 'shoes', f: 1.5 },
   boots: { label: 'Boots', plural: 'boots', cat: 'shoes', f: 2 },
-  loafers: { label: 'Loafers or flats', plural: 'loafers', cat: 'shoes', f: 2.5 },
-  tote: { label: 'Bag', plural: 'bags', cat: 'acc', f: 1.5 },
+  loafers: { label: 'Loafers', plural: 'loafers', cat: 'shoes', f: 2.5 },
+  flats: { label: 'Flats', plural: 'flats', cat: 'shoes', f: 2 },
+  tote: { label: 'Tote or shoulder bag', plural: 'totes', cat: 'bag', f: 1.5 },
+  crossbody: { label: 'Crossbody bag', plural: 'crossbody bags', cat: 'bag', f: 2 },
+  backpack: { label: 'Backpack', plural: 'backpacks', cat: 'bag', f: 1 },
+  clutch: { label: 'Clutch or evening bag', plural: 'clutches', cat: 'bag', f: 3 },
+  necklace: { label: 'Necklace', plural: 'necklaces', cat: 'jewelry', f: 2 },
+  earrings: { label: 'Earrings', plural: 'earrings', cat: 'jewelry', f: 2 },
+  bracelet: { label: 'Bracelet', plural: 'bracelets', cat: 'jewelry', f: 2 },
+  watch: { label: 'Watch', plural: 'watches', cat: 'jewelry', f: 2 },
   cap: { label: 'Cap', plural: 'caps', cat: 'acc', f: 1 },
   beanie: { label: 'Beanie', plural: 'beanies', cat: 'acc', f: 1 },
+  scarf: { label: 'Scarf', plural: 'scarves', cat: 'acc', f: 2 },
+  belt: { label: 'Belt', plural: 'belts', cat: 'acc', f: 2 },
+  sunglasses: { label: 'Sunglasses', plural: 'sunglasses', cat: 'acc', f: 1.5 },
 };
 
-const PAIRS = new Set<GarmentType>(['jeans', 'loosejeans', 'chinos', 'trousers', 'widetrousers', 'joggers', 'sneakers', 'boots', 'loafers']);
+const PAIRS = new Set<GarmentType>(['jeans', 'loosejeans', 'chinos', 'trousers', 'widetrousers', 'joggers', 'shorts', 'sneakers', 'boots', 'loafers', 'flats', 'earrings', 'sunglasses']);
 
 /** "one pair of chinos", "one cardigan". */
 export const onePhrase = (t: GarmentType) => (PAIRS.has(t) ? `one pair of ${TYPES[t].plural.toLowerCase()}` : `one ${TYPES[t].label.toLowerCase()}`);
@@ -81,6 +101,8 @@ export const SWATCHES: Swatch[] = [
   { name: 'Pink', hex: '#E3A9B4', tone: 'pink' },
   { name: 'Lavender', hex: '#B3A6CF', tone: 'lavender' },
   { name: 'Cobalt', hex: '#2F55B5', tone: 'blue' },
+  { name: 'Gold', hex: '#C9A54A', tone: 'neutral' },
+  { name: 'Silver', hex: '#BFC3C7', tone: 'neutral' },
 ];
 
 const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));

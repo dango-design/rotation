@@ -3,6 +3,7 @@ import { GarmentDefs } from '@/components/GarmentDefs';
 import { Shell } from '@/components/Shell';
 import { fontVariables } from '@/lib/fonts';
 import { StoreProvider } from '@/lib/store';
+import { THEME_SCRIPT } from '@/lib/theme-script';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -12,7 +13,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={fontVariables}>
+    // The head script sets data-theme before React hydrates, hence suppressHydrationWarning.
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <GarmentDefs />
         <StoreProvider>

@@ -40,8 +40,8 @@ The Introduction page in Storybook explains how stories get their data and how t
 
 ## What it does
 
-- **Today:** an outfit for each day from what you own, set for a casual, work or dressy day, using the live forecast for your city. It favors pieces you haven't worn lately. Pick any day in the week strip to plan it or log what you wore.
-- **Closet:** add pieces by photo (the background is removed on your device), product link, or description. Tops, dresses, bottoms, outerwear, shoes and accessories. Open the outfit board beside your closet to build and save outfits, with a live pairing check that fades pieces that don't go.
+- **Today:** plan each day's outfit piece by piece from what you own. Each step suggests the pieces that go with what you've picked, suit a casual, work or dressy day and the live forecast for your city, and haven't been worn this week. Sort any step by least or most worn, recently added or name. Pick any day in the week strip to plan it or log what you wore; one piece is enough. Or tap Surprise me.
+- **Closet:** add pieces by photo (the background is removed on your device), product link, or description. Tops, dresses and jumpsuits, bottoms (including skirts and shorts), outerwear, shoes, bags, jewelry and accessories. Open the outfit board beside your closet to build and save outfits, with a live pairing check that fades pieces that don't go. The board works like a design canvas: drag, resize and layer pieces, which start at true-to-life sizes, and the arrangement is saved with the outfit.
 - **Fill the gap:** the pieces that would add the most new outfits, each with store options, your size at each store, and what wasn't recommended and why.
 - **Closet report:** outfits you can make, how much of your closet you wear, cost per wear, and where your clothes come from.
 - **Your data:** everything stays in your browser. Download a backup or delete everything in Settings.
@@ -55,7 +55,7 @@ The Introduction page in Storybook explains how stories get their data and how t
 3. Pieces are ranked by unlock × style fit × (1 − duplication). Exact duplicates of what you own are never suggested. Commission is not part of the ranking.
 4. Store options are listed by your favorite stores first, then price.
 
-With the demo closet (24 pieces from 15 stores), the engine finds 100 outfits, and light straight chinos would unlock 26 more. The tests in `web/src/lib/engine.test.ts` check these numbers.
+With the demo closet (30 pieces from 16 stores, dresses and a skirt alongside jeans and trousers), the engine finds 199 outfits, and light straight chinos would unlock 39 more. The tests in `web/src/lib/engine.test.ts` check these numbers.
 
 ## Project layout
 
