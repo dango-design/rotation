@@ -32,12 +32,12 @@ describe('pairing rules', () => {
   });
 });
 
-describe('Outfit Unlock on the demo closet (matches the prototype)', () => {
-  it('finds 100 outfits', () => {
-    expect(totalOutfits(items)).toBe(100);
+describe('Outfit Unlock on the demo closet', () => {
+  it('finds 199 outfits', () => {
+    expect(totalOutfits(items)).toBe(199);
   });
-  it('light straight chinos unlock 26 outfits', () => {
-    expect(unlock(pieceById('p-chino-khaki')!, items)).toBe(26);
+  it('light straight chinos unlock 39 outfits', () => {
+    expect(unlock(pieceById('p-chino-khaki')!, items)).toBe(39);
   });
   it('layers that add nothing score zero', () => {
     expect(unlock(pieceById('p-chore-olive')!, items)).toBe(0);
@@ -53,14 +53,16 @@ describe('Outfit Unlock on the demo closet (matches the prototype)', () => {
     expect(duplicate(pieceById('p-oxford-white')!, items).level).toBe(0.35);
   });
   it('explains a pick in plain words', () => {
-    expect(whyLine(pieceById('p-chino-khaki')!, items)).toBe("Pairs with 9 of your 9 tops and 3 of your 3 pairs of shoes. You don't own chinos yet.");
+    expect(whyLine(pieceById('p-chino-khaki')!, items)).toBe("Pairs with 10 of your 10 tops and 4 of your 4 pairs of shoes. You don't own chinos yet.");
   });
 });
 
 describe('dresses', () => {
   it('count as complete outfits with shoes', () => {
-    const dress: Item = { ...pieceById('p-dress-black')!, brand: 'Zara', source: 'manual', wears: 0, createdAt: '' };
-    expect(totalOutfits([...items, dress])).toBeGreaterThan(100);
+    expect(totalOutfits([byShort('d1'), byShort('s1')])).toBe(1);
+  });
+  it('add outfits to the demo closet', () => {
+    expect(totalOutfits(items)).toBeGreaterThan(totalOutfits(items.filter((i) => i.cat !== 'dress')));
   });
 });
 

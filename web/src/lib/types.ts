@@ -3,10 +3,11 @@ export type Cat = 'top' | 'dress' | 'bottom' | 'outer' | 'shoes' | 'bag' | 'jewe
 export type Slot = 'outer' | 'top' | 'bottom' | 'shoes' | 'bag' | 'jewelry' | 'acc';
 
 export type GarmentType =
-  | 'tee' | 'pockettee' | 'longsleeve' | 'sweater' | 'shirt' | 'linenshirt' | 'hoodie' | 'cardigan' | 'dress' | 'jumpsuit'
+  | 'tee' | 'pockettee' | 'longsleeve' | 'sweater' | 'shirt' | 'linenshirt' | 'hoodie' | 'cardigan'
+  | 'dress' | 'shirtdress' | 'slipdress' | 'jumpsuit'
   | 'denimjacket' | 'chorejacket' | 'blazer' | 'trench' | 'coat' | 'puffer'
   | 'jeans' | 'loosejeans' | 'chinos' | 'trousers' | 'widetrousers' | 'joggers' | 'skirt' | 'shorts'
-  | 'sneakers' | 'boots' | 'loafers'
+  | 'sneakers' | 'boots' | 'loafers' | 'flats'
   | 'tote' | 'crossbody' | 'backpack' | 'clutch'
   | 'necklace' | 'earrings' | 'bracelet' | 'watch'
   | 'cap' | 'beanie' | 'scarf' | 'belt' | 'sunglasses';

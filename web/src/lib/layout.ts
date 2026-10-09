@@ -9,10 +9,10 @@ import type { GarmentType, Layout, OutfitSlots, PieceLayout, Slot, Wearable } fr
 
 const BOX_CM: Record<GarmentType, number> = {
   tee: 100, pockettee: 100, longsleeve: 100, sweater: 100, shirt: 100, linenshirt: 100, hoodie: 104, cardigan: 100,
-  dress: 115, jumpsuit: 165,
+  dress: 115, shirtdress: 115, slipdress: 118, jumpsuit: 165,
   jeans: 125, loosejeans: 125, chinos: 125, trousers: 125, widetrousers: 125, joggers: 122, skirt: 75, shorts: 94,
   denimjacket: 105, chorejacket: 105, blazer: 103, trench: 134, coat: 125, puffer: 100,
-  sneakers: 38, boots: 42, loafers: 36,
+  sneakers: 38, boots: 42, loafers: 36, flats: 34,
   tote: 65, crossbody: 48, backpack: 60, clutch: 40,
   necklace: 36, earrings: 16, bracelet: 12, watch: 30,
   cap: 36, beanie: 46, scarf: 90, belt: 125, sunglasses: 16,

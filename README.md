@@ -41,7 +41,7 @@ Run the tests with `npm test` inside `web/`.
 3. Pieces are ranked by unlock × style fit × (1 − duplication). Exact duplicates of what you own are never suggested. Commission is not part of the ranking.
 4. Store options are listed by your favorite stores first, then price.
 
-With the demo closet (24 pieces from 15 stores), the engine finds 100 outfits, and light straight chinos would unlock 26 more. The tests in `web/src/lib/engine.test.ts` check these numbers.
+With the demo closet (30 pieces from 16 stores, dresses and a skirt alongside jeans and trousers), the engine finds 199 outfits, and light straight chinos would unlock 39 more. The tests in `web/src/lib/engine.test.ts` check these numbers.
 
 ## Project layout
 
