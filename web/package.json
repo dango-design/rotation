@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@supabase/supabase-js": "2.117.3",
     "idb": "^8.0.4",
     "next": "16.4.0",
     "onnxruntime-web": "^1.30.0",
@@ -35,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "eslint-plugin-storybook": "^10.6.1",
+    "fake-indexeddb": "6.2.5",
     "mockdate": "^3.0.5",
     "playwright": "^1.64.0",
     "storybook": "^10.6.1",
