@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store';
 import { resolveLayout, stackOrder } from '@/lib/layout';
 import type { BoardBg, Layout, OutfitSlots, Wearable } from '@/lib/types';
 
-const ICONS: Record<string, string> = {
+export const ICONS: Record<string, string> = {
   today: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M5 5l1.4 1.4M17.6 17.6 19 19M2.5 12h2M19.5 12h2M5 19l1.4-1.4M17.6 6.4 19 5"/>',
   closet: '<path d="M12 7.5a2 2 0 1 1 2-2c0 1-.8 1.5-1.5 1.9-.4.2-.5.5-.5.9V9"/><path d="M12 9 3.5 15.2c-.9.7-.4 1.8.6 1.8h15.8c1 0 1.5-1.1.6-1.8Z"/>',
   builder: '<path d="M11 3.5 12.6 8 17 9.5l-4.4 1.6L11 15.5l-1.6-4.4L5 9.5 9.4 8Z"/><path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z"/>',
@@ -110,13 +110,13 @@ const BOARD_BGS: [BoardBg, string][] = [
 
 /** Picks the background for every board and flat lay. The colors live in globals.css as --board-*. */
 export function BoardSwatches({ labels = false, className = '' }: { labels?: boolean; className?: string }) {
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, requireAccount } = useStore();
   const current = settings.board ?? 'linen';
   return (
     // Inside the canvas, keep clicks and keys from reaching it, so a swatch doesn't deselect or move a piece.
     <div className={`swatches ${labels ? 'labeled' : ''} ${className}`} role="group" aria-label="Board background" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       {BOARD_BGS.map(([k, label]) => (
-        <button key={k} aria-pressed={current === k} aria-label={labels ? undefined : `${label} background`} title={labels ? undefined : label} onClick={() => updateSettings({ board: k })}>
+        <button key={k} aria-pressed={current === k} aria-label={labels ? undefined : `${label} background`} title={labels ? undefined : label} onClick={() => requireAccount('save your settings', () => updateSettings({ board: k }))}>
           <i style={{ background: `var(--board-${k})` }} />
           {labels && label}
         </button>
@@ -126,20 +126,33 @@ export function BoardSwatches({ labels = false, className = '' }: { labels?: boo
 }
 
 export function ShopSwitch({ label = 'Show shopping suggestions' }: { label?: string }) {
-  const { settings, updateSettings, toast } = useStore();
+  const { settings, updateSettings, toast, requireAccount } = useStore();
   return (
     <button
       className="switch-row"
       aria-pressed={settings.showShop}
-      onClick={() => {
-        updateSettings({ showShop: !settings.showShop });
-        toast(settings.showShop ? 'Shopping suggestions hidden. Your closet still works the same.' : 'Shopping suggestions are on');
-      }}
+      onClick={() =>
+        requireAccount('save your settings', () => {
+          updateSettings({ showShop: !settings.showShop });
+          toast(settings.showShop ? 'Shopping suggestions hidden. Your closet still works the same.' : 'Shopping suggestions are on');
+        })
+      }
     >
       <span className={`switch ${settings.showShop ? 'on' : ''}`}>
         <span />
       </span>
       {label}
     </button>
+  );
+}
+
+/** The way into the demo closet from an empty one. Signed out, it's the way to build an outfit without an account, so it
+    opens the outfit board. A full page load: demo mode is chosen once, when the app starts. */
+export function DemoLink() {
+  const { needsAccount } = useStore();
+  return (
+    <a className="btn" href={needsAccount ? '/builder?demo' : '/?demo'}>
+      {needsAccount ? 'Build an outfit with a demo closet' : 'Explore a demo closet'}
+    </a>
   );
 }

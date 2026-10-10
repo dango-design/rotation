@@ -30,6 +30,8 @@ How this project got from idea to app, kept so every step can be referenced late
 | [010](decisions/010-light-and-dark-mode.md) | Light and dark mode, with garments kept on a light backdrop | Oct 9, 2026 |
 | [011](decisions/011-neutral-board-backgrounds.md) | Board backgrounds are a few light neutrals, set once | Oct 9, 2026 |
 | [012](decisions/012-find-the-right-piece.md) | Find the right piece in a photo or product page, and ask when unsure | Oct 9, 2026 |
+| [013](decisions/013-optional-accounts-and-sync.md) | Optional accounts that back up and sync the closet | Oct 9, 2026 |
+| [014](decisions/014-sign-in-to-save.md) | Build outfits without an account; sign in to build a closet and save | Oct 9, 2026 |
 
 ## Capturing a milestone
 

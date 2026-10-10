@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
 import { TYPES } from './catalog-meta';
@@ -9,7 +9,13 @@ import { RANGE } from './today';
 import { daysBetween } from './dates';
 import type { GarmentType, Item } from './types';
 
+/** The day the planning tests plan for. The demo closet dates its wears back from the clock, so it's built as of
+    this day too; otherwise which pieces count as worn this week would depend on the day the tests run. */
+const TODAY = '2026-10-07';
+vi.useFakeTimers({ toFake: ['Date'] });
+vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
 const { items } = demoData();
+vi.useRealTimers();
 const byShort = (s: string) => items.find((i) => i.id === `demo-${s}`)!;
 
 describe('pairing rules', () => {
@@ -82,7 +88,7 @@ describe('fitting pieces to the board', () => {
 
 describe('planning a day piece by piece', () => {
   const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
-  const opts = { occasion: 'work' as const, today: '2026-10-07' };
+  const opts = { occasion: 'work' as const, today: TODAY };
   it('suggests two pieces that work with the picks so far', () => {
     const slots = { top: byShort('t8').id };
     const rows = piecesFor('bottom', slots, items, byId, opts);
@@ -104,7 +110,7 @@ describe('planning a day piece by piece', () => {
 describe('the occasion shapes suggestions', () => {
   const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
   const top = (occasion: 'casual' | 'work' | 'dressy') =>
-    piecesFor('top', {}, items, byId, { occasion, today: '2026-10-07' }).filter((r) => r.suggested).map((r) => r.item.f);
+    piecesFor('top', {}, items, byId, { occasion, today: TODAY }).filter((r) => r.suggested).map((r) => r.item.f);
   it("suggests tops at the occasion's own formality", () => {
     for (const occasion of ['casual', 'work', 'dressy'] as const) {
       const [lo, hi] = RANGE[occasion];
@@ -119,7 +125,7 @@ describe('the occasion shapes suggestions', () => {
 describe('suggestions follow the season, not just the calendar', () => {
   const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
   const suggestedTops = (temp?: number) =>
-    piecesFor('top', {}, items, byId, { occasion: 'work', today: '2026-10-07', temp }).filter((r) => r.suggested).map((r) => r.item);
+    piecesFor('top', {}, items, byId, { occasion: 'work', today: TODAY, temp }).filter((r) => r.suggested).map((r) => r.item);
   it("doesn't push a sweater on a hot day just because it hasn't been worn", () => {
     expect(suggestedTops(84).some((i) => i.type === 'sweater')).toBe(false);
   });
@@ -127,7 +133,7 @@ describe('suggestions follow the season, not just the calendar', () => {
     expect(suggestedTops(48).some((i) => i.type === 'sweater')).toBe(true);
   });
   it("doesn't suggest a piece worn this week", () => {
-    expect(suggestedTops().every((i) => !i.lastWorn || daysBetween(i.lastWorn, '2026-10-07') >= 7)).toBe(true);
+    expect(suggestedTops().every((i) => !i.lastWorn || daysBetween(i.lastWorn, TODAY) >= 7)).toBe(true);
   });
 });
 

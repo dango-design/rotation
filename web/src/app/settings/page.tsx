@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { AccountSection } from '@/components/AccountSection';
 import { BoardSwatches, Icon, ShopSwitch } from '@/components/ui';
 import { KNOWN_STORES } from '@/lib/catalog-meta';
 import { todayISO } from '@/lib/dates';
@@ -29,10 +30,11 @@ export default function SettingsPage() {
       .catch(() => setAiEnabled(false));
   }, []);
 
-  const toggleStore = (s: string) => {
-    const fav = st.settings.favoriteStores;
-    st.updateSettings({ favoriteStores: fav.includes(s) ? fav.filter((x) => x !== s) : [...fav, s] });
-  };
+  const toggleStore = (s: string) =>
+    st.requireAccount('save your settings', () => {
+      const fav = st.settings.favoriteStores;
+      st.updateSettings({ favoriteStores: fav.includes(s) ? fav.filter((x) => x !== s) : [...fav, s] });
+    });
 
   const download = async () => {
     const json = await st.exportData();
@@ -52,17 +54,21 @@ export default function SettingsPage() {
         </div>
       </header>
 
+      <AccountSection />
+
       <section className="card settings-section">
         <h3>Weather</h3>
         <p>Your city sets layers and the forecast for each day on Today. Temperatures are in °F.</p>
         <form
           style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
             setCityError('');
-            const ok = await st.setCity(city);
-            if (!ok) setCityError("Couldn't find that city. Try adding the state or country.");
-            else st.toast(city ? 'City saved' : 'City cleared');
+            st.requireAccount('save your settings', async () => {
+              const ok = await st.setCity(city);
+              if (!ok) setCityError("Couldn't find that city. Try adding the state or country.");
+              else st.toast(city ? 'City saved' : 'City cleared');
+            });
           }}
         >
           <label className="field" style={{ minWidth: 260 }}>
@@ -123,14 +129,24 @@ export default function SettingsPage() {
         <p>
           {st.demo
             ? "You're in the demo closet; nothing here is saved."
+            : st.account
+            ? 'Your closet is saved in this browser and to your account. Download a copy to keep a backup of your own.'
+            : st.needsAccount
+            ? st.items.length
+              ? 'These pieces are only in this browser, and changes aren\'t saved until you sign in. Signing in adds them to your account.'
+              : 'Nothing is saved until you sign in. Once you have, you can also restore a closet from a backup file here.'
+            : st.accountsOn
+            ? 'Your closet is saved in this browser. Sign in again to sync it with your account, or download a copy to keep a backup of your own.'
             : 'Your closet lives only in this browser. Download a copy to back it up or move it to another device.'}
         </p>
         {!st.demo && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn" onClick={download}>
-              <Icon name="upload" />
-              Download my closet
-            </button>
+            {st.items.length > 0 && (
+              <button className="btn" onClick={download}>
+                <Icon name="upload" />
+                Download my closet
+              </button>
+            )}
             <input
               ref={fileRef}
               type="file"
@@ -147,12 +163,25 @@ export default function SettingsPage() {
                 }
               }}
             />
-            <button className="btn" onClick={() => fileRef.current?.click()}>
+            {/* Signed out, this only asks to sign in: a browser opens the file picker only straight from a click. */}
+            <button className="btn" onClick={() => (st.needsAccount ? st.requireAccount('restore your closet', () => {}) : fileRef.current?.click())}>
               Restore from a file
             </button>
-            {confirmReset ? (
-              <button className="btn" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }} onClick={async () => (await st.resetAll(), setConfirmReset(false), st.toast('Everything was deleted'))}>
-                Delete everything permanently
+            {st.needsAccount && !st.items.length ? null : confirmReset ? (
+              <button
+                className="btn"
+                style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}
+                onClick={async () => {
+                  try {
+                    await st.resetAll();
+                    st.toast('Everything was deleted');
+                  } catch {
+                    st.toast("Couldn't reach your account, so nothing was deleted. Try again when you're online.");
+                  }
+                  setConfirmReset(false);
+                }}
+              >
+                {st.account ? 'Delete everything here and in my account' : 'Delete everything permanently'}
               </button>
             ) : (
               <button className="btn ghost" onClick={() => setConfirmReset(true)}>
