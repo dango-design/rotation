@@ -80,7 +80,7 @@ function Planner({ seed }: { seed: PlanSeed }) {
 
   // The canvas takes what's left once the header, steps and tray have their room.
   const reserved = insets.top + insets.bottom + (mode === 'plan' ? 470 : 430);
-  const canvasW = Math.max(220, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
+  const canvasW = Math.max(150, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 

@@ -56,13 +56,15 @@ export type Wearable = Pick<Item, 'id' | 'name' | 'type' | 'cat' | 'color' | 'co
 export type OutfitSlots = Partial<Record<Slot, string>>;
 
 /** Where one piece sits on an outfit canvas, in % of the canvas width: left, top, width (pieces are square), stacking order.
-    `id` is the piece it was set for; a different piece in the slot keeps the spot but gets its own true size. */
+    `id` is the piece it was set for; a different piece in the slot keeps the spot but gets its own true size.
+    `v` is the canvas shape it was arranged on (see FRAME in layout.ts); without it, the original square canvas. */
 export interface PieceLayout {
   id: string;
   x: number;
   y: number;
   w: number;
   z: number;
+  v?: number;
 }
 
 /** A hand-arranged outfit. Slots without an entry are placed automatically. */

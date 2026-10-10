@@ -8,7 +8,7 @@ import { addDays, shortDate, todayISO } from '@/lib/dates';
 import { check, forSlot, isComplete, SLOTS } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
-import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
+import { ExportOutfit, OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
 import { Icon, money, ShopSwitch, Tile } from './ui';
 
@@ -92,6 +92,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
           <Icon name="check" />
           Wear today
         </button>
+        <ExportOutfit slots={slots} layout={draft.layout} name={draft.name} />
         <button className="btn ghost" onClick={() => setDraft({ name: 'New outfit', slots: {}, focus: 'top' })}>
           Clear
         </button>

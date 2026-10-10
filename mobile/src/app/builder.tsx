@@ -49,7 +49,7 @@ export default function Builder() {
   const shop = st.settings.showShop ? forSlot(draft.focus, slots, st.items, st.catalog).shop : [];
 
   const reserved = insets.top + insets.bottom + 430;
-  const canvasW = Math.max(220, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
+  const canvasW = Math.max(150, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/closet'));
   const put = (id: string, at?: { x: number; y: number }) => {

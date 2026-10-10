@@ -6,6 +6,7 @@
    and down the stack (with ⌘ or Ctrl, all the way), Delete removes it, Escape deselects. */
 
 import { useRef, useState } from 'react';
+import { deliverImage, renderOutfitImage } from '@/lib/export-image';
 import { ASPECT, clampW, heightOf, keepVisible, resizeAround, resolveLayout, restack, stackOrder, trueWidth } from '@/lib/layout';
 import { useStore } from '@/lib/store';
 import type { Layout, OutfitSlots, Piece, PieceLayout, Slot } from '@/lib/types';
@@ -193,5 +194,30 @@ export function OutfitBoard({
         )}
       </div>
     </div>
+  );
+}
+
+/** Saves the outfit as a phone-sized picture of the canvas, exactly as arranged. */
+export function ExportOutfit({ slots, layout, name, className = 'btn' }: { slots: OutfitSlots; layout?: Layout; name: string; className?: string }) {
+  const st = useStore();
+  const [busy, setBusy] = useState(false);
+  const empty = !Object.values(slots).some((id) => st.wearableById(id));
+  const go = async () => {
+    setBusy(true);
+    try {
+      const blob = await renderOutfitImage({ slots, layout, byId: st.wearableById, imageFor: st.imageFor, board: st.settings.board });
+      const how = await deliverImage(blob, name);
+      if (how === 'downloaded') st.toast('Image saved to your downloads');
+    } catch {
+      st.toast("Couldn't make the image. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button className={className} disabled={empty || busy} onClick={go} title="Save as an image sized for your phone">
+      <Icon name="upload" />
+      {busy ? 'Exporting…' : 'Export image'}
+    </button>
   );
 }

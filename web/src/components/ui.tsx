@@ -2,7 +2,7 @@
 
 import { garmentSvg } from '@/lib/garments';
 import { useStore } from '@/lib/store';
-import { resolveLayout, stackOrder } from '@/lib/layout';
+import { contentBox, resolveLayout, stackOrder } from '@/lib/layout';
 import type { BoardBg, Layout, OutfitSlots, Wearable } from '@/lib/types';
 
 export const ICONS: Record<string, string> = {
@@ -72,18 +72,23 @@ export function Tile({ w, className = '' }: { w?: Wearable & { imageId?: string;
 export function Flatlay({ slots, layout, className = '' }: { slots: OutfitSlots; layout?: Layout; className?: string }) {
   const { wearableById } = useStore();
   const placed = resolveLayout(slots, layout, wearableById);
+  const box = contentBox(placed);
+  // The frame's width: as wide as fits the pieces across, or down, whichever is tighter (see .flatlay-frame).
+  const frame = { '--f': `min(${10000 / box.w}cqw, ${10000 / box.h}cqh)`, '--cx': box.x + box.w / 2, '--cy': box.y + box.h / 2 } as React.CSSProperties;
   return (
     <div className={`flatlay ${className}`}>
-      {stackOrder(placed).map((s) => {
-        const w = wearableById(slots[s])!;
-        const p = placed[s]!;
-        const ghost = !('wears' in w);
-        return (
-          <div key={s} className={`piece ${ghost ? 'ghost' : ''}`} style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z, aspectRatio: '1' }}>
-            <Art w={w} />
-          </div>
-        );
-      })}
+      <div className="flatlay-frame" style={frame}>
+        {stackOrder(placed).map((s) => {
+          const w = wearableById(slots[s])!;
+          const p = placed[s]!;
+          const ghost = !('wears' in w);
+          return (
+            <div key={s} className={`piece ${ghost ? 'ghost' : ''}`} style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z, aspectRatio: '1' }}>
+              <Art w={w} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

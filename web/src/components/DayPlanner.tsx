@@ -8,7 +8,7 @@ import { SLOTS } from '@/lib/engine';
 import { nextStep, piecesFor, STEPS, type StepPiece } from '@/lib/planning';
 import { useStore } from '@/lib/store';
 import type { Layout, OutfitSlots, Settings, Slot } from '@/lib/types';
-import { OutfitBoard } from './OutfitBoard';
+import { ExportOutfit, OutfitBoard } from './OutfitBoard';
 import { Icon, Tile } from './ui';
 
 /** Ways to sort a step's pieces. Suggested keeps the planner's own order; the rest are plain sorts. */
@@ -201,6 +201,7 @@ export function DayPlanner({
           </button>
         )}
         <span className="spacer" />
+        <ExportOutfit slots={slots} layout={layout} name={name} className="btn ghost" />
         <button className="btn ghost" onClick={onCancel}>
           Cancel
         </button>
