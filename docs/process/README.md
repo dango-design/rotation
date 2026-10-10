@@ -32,6 +32,8 @@ How this project got from idea to app, kept so every step can be referenced late
 | [012](decisions/012-find-the-right-piece.md) | Find the right piece in a photo or product page, and ask when unsure | Oct 9, 2026 |
 | [013](decisions/013-optional-accounts-and-sync.md) | Optional accounts that back up and sync the closet | Oct 9, 2026 |
 | [014](decisions/014-sign-in-to-save.md) | Build outfits without an account; sign in to build a closet and save | Oct 9, 2026 |
+| [015](decisions/015-phone-shaped-canvas-and-export.md) | The outfit canvas is phone-shaped, and an outfit exports as a phone-sized image | Oct 10, 2026 |
+| [016](decisions/016-outfit-backgrounds.md) | Each outfit can have its own background, in any color | Oct 10, 2026 |
 
 ## Capturing a milestone
 

@@ -8,7 +8,7 @@ import { addDays, shortDate, todayISO } from '@/lib/dates';
 import { check, forSlot, isComplete, SLOTS } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
-import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
+import { ExportOutfit, OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
 import { Icon, money, ShopSwitch, Tile } from './ui';
 
@@ -56,7 +56,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
       <p className="panel-hint">Click or drag pieces from your closet onto the board. Faded pieces don&apos;t go with this outfit.</p>
 
-      <OutfitBoard slots={slots} layout={draft.layout} onLayout={(layout) => setDraft({ ...draft, layout })} onRemove={remove} onSelect={focus} onDrop={onPut} />
+      <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} />
 
       <div className="board-status">
         {!verdict.ok ? (
@@ -84,14 +84,15 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         <button
           className="btn primary"
           disabled={!ready}
-          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout), st.toast('Saved to your outfits')))}
+          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
         >
           Save outfit
         </button>
-        <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout), st.toast('Logged as worn today')))}>
+        <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout, draft.bg), st.toast('Logged as worn today')))}>
           <Icon name="check" />
           Wear today
         </button>
+        <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} />
         <button className="btn ghost" onClick={() => setDraft({ name: 'New outfit', slots: {}, focus: 'top' })}>
           Clear
         </button>
@@ -103,7 +104,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
           className="btn sm"
           disabled={!ready}
           onClick={() =>
-            st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout }), st.toast(`Planned for ${shortDate(planDate)}`)))
+            st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout, bg: draft.bg }), st.toast(`Planned for ${shortDate(planDate)}`)))
           }
         >
           <Icon name="planner" />

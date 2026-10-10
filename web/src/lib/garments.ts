@@ -606,7 +606,19 @@ const DRAW: Record<string, (c: Pal) => string> = {
   sunglasses,
 };
 
-/* pattern: 'stripe' renders a Breton stripe using the shared <pattern> in index.html */
+/** Definitions every garment references by id: a sheen and the Breton stripe. A page renders them once (GarmentDefs);
+    a garment drawn on its own carries a copy (standaloneGarmentSvg). */
+export const GARMENT_DEFS =
+  '<linearGradient id="g-sheen" x1="0" y1="0" x2="1" y2="1">' +
+  '<stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".1"/>' +
+  '</linearGradient>' +
+  '<pattern id="p-stripe" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#EFE9DC"/><rect y="7" width="12" height="4" fill="#25324B"/></pattern>';
+
+/** A garment as a self-contained SVG file at `size` pixels, for drawing outside the page (an exported image). */
+export const standaloneGarmentSvg = (type: string, color: string, pattern: string | undefined, size: number) =>
+  garmentSvg(type, color, pattern).replace('<svg ', `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" `).replace('aria-hidden="true">', `><defs>${GARMENT_DEFS}</defs>`);
+
+/* pattern: 'stripe' renders a Breton stripe using the shared <pattern> in GARMENT_DEFS */
 export function garmentSvg(type: string, color: string, pattern?: string): string {
   const c: Pal = palette(color);
   if (pattern === 'stripe') {

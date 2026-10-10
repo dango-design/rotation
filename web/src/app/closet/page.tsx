@@ -6,7 +6,7 @@ import { useUI } from '@/components/Shell';
 import { DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { CATS } from '@/lib/catalog-meta';
 import { cpw, fitsBoard, slotOf } from '@/lib/engine';
-import { heightOf, resolveLayout, trueWidth } from '@/lib/layout';
+import { dropAt, resolveLayout } from '@/lib/layout';
 import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { Cat, Item, Slot } from '@/lib/types';
@@ -57,9 +57,9 @@ export default function Closet() {
     let layout = draft.layout;
     if (at) {
       // Dropped onto the canvas: centre it where it landed, at true size, on top of everything.
-      const w = trueWidth(it.type);
-      const z = Math.max(-1, ...Object.values(resolveLayout(draft.slots, layout, st.wearableById)).map((p) => p!.z)) + 1;
-      layout = { ...resolveLayout(draft.slots, layout, st.wearableById), [slot]: { id, w, z, x: at.x - w / 2, y: at.y - heightOf(w) / 2 } };
+      const current = resolveLayout(draft.slots, layout, st.wearableById);
+      const z = Math.max(-1, ...Object.values(current).map((p) => p!.z)) + 1;
+      layout = { ...current, [slot]: dropAt(id, it.type, z, at) };
     }
     setDraft({ ...draft, slots: next, layout, focus: slot });
   };
@@ -206,10 +206,10 @@ export default function Closet() {
                 <article key={o.id} className="card saved-card">
                   <button
                     className="saved-open"
-                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, focus: 'top' }), setView('pieces'), setSortPick('fits'))}
+                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, bg: o.bg, focus: 'top' }), setView('pieces'), setSortPick('fits'))}
                     aria-label={`Open ${o.name} on the board`}
                   >
-                    <Flatlay slots={o.slots} layout={o.layout} />
+                    <Flatlay slots={o.slots} layout={o.layout} bg={o.bg} />
                   </button>
                   <div className="saved-meta">
                     <b>{o.name}</b>

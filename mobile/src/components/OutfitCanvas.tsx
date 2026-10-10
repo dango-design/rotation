@@ -12,7 +12,8 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValu
 import { scheduleOnRN } from 'react-native-worklets';
 import { lowestPrice } from '@core/catalog';
 import { ASPECT, MAX_W, MIN_W, resizeAround, resolveLayout, restack, stackOrder, trueWidth } from '@core/layout';
-import type { Layout, OutfitSlots, Piece, PieceLayout, Slot, Wearable } from '@core/types';
+import { hexOf } from '@core/backgrounds';
+import type { Background, Layout, OutfitSlots, Piece, PieceLayout, Slot, Wearable } from '@core/types';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/theme';
 import { Art, garmentShadow } from './Art';
@@ -41,6 +42,7 @@ const bump = () => {
 export function OutfitCanvas({
   slots,
   layout,
+  bg,
   width,
   onLayout,
   onRemove,
@@ -50,6 +52,8 @@ export function OutfitCanvas({
 }: {
   slots: OutfitSlots;
   layout?: Layout;
+  /** The outfit's own background, picked on the web; unset means the board's usual color. */
+  bg?: Background;
   width: number;
   onLayout: (layout: Layout | undefined) => void;
   onRemove: (slot: Slot) => void;
@@ -116,7 +120,7 @@ export function OutfitCanvas({
   return (
     <View style={{ width, gap: 10 }}>
       <GestureDetector gesture={pinch}>
-        <Animated.View ref={carry?.canvasRef} collapsable={false} style={[styles.board, { width, height }, carryOver]} accessibilityLabel="Outfit canvas">
+        <Animated.View ref={carry?.canvasRef} collapsable={false} style={[styles.board, { width, height }, bg ? { backgroundColor: hexOf(bg) } : null, carryOver]} accessibilityLabel="Outfit canvas">
           <GestureDetector gesture={deselect}>
             <View style={StyleSheet.absoluteFill}>
               {order.length === 0 && (

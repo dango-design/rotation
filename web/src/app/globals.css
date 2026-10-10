@@ -195,7 +195,10 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .tile.ghost { background: repeating-linear-gradient(-45deg, light-dark(#eaeff7, #d0d8e6) 0 8px, light-dark(#f1f4fa, #d8deea) 8px 16px); outline: 1.5px dashed var(--gap-solid); outline-offset: -1.5px; }
 
 /* Flat-lay composition */
-.flatlay { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: var(--radius-sm); overflow: hidden; }
+.flatlay { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: var(--radius-sm); overflow: hidden; container-type: size; }
+/* A flat lay zooms to its pieces, so an outfit reads at any size. The frame is the whole phone-shaped canvas, scaled to
+   --f wide and shifted so the pieces (centred at --cx, --cy, in % of the canvas width) sit in the middle. */
+.flatlay-frame { position: absolute; width: var(--f); aspect-ratio: 1320 / 2868; left: calc(50% - var(--cx) * var(--f) / 100); top: calc(50% - var(--cy) * var(--f) / 100); }
 .flatlay .piece { position: absolute; }
 .flatlay .piece .garment { width: 100%; height: 100%; filter: drop-shadow(0 8px 9px rgba(28, 27, 25, 0.14)); display: block; }
 .flatlay .piece.ghost .garment { filter: drop-shadow(0 0 0 transparent); opacity: 0.92; }
@@ -315,10 +318,15 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 
 /* ---------- Builder ---------- */
-.board { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: 18px; overflow: hidden; transition: box-shadow 0.15s; }
+.board { position: relative; aspect-ratio: 1320 / 2868; /* EXPORT_W / EXPORT_H in layout.ts: an iPhone screen */ background: var(--board); border-radius: 18px; overflow: hidden; transition: box-shadow 0.15s; }
 /* A white board needs an edge to stand apart from the white cards around it. */
-[data-board='white'] :is(.board, .flatlay, .hero-visual) { box-shadow: inset 0 0 0 1px var(--line); }
-[data-board='white'] .hero-visual .flatlay { box-shadow: none; }
+:is(.board, .flatlay, .hero-visual)[data-bg='white'] { box-shadow: inset 0 0 0 1px var(--line); }
+.hero-visual .flatlay[data-bg] { box-shadow: none; }
+/* On a dark background, the board's own words and outlines turn light. */
+.board[data-tone='dark'] .board-empty { color: rgba(255, 255, 255, 0.72); }
+/* Product photos on white are multiplied into a neutral board. On a color that would tint the piece, so they keep
+   their white, on a rounded card. */
+[data-bg='color'] img.photo.on-white { mix-blend-mode: normal; border-radius: 6px; }
 .board.drag-over { box-shadow: inset 0 0 0 3px var(--gap-solid); }
 .board-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--ink-3); font-size: 13px; }
 .trial-tag { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 11px; border-radius: 99px; background: var(--gap); color: #fff; font-size: 11.5px; font-weight: 600; box-shadow: 0 4px 12px rgba(30, 58, 110, 0.3); }
@@ -722,7 +730,7 @@ a.nav-item { text-decoration: none; }
 .panel-head .icon-btn svg { width: 16px; height: 16px; }
 .outfit-name { font: 30px/1.05 var(--serif); border: 0; background: transparent; padding: 0; width: 100%; color: inherit; }
 .panel-hint { font-size: 12.5px; color: var(--ink-3); }
-.outfit-panel .board { flex: none; border-radius: 14px; }
+.outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); align-self: center; }
 .outfit-panel .board-status { font-size: 12.5px; }
 .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .panel-plan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); }
@@ -736,11 +744,11 @@ a.nav-item { text-decoration: none; }
 @media (max-width: 1180px) {
   .closet-layout.building { grid-template-columns: minmax(0, 1fr); padding-bottom: 60vh; }
   .outfit-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 58vh; border-radius: 20px 20px 0 0; box-shadow: var(--shadow-lg); }
-  .outfit-panel .board { width: min(300px, 100%); margin: 0 auto; }
+  .outfit-panel .board { height: min(40vh, 400px); }
 }
 @media (max-width: 900px) {
   .outfit-panel { max-height: 52vh; padding: 14px 16px; gap: 10px; }
-  .outfit-panel .board { width: min(200px, 100%); }
+  .outfit-panel .board { height: min(34vh, 300px); }
   .outfit-panel .outfit-name { font-size: 24px; }
   .panel-hint { display: none; }
   .strip-days { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 104px; overflow-x: auto; padding: 3px 3px 8px; margin: 0 -3px; }
@@ -769,11 +777,11 @@ a.nav-item { text-decoration: none; }
 .planner-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .planner-head .eyebrow { color: var(--clay-ink); }
 .planner-head .outfit-name { font-size: 34px; }
-.planner-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; align-items: stretch; }
+.planner-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 26px; align-items: stretch; }
 .planner-board { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.planner-board .board { width: 100%; }
-/* The canvas sets the planner's height and the pieces scroll beside it, so the outfit is the biggest thing here and
-   reaches the bottom of the planner. Size containment keeps the pieces from stretching the row past the canvas. */
+.planner-board .board { height: min(72vh, 680px); }
+/* The phone-shaped canvas sets the planner's height and the pieces scroll beside it, so the outfit is the tallest thing
+   here and reaches the bottom of the planner. Size containment keeps the pieces from stretching the row past it. */
 .planner-steps { contain: size; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .planner-steps .step-grid { flex: 1; min-height: 0; margin-top: 0; overflow-y: auto; align-content: start; padding: 2px 6px 6px 2px; }
 .step-sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -805,7 +813,8 @@ a.nav-item { text-decoration: none; }
   .plan-callout { padding: 22px 20px; }
   .callout-body h2 { font-size: 34px; }
   .planner-body { grid-template-columns: 1fr; }
-  .planner-board .board { width: min(300px, 100%); margin: 0 auto; }
+  .planner-board { align-items: center; }
+  .planner-board .board { height: min(64vh, 560px); }
   /* Stacked, the pieces flow under the canvas instead of scrolling beside it. */
   .planner-steps { contain: none; }
   .planner-steps .step-grid { overflow: visible; }
@@ -844,7 +853,18 @@ a.nav-item { text-decoration: none; }
 /* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot. */
 .canvas-corner { position: absolute; right: 10px; bottom: 10px; z-index: 1000; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.15s; }
 .canvas-tidy { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); }
-.canvas-bg { height: 28px; padding: 0 2px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); }
+/* The outfit's background: a dot in the corner that opens the colors above it. */
+.bg-picker { position: relative; }
+.bg-current { width: 28px; height: 28px; padding: 0; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); display: grid; place-items: center; }
+.bg-current i, .bg-pop i { width: 16px; height: 16px; border-radius: 99px; box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18); }
+.bg-pop { position: absolute; right: 0; bottom: calc(100% + 8px); width: 190px; padding: 10px; border-radius: 12px; background: var(--panel); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 8px; animation: fade 0.12s ease; }
+.bg-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.bg-row button { aspect-ratio: 1; padding: 0; border: 0; border-radius: 99px; background: none; display: grid; place-items: center; }
+.bg-row i { width: 22px; height: 22px; }
+.bg-row button[aria-pressed='true'] i, .bg-any.on i { box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18), 0 0 0 2px var(--panel), 0 0 0 3.5px var(--ink); }
+.bg-any { position: relative; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px; border-top: 1px solid var(--line); padding-top: 8px; box-sizing: content-box; font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.bg-any i { background: conic-gradient(#e66, #ec6, #6c6, #6ce, #66e, #c6e, #e66); }
+.bg-any input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .canvas:hover .canvas-corner, .canvas:focus-within .canvas-corner { opacity: 1; }
 @media (hover: none) { .canvas-corner { opacity: 1; } }
 
