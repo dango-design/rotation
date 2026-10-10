@@ -116,10 +116,10 @@ function Planner({ seed }: { seed: PlanSeed }) {
   const done = () => {
     const n = name.trim() || 'Planned outfit';
     if (mode === 'log') {
-      st.wear(slots, date, layout);
+      st.wear(slots, date, layout, seed.bg);
       st.toast('Logged as worn');
     } else {
-      st.setPlan(date, { name: n, slots, ...(layout ? { layout } : {}) });
+      st.setPlan(date, { name: n, slots, ...(layout ? { layout } : {}), ...(seed.bg ? { bg: seed.bg } : {}) });
       st.toast(date === today ? 'Planned for today' : `Planned for ${fmt(date, { weekday: 'long' })}`);
     }
     st.setPlanSeed(null);
@@ -166,6 +166,7 @@ function Planner({ seed }: { seed: PlanSeed }) {
           <OutfitCanvas
             slots={slots}
             layout={layout}
+            bg={seed.bg}
             width={canvasW}
             onLayout={setLayout}
             onRemove={remove}

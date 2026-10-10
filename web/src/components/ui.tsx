@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { asHex, backgroundOf, hexOf, isDark, isNeutral, NEUTRALS, PALETTE } from '@/lib/backgrounds';
 import { garmentSvg } from '@/lib/garments';
 import { useStore } from '@/lib/store';
 import { contentBox, resolveLayout, stackOrder } from '@/lib/layout';
-import type { BoardBg, Layout, OutfitSlots, Wearable } from '@/lib/types';
+import type { Background, Layout, OutfitSlots, Wearable } from '@/lib/types';
 
 export const ICONS: Record<string, string> = {
   today: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M5 5l1.4 1.4M17.6 17.6 19 19M2.5 12h2M19.5 12h2M5 19l1.4-1.4M17.6 6.4 19 5"/>',
@@ -68,15 +70,29 @@ export function Tile({ w, className = '' }: { w?: Wearable & { imageId?: string;
   );
 }
 
-/** An outfit drawn as a flat lay, arranged as saved or at true-to-life sizes. */
-export function Flatlay({ slots, layout, className = '' }: { slots: OutfitSlots; layout?: Layout; className?: string }) {
+/** The background an outfit is drawn on: its own, or the default from Settings. */
+export function useBackground(bg?: Background) {
+  return backgroundOf(bg, useStore().settings.board);
+}
+
+/** Paints a board, flat lay or outfit card with a background. `data-bg` is the neutral's name, or "color" for any
+    other color; `data-tone` is "dark" when text and outlines on it should turn light. */
+export const boardProps = (bg: Background) => ({
+  style: { '--board': isNeutral(bg) ? `var(--board-${bg})` : bg } as React.CSSProperties,
+  'data-bg': isNeutral(bg) ? bg : 'color',
+  'data-tone': isDark(bg) ? 'dark' : undefined,
+});
+
+/** An outfit drawn as a flat lay, arranged as saved or at true-to-life sizes, on its background. */
+export function Flatlay({ slots, layout, bg, className = '' }: { slots: OutfitSlots; layout?: Layout; bg?: Background; className?: string }) {
   const { wearableById } = useStore();
+  const board = boardProps(useBackground(bg));
   const placed = resolveLayout(slots, layout, wearableById);
   const box = contentBox(placed);
   // The frame's width: as wide as fits the pieces across, or down, whichever is tighter (see .flatlay-frame).
   const frame = { '--f': `min(${10000 / box.w}cqw, ${10000 / box.h}cqh)`, '--cx': box.x + box.w / 2, '--cy': box.y + box.h / 2 } as React.CSSProperties;
   return (
-    <div className={`flatlay ${className}`}>
+    <div className={`flatlay ${className}`} {...board}>
       <div className="flatlay-frame" style={frame}>
         {stackOrder(placed).map((s) => {
           const w = wearableById(slots[s])!;
@@ -106,21 +122,51 @@ export function Disclosure() {
   );
 }
 
-const BOARD_BGS: [BoardBg, string][] = [
-  ['white', 'White'],
-  ['linen', 'Linen'],
-  ['mist', 'Mist'],
-  ['stone', 'Stone'],
-];
+/** Picks one outfit's background: a neutral, a color from the palette, or any color. Opens from a dot on the canvas. */
+export function BackgroundPicker({ value, onChange }: { value: Background; onChange: (bg: Background) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => ref.current?.contains(e.target as Node) || setOpen(false);
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [open]);
+  const custom = !isNeutral(value) && !PALETTE.some(([hex]) => hex === value);
+  const swatch = (bg: Background, label: string) => (
+    <button key={bg} aria-pressed={value === bg} aria-label={label} title={label} onClick={() => onChange(bg)}>
+      <i style={{ background: isNeutral(bg) ? `var(--board-${bg})` : bg }} />
+    </button>
+  );
+  return (
+    // Inside the canvas, keep clicks and keys from reaching it, so picking a color doesn't deselect or move a piece.
+    <div className="bg-picker" ref={ref} onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <button className="bg-current" aria-expanded={open} aria-label="Background color" title="Background color" onClick={() => setOpen(!open)}>
+        <i style={{ background: hexOf(value) }} />
+      </button>
+      {open && (
+        <div className="bg-pop" role="group" aria-label="Background color">
+          <div className="bg-row">{NEUTRALS.map(([k, label]) => swatch(k, label))}</div>
+          <div className="bg-row">{PALETTE.map(([hex, label]) => swatch(hex, label))}</div>
+          <label className={`bg-any ${custom ? 'on' : ''}`} title="Any color">
+            <input type="color" value={hexOf(value)} onChange={(e) => asHex(e.target.value) && onChange(asHex(e.target.value)!)} />
+            <i style={custom ? { background: value } : undefined} />
+            Any color
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
 
-/** Picks the background for every board and flat lay. The colors live in globals.css as --board-*. */
+/** Picks the default background, for outfits that don't have their own. The colors live in globals.css as --board-*. */
 export function BoardSwatches({ labels = false, className = '' }: { labels?: boolean; className?: string }) {
   const { settings, updateSettings, requireAccount } = useStore();
   const current = settings.board ?? 'linen';
   return (
     // Inside the canvas, keep clicks and keys from reaching it, so a swatch doesn't deselect or move a piece.
     <div className={`swatches ${labels ? 'labeled' : ''} ${className}`} role="group" aria-label="Board background" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      {BOARD_BGS.map(([k, label]) => (
+      {NEUTRALS.map(([k, label]) => (
         <button key={k} aria-pressed={current === k} aria-label={labels ? undefined : `${label} background`} title={labels ? undefined : label} onClick={() => requireAccount('save your settings', () => updateSettings({ board: k }))}>
           <i style={{ background: `var(--board-${k})` }} />
           {labels && label}

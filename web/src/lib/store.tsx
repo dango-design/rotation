@@ -15,7 +15,7 @@ import * as store from './db';
 import { todayISO } from './dates';
 import { demoData } from './demo';
 import { sync, type Row, type SyncResult } from './sync';
-import type { Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
+import type { Background, Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
 import { wornOn } from './wear';
 import { forecast, geocode, skyWord, type Forecast } from './weather';
 
@@ -25,6 +25,7 @@ export interface Draft {
   name: string;
   slots: OutfitSlots;
   layout?: Layout;
+  bg?: Background;
   focus: Slot;
   /** The day to plan it for, when it was started from a day on Today. */
   date?: string;
@@ -422,10 +423,10 @@ function useStoreValue(fixture?: Fixture) {
 
   /** Log an outfit as worn: adds a wear to every piece and records the day. */
   const wear = useCallback(
-    (slots: OutfitSlots, date = todayISO(), layout?: Layout) => {
+    (slots: OutfitSlots, date = todayISO(), layout?: Layout, bg?: Background) => {
       if (locked.current) return;
       const ids = Object.values(slots).filter(Boolean) as string[];
-      const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}) };
+      const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) };
       setS((p) => {
         const items = p.items.map((i) => (ids.includes(i.id) ? wornOn(i, date) : i));
         persist(async () => {
@@ -439,9 +440,9 @@ function useStoreValue(fixture?: Fixture) {
   );
 
   const saveOutfit = useCallback(
-    (name: string, slots: OutfitSlots, layout?: Layout) => {
+    (name: string, slots: OutfitSlots, layout?: Layout, bg?: Background) => {
       if (locked.current) return;
-      const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), createdAt: new Date().toISOString() };
+      const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}), createdAt: new Date().toISOString() };
       setS((p) => ({ ...p, outfits: [...p.outfits, o] }));
       persist(() => store.putOutfit(o));
       return o;

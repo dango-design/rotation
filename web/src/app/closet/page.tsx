@@ -206,10 +206,10 @@ export default function Closet() {
                 <article key={o.id} className="card saved-card">
                   <button
                     className="saved-open"
-                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, focus: 'top' }), setView('pieces'), setSortPick('fits'))}
+                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, bg: o.bg, focus: 'top' }), setView('pieces'), setSortPick('fits'))}
                     aria-label={`Open ${o.name} on the board`}
                   >
-                    <Flatlay slots={o.slots} layout={o.layout} />
+                    <Flatlay slots={o.slots} layout={o.layout} bg={o.bg} />
                   </button>
                   <div className="saved-meta">
                     <b>{o.name}</b>

@@ -6,7 +6,8 @@ import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'reac
 import { SvgXml } from 'react-native-svg';
 import { GARMENT_DEFS, garmentSvg } from '@core/garments';
 import { ASPECT, contentBox, resolveLayout, stackOrder } from '@core/layout';
-import type { Layout, OutfitSlots, Wearable } from '@core/types';
+import { hexOf } from '@core/backgrounds';
+import type { Background, Layout, OutfitSlots, Wearable } from '@core/types';
 import { useStore } from '@/lib/store';
 import { C, R } from '@/theme';
 
@@ -52,14 +53,27 @@ export function Tile({ w, size, style, bg = C.tile }: { w?: W; size?: number; st
  * It zooms to the pieces, so an outfit reads at any size: the frame is the whole phone-shaped canvas, scaled and
  * shifted so the pieces sit in the middle.
  */
-export function Flatlay({ slots, layout, style, bg = C.tile }: { slots: OutfitSlots; layout?: Layout; style?: StyleProp<ViewStyle>; bg?: string }) {
+export function Flatlay({
+  slots,
+  layout,
+  outfitBg,
+  style,
+  bg = C.tile,
+}: {
+  slots: OutfitSlots;
+  layout?: Layout;
+  /** The outfit's own background, picked on the web. It wins over `bg`. */
+  outfitBg?: Background;
+  style?: StyleProp<ViewStyle>;
+  bg?: string;
+}) {
   const { wearableById } = useStore();
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const placed = resolveLayout(slots, layout, wearableById);
   const box = contentBox(placed);
   const f = size ? Math.min((size.width * 100) / box.w, (size.height * 100) / box.h) : 0;
   return (
-    <View style={[styles.flatlay, { backgroundColor: bg }, style]} onLayout={(e) => setSize(e.nativeEvent.layout)}>
+    <View style={[styles.flatlay, { backgroundColor: outfitBg ? hexOf(outfitBg) : bg }, style]} onLayout={(e) => setSize(e.nativeEvent.layout)}>
       {size && (
         <View style={{ position: 'absolute', width: f, height: f * ASPECT, left: size.width / 2 - ((box.x + box.w / 2) * f) / 100, top: size.height / 2 - ((box.y + box.h / 2) * f) / 100 }}>
           {stackOrder(placed).map((s) => {

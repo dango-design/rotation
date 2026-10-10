@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { SLOTS } from '@/lib/engine';
 import { nextStep, piecesFor, STEPS, type StepPiece } from '@/lib/planning';
 import { useStore } from '@/lib/store';
-import type { Layout, OutfitSlots, Settings, Slot } from '@/lib/types';
+import type { Background, Layout, OutfitSlots, Settings, Slot } from '@/lib/types';
 import { ExportOutfit, OutfitBoard } from './OutfitBoard';
 import { Icon, Tile } from './ui';
 
@@ -32,6 +32,7 @@ export function DayPlanner({
   mode,
   initial,
   initialLayout,
+  initialBg,
   initialName,
   weather,
   surprise,
@@ -44,16 +45,18 @@ export function DayPlanner({
   mode: 'plan' | 'log';
   initial?: OutfitSlots;
   initialLayout?: Layout;
+  initialBg?: Background;
   initialName: string;
   weather?: { temp: number; word: string };
   /** A suggested outfit for the day, or null when there is none to offer. */
   surprise: (n: number, occasion: Settings['occasion']) => OutfitSlots | null;
-  onDone: (name: string, slots: OutfitSlots, layout?: Layout) => void;
+  onDone: (name: string, slots: OutfitSlots, layout?: Layout, bg?: Background) => void;
   onCancel: () => void;
 }) {
   const st = useStore();
   const [slots, setSlots] = useState<OutfitSlots>(initial ?? {});
   const [layout, setLayout] = useState<Layout | undefined>(initialLayout);
+  const [bg, setBg] = useState<Background | undefined>(initialBg);
   const [name, setName] = useState(initialName);
   const [step, setStep] = useState<Slot>(() => nextStep(initial ?? {}, st.wearableById) ?? 'top');
   const [surprises, setSurprises] = useState(0);
@@ -158,7 +161,7 @@ export function DayPlanner({
 
       <div className="planner-body">
         <div className="planner-board">
-          <OutfitBoard slots={slots} layout={layout} onLayout={setLayout} onRemove={remove} onSelect={setStep} />
+          <OutfitBoard slots={slots} layout={layout} bg={bg} onLayout={setLayout} onBg={setBg} onRemove={remove} onSelect={setStep} />
         </div>
 
         <div className="planner-steps">
@@ -201,11 +204,11 @@ export function DayPlanner({
           </button>
         )}
         <span className="spacer" />
-        <ExportOutfit slots={slots} layout={layout} name={name} className="btn ghost" />
+        <ExportOutfit slots={slots} layout={layout} bg={bg} name={name} className="btn ghost" />
         <button className="btn ghost" onClick={onCancel}>
           Cancel
         </button>
-        <button className="btn primary" disabled={!ready} onClick={() => onDone(name.trim() || 'Planned outfit', slots, layout)}>
+        <button className="btn primary" disabled={!ready} onClick={() => onDone(name.trim() || 'Planned outfit', slots, layout, bg)}>
           <Icon name={mode === 'log' ? 'check' : 'planner'} />
           {mode === 'log' ? 'Log as worn' : `Plan for ${dayLabel}`}
         </button>

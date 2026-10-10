@@ -30,4 +30,4 @@ The canvas from [008](008-outfit-canvas.md) was nearly square (1 : 1.02) and sho
 - The planner and the closet board are taller and narrower. On the web, the planner's canvas is sized by the window's height, and the pieces column beside it gets more room.
 - Each saved piece position now records the canvas shape it was arranged on (`v` in the layout), so old and new arrangements can be told apart.
 - The phone app shows the new canvas, but it can't export yet. That needs a native capture and save step (for example `react-native-view-shot` with `expo-media-library`), which is the next step.
-- [011](011-neutral-board-backgrounds.md) set aside colorful backgrounds until outfits could be shared. That time has come, but this change keeps the four neutrals. A per-outfit background, and a guide for the lock screen clock, are open questions.
+- [011](011-neutral-board-backgrounds.md) set aside colorful backgrounds until outfits could be shared. [016](016-outfit-backgrounds.md) adds them, per outfit. A guide for the lock screen clock is still an open question.

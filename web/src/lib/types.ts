@@ -70,11 +70,16 @@ export interface PieceLayout {
 /** A hand-arranged outfit. Slots without an entry are placed automatically. */
 export type Layout = Partial<Record<Slot, PieceLayout>>;
 
+/** What an outfit is drawn on: a light neutral, or any color as `#rrggbb` (see backgrounds.ts). */
+export type Background = BoardBg | `#${string}`;
+
 export interface Outfit {
   id: string;
   name: string;
   slots: OutfitSlots;
   layout?: Layout;
+  /** Unset means the default from Settings. */
+  bg?: Background;
   createdAt: string;
 }
 
@@ -84,6 +89,7 @@ export interface Plan {
   name: string;
   slots: OutfitSlots;
   layout?: Layout;
+  bg?: Background;
 }
 
 /** Outfits actually worn, one entry per wear. */
@@ -92,6 +98,7 @@ export interface WearEntry {
   date: string;
   slots: OutfitSlots;
   layout?: Layout;
+  bg?: Background;
 }
 
 export interface StoreOption {
@@ -117,7 +124,7 @@ export interface Settings {
   favoriteStores: string[];
   showShop: boolean;
   occasion: 'casual' | 'work' | 'dressy';
-  /** Unset means linen, the original board color. */
+  /** The background for outfits that don't have their own. Unset means linen, the original board color. */
   board?: BoardBg;
 }
 

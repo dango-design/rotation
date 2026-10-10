@@ -1,14 +1,12 @@
 /* An outfit as a phone-sized picture: the canvas drawn at EXPORT_W × EXPORT_H, exactly as arranged, on the board
    background. Runs in the browser. */
 
+import { hexOf, isNeutral } from './backgrounds';
 import { standaloneGarmentSvg } from './garments';
 import { EXPORT_H, EXPORT_W, resolveLayout, stackOrder } from './layout';
-import type { BoardBg, Layout, OutfitSlots, Wearable } from './types';
+import type { Background, Layout, OutfitSlots, Wearable } from './types';
 
 type Art = Wearable & { imageId?: string; source?: string; cutout?: boolean };
-
-/** The light board colors from globals.css (--board-*). An export is always light, like the board in dark mode. */
-const BOARD_HEX: Record<BoardBg, string> = { white: '#fbfbfa', linen: '#ece7df', mist: '#e9e9e7', stone: '#d9d8d5' };
 
 /** The on-screen canvas is about 300px wide; shadows scale up from there so the export looks the same. */
 const K = EXPORT_W / 300;
@@ -25,19 +23,20 @@ export async function renderOutfitImage({
   layout,
   byId,
   imageFor,
-  board = 'linen',
+  bg,
 }: {
   slots: OutfitSlots;
   layout?: Layout;
   byId: (id?: string) => Art | undefined;
   imageFor: (w: Art) => string | undefined;
-  board?: BoardBg;
+  /** Neutrals use their light value, like the board in dark mode. */
+  bg: Background;
 }): Promise<Blob> {
   const canvas = document.createElement('canvas');
   canvas.width = EXPORT_W;
   canvas.height = EXPORT_H;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = BOARD_HEX[board];
+  ctx.fillStyle = hexOf(bg);
   ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
 
   const placed = resolveLayout(slots, layout, byId);
@@ -48,8 +47,9 @@ export async function renderOutfitImage({
     const x = (p.x / 100) * EXPORT_W;
     const y = (p.y / 100) * EXPORT_H;
     const url = imageFor(w);
-    // Product photos keep their white background and are multiplied into the board, with no shadow, as on screen.
-    const onWhite = !!url && w.source === 'link' && !w.cutout;
+    // Product photos keep their white background and are multiplied into a neutral board, with no shadow, as on screen.
+    // On a color, multiplying would tint the piece, so they keep their white instead.
+    const onWhite = !!url && w.source === 'link' && !w.cutout && isNeutral(bg);
 
     ctx.save();
     if (onWhite) ctx.globalCompositeOperation = 'multiply';

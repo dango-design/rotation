@@ -3,7 +3,7 @@
 import { useRouter } from 'expo-router';
 import { fmt, todayISO } from '@core/dates';
 import { suggest } from '@core/today';
-import type { Layout, OutfitSlots, Settings } from '@core/types';
+import type { Background, Layout, OutfitSlots, Settings } from '@core/types';
 import { skyWord, type Sky } from '@core/weather';
 import { useStore } from './store';
 
@@ -24,9 +24,9 @@ export function useDays() {
   };
 
   /** Opens the day planner: logging for a past day, planning for today or later. */
-  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; offset?: number; name?: string } = {}) => {
+  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; offset?: number; name?: string } = {}) => {
     const label = day === today ? "Today's outfit" : `${fmt(day, { weekday: 'long' })}'s outfit`;
-    st.setPlanSeed({ day, mode: day < today ? 'log' : 'plan', slots: opts.slots, layout: opts.layout, offset: opts.offset ?? 0, name: opts.name ?? label });
+    st.setPlanSeed({ day, mode: day < today ? 'log' : 'plan', slots: opts.slots, layout: opts.layout, bg: opts.bg, offset: opts.offset ?? 0, name: opts.name ?? label });
     router.push('/plan');
   };
 

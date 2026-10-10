@@ -96,7 +96,10 @@ export default function SettingsPage() {
 
       <section className="card settings-section">
         <h3>Outfit boards</h3>
-        <p>The background behind your outfits. Each one is a quiet neutral, so it won&apos;t change how a color reads. Stone helps white pieces stand out.</p>
+        <p>
+          The background for outfits that don&apos;t have their own. Each one is a quiet neutral, so it won&apos;t change how a color reads. Stone helps white pieces stand out. To give one outfit
+          any color, use the dot in the corner of its canvas.
+        </p>
         <BoardSwatches labels />
       </section>
 

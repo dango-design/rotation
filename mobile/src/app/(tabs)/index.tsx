@@ -9,7 +9,8 @@ import { isAccessory, onePhrase, TYPES } from '@core/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, weekStart } from '@core/dates';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@core/engine';
 import { bestOutfitWith } from '@core/styling';
-import type { Layout, OutfitSlots } from '@core/types';
+import { hexOf } from '@core/backgrounds';
+import type { Background, Layout, OutfitSlots } from '@core/types';
 import { Flatlay, Tile } from '@/components/Art';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
@@ -66,6 +67,7 @@ export default function Today() {
   const past = day < today;
   const plan = st.plans.find((p) => p.date === day);
   const worn = st.wears.filter((w) => w.date === day).at(-1);
+  const heroBg = worn ? worn.bg : plan?.bg;
   const slots = worn?.slots ?? plan?.slots;
   const weekday = isToday ? 'today' : fmt(day, { weekday: 'long' });
   const dayName = isToday ? 'today' : fmt(day, { weekday: 'long', month: 'short', day: 'numeric' });
@@ -81,13 +83,13 @@ export default function Today() {
   const weekLabel =
     start === thisWeek ? 'This week' : start === addDays(thisWeek, 7) ? 'Next week' : start === addDays(thisWeek, -7) ? 'Last week' : `Week of ${fmt(start, { month: 'short', day: 'numeric' })}`;
 
-  const finish = (name: string, s: OutfitSlots, layout?: Layout) => {
+  const finish = (name: string, s: OutfitSlots, layout?: Layout, bg?: Background) => {
     setPicking(false);
     if (past) {
-      st.wear(s, day, layout);
+      st.wear(s, day, layout, bg);
       st.toast('Logged as worn');
     } else {
-      st.setPlan(day, { name, slots: s, ...(layout ? { layout } : {}) });
+      st.setPlan(day, { name, slots: s, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
       st.toast(isToday ? 'Planned for today' : `Planned for ${fmt(day, { weekday: 'long' })}`);
     }
   };
@@ -140,7 +142,7 @@ export default function Today() {
                   {dwx && <T v="tiny">{dwx.high}°</T>}
                 </View>
                 {s ? (
-                  <Flatlay slots={s} layout={w ? w.layout : p?.layout} style={{ aspectRatio: 1, borderRadius: 8 }} />
+                  <Flatlay slots={s} layout={w ? w.layout : p?.layout} outfitBg={w ? w.bg : p?.bg} style={{ aspectRatio: 1, borderRadius: 8 }} />
                 ) : (
                   <View style={[styles.dayEmpty, open && styles.dayOpen]}>{open ? <Icon name="plus" size={16} color={C.clay} /> : <T v="small">–</T>}</View>
                 )}
@@ -155,7 +157,7 @@ export default function Today() {
 
       {slots ? (
         <Card pad={0} style={{ overflow: 'hidden' }}>
-          <View style={{ backgroundColor: C.tile, padding: 10 }}>
+          <View style={{ backgroundColor: heroBg ? hexOf(heroBg) : C.tile, padding: 10 }}>
             <Flatlay slots={slots} layout={worn ? worn.layout : plan?.layout} bg="transparent" />
           </View>
           <View style={{ padding: 18, gap: 14 }}>
@@ -187,12 +189,12 @@ export default function Today() {
                       icon="check"
                       label={isToday ? 'Wear this' : 'Wore it'}
                       onPress={() => {
-                        st.wear(slots, day, plan?.layout);
+                        st.wear(slots, day, plan?.layout, plan?.bg);
                         st.toast(isToday ? 'Logged as worn today' : 'Logged as worn');
                       }}
                     />
                   )}
-                  {!past && <Btn icon="pencil" label="Change" onPress={() => startPlanning(day, { slots: plan!.slots, layout: plan!.layout, name: plan!.name })} />}
+                  {!past && <Btn icon="pencil" label="Change" onPress={() => startPlanning(day, { slots: plan!.slots, layout: plan!.layout, bg: plan!.bg, name: plan!.name })} />}
                   <Btn
                     kind="ghost"
                     label="Clear plan"
@@ -293,8 +295,8 @@ export default function Today() {
         </T>
         <View style={styles.picker}>
           {st.outfits.map((o) => (
-            <Pressable key={o.id} onPress={() => finish(o.name, o.slots, o.layout)} style={styles.pick} accessibilityRole="button" accessibilityLabel={o.name}>
-              <Flatlay slots={o.slots} layout={o.layout} />
+            <Pressable key={o.id} onPress={() => finish(o.name, o.slots, o.layout, o.bg)} style={styles.pick} accessibilityRole="button" accessibilityLabel={o.name}>
+              <Flatlay slots={o.slots} layout={o.layout} outfitBg={o.bg} />
               <T v="label" numberOfLines={1}>
                 {o.name}
               </T>

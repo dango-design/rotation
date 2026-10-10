@@ -65,7 +65,7 @@ export const Finishing: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Plan for today' }));
-    await expect(args.onDone).toHaveBeenCalledWith('Client presentation', expect.objectContaining({ top: id('t3'), shoes: id('s2') }), undefined);
+    await expect(args.onDone).toHaveBeenCalledWith('Client presentation', expect.objectContaining({ top: id('t3'), shoes: id('s2') }), undefined, undefined);
   },
 };
 

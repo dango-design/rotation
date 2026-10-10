@@ -9,9 +9,9 @@ import { useRef, useState } from 'react';
 import { deliverImage, renderOutfitImage } from '@/lib/export-image';
 import { ASPECT, clampW, heightOf, keepVisible, resizeAround, resolveLayout, restack, stackOrder, trueWidth } from '@/lib/layout';
 import { useStore } from '@/lib/store';
-import type { Layout, OutfitSlots, Piece, PieceLayout, Slot } from '@/lib/types';
+import type { Background, Layout, OutfitSlots, Piece, PieceLayout, Slot } from '@/lib/types';
 import { useUI } from './Shell';
-import { Art, BoardSwatches, Icon, money } from './ui';
+import { Art, BackgroundPicker, boardProps, Icon, money, useBackground } from './ui';
 
 export const SLOT_LABEL: Record<Slot, string> = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', bag: 'Bag', jewelry: 'Jewelry', acc: 'Accessory' };
 
@@ -21,14 +21,19 @@ const CORNERS: Exclude<Handle, 'move'>[] = ['nw', 'ne', 'sw', 'se'];
 export function OutfitBoard({
   slots,
   layout,
+  bg,
   onLayout,
+  onBg,
   onRemove,
   onSelect,
   onDrop,
 }: {
   slots: OutfitSlots;
   layout?: Layout;
+  /** This outfit's background; unset means the default from Settings. */
+  bg?: Background;
   onLayout: (layout: Layout | undefined) => void;
+  onBg: (bg: Background) => void;
   onRemove: (slot: Slot) => void;
   onSelect?: (slot: Slot) => void;
   /** A piece dragged in from the closet, with where it was dropped (in % of the canvas). */
@@ -41,6 +46,7 @@ export function OutfitBoard({
   const [live, setLive] = useState<Layout | null>(null);
   const [picked, setPicked] = useState<Slot | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const background = useBackground(bg);
 
   const placed = live ?? resolveLayout(slots, layout, st.wearableById);
   const order = stackOrder(placed);
@@ -114,6 +120,7 @@ export function OutfitBoard({
     <div
       ref={ref}
       className={`board canvas ${dragOver ? 'drag-over' : ''}`}
+      {...boardProps(background)}
       tabIndex={empty ? -1 : 0}
       aria-label="Outfit canvas. Select a piece, then use the arrow keys to move it."
       onKeyDown={onKey}
@@ -186,7 +193,7 @@ export function OutfitBoard({
       )}
 
       <div className="canvas-corner">
-        <BoardSwatches className="canvas-bg" />
+        <BackgroundPicker value={background} onChange={onBg} />
         {layout && !empty && (
           <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onLayout(undefined), setPicked(null))} title="Put every piece back at its true size and spot">
             Tidy up
@@ -198,14 +205,15 @@ export function OutfitBoard({
 }
 
 /** Saves the outfit as a phone-sized picture of the canvas, exactly as arranged. */
-export function ExportOutfit({ slots, layout, name, className = 'btn' }: { slots: OutfitSlots; layout?: Layout; name: string; className?: string }) {
+export function ExportOutfit({ slots, layout, bg, name, className = 'btn' }: { slots: OutfitSlots; layout?: Layout; bg?: Background; name: string; className?: string }) {
   const st = useStore();
+  const background = useBackground(bg);
   const [busy, setBusy] = useState(false);
   const empty = !Object.values(slots).some((id) => st.wearableById(id));
   const go = async () => {
     setBusy(true);
     try {
-      const blob = await renderOutfitImage({ slots, layout, byId: st.wearableById, imageFor: st.imageFor, board: st.settings.board });
+      const blob = await renderOutfitImage({ slots, layout, byId: st.wearableById, imageFor: st.imageFor, bg: background });
       const how = await deliverImage(blob, name);
       if (how === 'downloaded') st.toast('Image saved to your downloads');
     } catch {
