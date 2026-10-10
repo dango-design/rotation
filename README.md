@@ -16,11 +16,10 @@ npm run dev
 
 Then open http://localhost:3000. Open http://localhost:3000/?demo to explore Jordan's demo closet without saving anything.
 
-Optional: to have Claude suggest the type, color and name of each photo, set an Anthropic API key before starting:
+Optional settings go in `web/.env.local` (copy [`web/.env.example`](web/.env.example)):
 
-```bash
-echo "ANTHROPIC_API_KEY=your-key" > web/.env.local
-```
+- `ANTHROPIC_API_KEY` has Claude suggest the type, color and name of each photo.
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` turn on accounts, so people can sign in to back up and sync their closet. See [`supabase/README.md`](supabase/README.md).
 
 Run the tests with `npm test` inside `web/`.
 
@@ -56,7 +55,7 @@ The Introduction page in Storybook explains how stories get their data and how t
 - **Closet:** add pieces by photo, product link, or description. Rotation finds each piece in a photo and removes the background on your device; a photo of an outfit or a flat lay can add several pieces at once. For a product link it finds the product among the page's photos. When it can't tell which piece you mean, it shows what it found and asks. Tops, dresses and jumpsuits, bottoms (including skirts and shorts), outerwear, shoes, bags, jewelry and accessories. Open the outfit board beside your closet to build and save outfits, with a live pairing check that fades pieces that don't go. The board works like a design canvas: drag, resize and layer pieces, which start at true-to-life sizes, and the arrangement is saved with the outfit.
 - **Fill the gap:** the pieces that would add the most new outfits, each with store options, your size at each store, and what wasn't recommended and why.
 - **Closet report:** outfits you can make, how much of your closet you wear, cost per wear, and where your clothes come from.
-- **Your data:** everything stays in your browser. Download a backup or delete everything in Settings.
+- **Your account (optional):** sign in with a code sent by email to back up your closet and see it on your other devices. Without an account, everything stays in your browser. Download a backup or delete everything in Settings.
 
 ## How recommendations work
 
@@ -78,6 +77,8 @@ With the demo closet (30 pieces from 16 stores, dresses and a skirt alongside je
 | `web/src/lib/engine.ts` | Pairing rules and the Outfit Unlock score |
 | `web/src/lib/vision/` | On-device piece finding and background removal: the two models, the decision rules, and the cutouts |
 | `web/src/lib/product-page.ts` | Reads a product page: name, price, and the photos that show the product |
+| `web/src/lib/sync.ts`, `db.ts`, `account.ts` | Local-first sync: the closet on the device, its outbox of changes, and the account in Supabase |
+| `supabase/` | The database schema for accounts, applied by hand to a shared Supabase project |
 | `web/src/app/api/` | Server routes for photo tagging (Claude), reading product links, and passing store photos to the browser |
 | `web/src/stories/` | Storybook stories: foundations, components, patterns and pages, with their fixtures |
 | `web/.storybook/` | Storybook setup: fixed date, viewports and themes, Chromatic modes, stand-ins for the server and the on-device models |

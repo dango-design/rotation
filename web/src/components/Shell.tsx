@@ -16,6 +16,15 @@ type Overlay = { type: 'add' } | { type: 'item'; id: string } | { type: 'compare
 export const UICtx = createContext<{ open: (o: Overlay) => void; close: () => void } | null>(null);
 export const useUI = () => useContext(UICtx)!;
 
+/** Where the closet is saved, for the note under the navigation. */
+function savedWhere(st: ReturnType<typeof useStore>) {
+  if (st.demo) return { title: 'Demo closet', note: 'Changes are not saved' };
+  if (!st.account) return { title: 'Saved on this device', note: 'Nothing leaves your browser' };
+  if (st.syncState === 'offline') return { title: 'Offline', note: 'Saved on this device for now' };
+  if (st.syncState === 'error') return { title: 'Not synced yet', note: 'Saved on this device; trying again' };
+  return { title: 'Saved to your account', note: st.syncState === 'syncing' ? 'Syncing…' : 'On every device you sign in on' };
+}
+
 const NAV = [
   { path: '/', label: 'Today', icon: 'today' },
   { path: '/closet', label: 'Closet', icon: 'closet' },
@@ -24,6 +33,7 @@ const NAV = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const st = useStore();
+  const saved = savedWhere(st);
   const pathname = usePathname();
   const [overlay, setOverlay] = useState<Overlay>(null);
   const open = useCallback((o: Overlay) => setOverlay(o), []);
@@ -77,11 +87,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="side-foot">
             <div className="sync-status">
-              <span className="pulse" />
+              <span className={`pulse ${st.syncState === 'offline' || st.syncState === 'error' ? 'waiting' : ''}`} />
               <span>
-                <b>{st.demo ? 'Demo closet' : 'Saved on this device'}</b>
+                <b>{saved.title}</b>
                 <br />
-                {st.demo ? 'Changes are not saved' : 'Nothing leaves your browser'}
+                {saved.note}
               </span>
             </div>
             <button className="btn primary" onClick={() => open({ type: 'add' })}>

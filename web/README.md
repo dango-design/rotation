@@ -10,10 +10,12 @@ npm run lint
 npm run build
 ```
 
-Optional `.env.local`:
+Optional `.env.local` (copy `.env.example`):
 
 ```bash
-ANTHROPIC_API_KEY=your-key   # turns on photo tagging with Claude
+ANTHROPIC_API_KEY=your-key                       # turns on photo tagging with Claude
+NEXT_PUBLIC_SUPABASE_URL=https://….supabase.co   # these two turn on accounts and sync
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
 ```
 
 ## Storybook

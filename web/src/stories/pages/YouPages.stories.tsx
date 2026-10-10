@@ -46,6 +46,31 @@ export const Settings: Story = {
   },
 };
 
+/** Signing in: an email address first, then the code from the email. The pieces already here go up to the new account. */
+export const SettingsSignedOut: Story = {
+  ...Settings,
+  parameters: { ...Settings.parameters, store: () => demoCloset({ accountsOn: true }), chromatic: { modes: { phone: { disable: true }, tablet: { disable: true } } } },
+};
+
+/** Signed in and saved to the account. Signing out takes the closet off this browser. */
+export const SettingsSignedIn: Story = {
+  ...Settings,
+  parameters: {
+    ...Settings.parameters,
+    store: () => demoCloset({ account: { id: 'demo-account', email: 'jordan@example.com' } }),
+    chromatic: { modes: { phone: { disable: true }, tablet: { disable: true } } },
+  },
+};
+
+/** Signed in but offline: changes wait on the device, and the note under the navigation says so. */
+export const SettingsSignedInOffline: Story = {
+  ...SettingsSignedIn,
+  parameters: {
+    ...SettingsSignedIn.parameters,
+    store: () => demoCloset({ account: { id: 'demo-account', email: 'jordan@example.com' }, syncState: 'offline' }),
+  },
+};
+
 /** In the demo closet there's no data to download or delete. */
 export const SettingsInTheDemo: Story = {
   ...Settings,

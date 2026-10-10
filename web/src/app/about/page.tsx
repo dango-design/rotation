@@ -27,8 +27,9 @@ export default function About() {
         </p>
         <h2>Your data</h2>
         <p>
-          Your closet is stored only in this browser. Photo backgrounds are removed on your device. If photo tagging is on, a small copy of the photo is sent
-          to Claude to suggest the type and color, and is not stored. You can download or delete everything in Settings.
+          Your closet is stored in this browser. An account is optional: sign in and your pieces, outfits, plans and photos are also saved to your account,
+          so they follow you to your other devices, and only you can see them. Photo backgrounds are always removed on your device. If photo tagging is on,
+          a small copy of the photo is sent to Claude to suggest the type and color, and is not stored. You can download or delete everything in Settings.
         </p>
         <p>
           Rotation is an open, in-progress portfolio project.{' '}

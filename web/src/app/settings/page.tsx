@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { AccountSection } from '@/components/AccountSection';
 import { BoardSwatches, Icon, ShopSwitch } from '@/components/ui';
 import { KNOWN_STORES } from '@/lib/catalog-meta';
 import { todayISO } from '@/lib/dates';
@@ -51,6 +52,8 @@ export default function SettingsPage() {
           <h1>Make it yours</h1>
         </div>
       </header>
+
+      <AccountSection />
 
       <section className="card settings-section">
         <h3>Weather</h3>
@@ -123,6 +126,8 @@ export default function SettingsPage() {
         <p>
           {st.demo
             ? "You're in the demo closet; nothing here is saved."
+            : st.account
+            ? 'Your closet is saved in this browser and to your account. Download a copy to keep a backup of your own.'
             : 'Your closet lives only in this browser. Download a copy to back it up or move it to another device.'}
         </p>
         {!st.demo && (
@@ -151,8 +156,20 @@ export default function SettingsPage() {
               Restore from a file
             </button>
             {confirmReset ? (
-              <button className="btn" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }} onClick={async () => (await st.resetAll(), setConfirmReset(false), st.toast('Everything was deleted'))}>
-                Delete everything permanently
+              <button
+                className="btn"
+                style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}
+                onClick={async () => {
+                  try {
+                    await st.resetAll();
+                    st.toast('Everything was deleted');
+                  } catch {
+                    st.toast("Couldn't reach your account, so nothing was deleted. Try again when you're online.");
+                  }
+                  setConfirmReset(false);
+                }}
+              >
+                {st.account ? 'Delete everything here and in my account' : 'Delete everything permanently'}
               </button>
             ) : (
               <button className="btn ghost" onClick={() => setConfirmReset(true)}>

@@ -1,15 +1,19 @@
 'use client';
 
-/* App state. Real closets persist to IndexedDB on the device; `?demo` loads Jordan's demo closet
-   in memory only, so it can be explored and shared without touching anyone's data. A fixture (Storybook)
-   is also held in memory, with the weather given instead of fetched, so every render is repeatable. */
+/* App state. Real closets persist to IndexedDB on the device, and to the person's account when they
+   sign in (decision 013); `?demo` loads Jordan's demo closet in memory only, so it can be explored and
+   shared without touching anyone's data. A fixture (Storybook) is also held in memory, with the weather
+   given instead of fetched, so every render is repeatable. */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import * as cloud from './account';
+import type { Account } from './account';
 import { CATALOG } from './catalog';
 import { TYPES } from './catalog-meta';
 import * as store from './db';
 import { todayISO } from './dates';
 import { demoData } from './demo';
+import { sync, type Row, type SyncResult } from './sync';
 import type { Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
 import { wornOn } from './wear';
 import { forecast, geocode, skyWord, type Forecast } from './weather';
@@ -45,7 +49,15 @@ export interface Fixture extends Partial<Pick<State, 'demo' | 'items' | 'images'
   draft?: Draft;
   /** Open the outfit board beside the closet. */
   building?: boolean;
+  /** Show the sign-in form as if this build had accounts set up. Nothing is sent. */
+  accountsOn?: boolean;
+  /** Signed in, for showing the account screens. Nothing syncs. */
+  account?: Account;
+  syncState?: SyncState;
 }
+
+/** Where the closet stands with the account: off when no one is signed in. */
+export type SyncState = 'off' | 'syncing' | 'synced' | 'offline' | 'error';
 
 const EMPTY: State = { ready: false, demo: false, items: [], images: {}, outfits: [], plans: [], wears: [], settings: DEFAULT_SETTINGS, list: [] };
 
@@ -60,8 +72,62 @@ function migrate<T extends { slots: OutfitSlots }>(list: T[], items: Item[]): T[
   });
 }
 const withCats = (items: Item[]) => items.map((i) => (TYPES[i.type] && TYPES[i.type].cat !== i.cat ? { ...i, cat: TYPES[i.type].cat } : i));
+const byCreated = (items: Item[]) => [...items].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
-const uid = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()));
+/** The closet as saved on this device. */
+async function fromDevice(): Promise<State> {
+  const d = await store.loadAll();
+  const images: Record<string, string> = {};
+  d.images.forEach((blob, id) => (images[id] = URL.createObjectURL(blob)));
+  const items = byCreated(withCats(d.items));
+  return {
+    ready: true,
+    demo: false,
+    items,
+    images,
+    outfits: migrate(d.outfits, items),
+    plans: migrate(d.plans, items),
+    wears: migrate(d.wears, items),
+    settings: { ...DEFAULT_SETTINGS, ...d.settings },
+    list: d.list ?? [],
+  };
+}
+
+/** Replaces, adds or removes one record in a list, keeping the others in place. */
+function put<T>(list: T[], key: (t: T) => string, id: string, value: T | null): T[] {
+  const at = list.findIndex((x) => key(x) === id);
+  if (!value) return at < 0 ? list : list.filter((_, i) => i !== at);
+  return at < 0 ? [...list, value] : list.map((x, i) => (i === at ? value : x));
+}
+
+/** Folds changes from the account into the closet on screen. `photos` are object URLs for photos just downloaded. */
+function mergeRows(p: State, rows: Row[], photos: Record<string, string>, dropped: string[]): State {
+  if (!rows.length && !Object.keys(photos).length && !dropped.length) return p;
+  let { items, outfits, plans, wears, settings, list } = p;
+  for (const r of rows) {
+    const v = r.deleted ? null : r.data;
+    if (r.kind === 'item') items = put(items, (i) => i.id, r.id, v as Item | null);
+    else if (r.kind === 'outfit') outfits = put(outfits, (o) => o.id, r.id, v as Outfit | null);
+    else if (r.kind === 'plan') plans = put(plans, (x) => x.date, r.id, v as Plan | null);
+    else if (r.kind === 'wear') wears = put(wears, (w) => w.id, r.id, v as WearEntry | null);
+    else if (r.kind === 'settings') settings = { ...DEFAULT_SETTINGS, ...(v as Settings | null) };
+    else if (r.kind === 'list') list = (v as ListEntry[] | null) ?? [];
+  }
+  items = byCreated(withCats(items));
+  const images = { ...p.images, ...photos };
+  for (const id of dropped) {
+    if (images[id]) URL.revokeObjectURL(images[id]);
+    delete images[id];
+  }
+  return { ...p, items, images, outfits: migrate(outfits, items), plans: migrate(plans, items), wears: migrate(wears, items), settings, list };
+}
+
+/** How long after a change to sync, so a burst of edits goes up together. */
+const SYNC_DELAY = 1500;
+/** How often an open app checks the account for changes from other devices. */
+const SYNC_EVERY = 60_000;
+
+const uid =() => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
 function useStoreValue(fixture?: Fixture) {
   const [s, setS] = useState<State>(() =>
@@ -100,26 +166,139 @@ function useStoreValue(fixture?: Fixture) {
       });
       return;
     }
-    store
-      .loadAll()
-      .then((d) => {
-        const images: Record<string, string> = {};
-        d.images.forEach((blob, id) => (images[id] = URL.createObjectURL(blob)));
-        const items = withCats(d.items).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-        setS({
-          ready: true,
-          demo: false,
-          items,
-          images,
-          outfits: migrate(d.outfits, items),
-          plans: migrate(d.plans, items),
-          wears: migrate(d.wears, items),
-          settings: { ...DEFAULT_SETTINGS, ...d.settings },
-          list: d.list ?? [],
-        });
-      })
+    fromDevice()
+      .then(setS)
       .catch(() => setS({ ...EMPTY, ready: true }));
   }, [fixed]);
+
+  /* The account. `remote` is set while someone is signed in and this device's closet is theirs. */
+  const [accountsOn] = useState(() => fixture?.accountsOn ?? cloud.accountsOn);
+  const [account, setAccount] = useState<Account | null>(fixture?.account ?? null);
+  const [syncState, setSyncState] = useState<SyncState>(fixture?.syncState ?? (fixture?.account ? 'synced' : 'off'));
+  const remote = useRef<ReturnType<typeof cloud.remoteFor> | null>(null);
+  const accountId = useRef<string | null>(null);
+  const running = useRef<Promise<number> | null>(null);
+  const again = useRef(false);
+  const syncTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  /** Swaps the closet on screen for a new one, letting go of the old photos. */
+  const replace = useCallback((next: State) => {
+    setS((p) => {
+      Object.values(p.images).forEach((u) => URL.revokeObjectURL(u));
+      return next;
+    });
+  }, []);
+
+  /** Sends this device's changes and brings back the account's. Resolves to the number of changes still waiting. */
+  const runSync = useCallback((): Promise<number> => {
+    if (fixed) return Promise.resolve(0);
+    if (running.current) {
+      again.current = true;
+      return running.current;
+    }
+    const run = (async () => {
+      let left = (await store.local.changes()).length;
+      do {
+        again.current = false;
+        const r = remote.current;
+        if (!r) break;
+        if (!navigator.onLine) {
+          setSyncState('offline');
+          break;
+        }
+        setSyncState('syncing');
+        try {
+          const res: SyncResult = await sync(store.local, r);
+          if (remote.current !== r) break;
+          const urls = Object.fromEntries(Object.entries(res.photos).map(([id, b]) => [id, URL.createObjectURL(b)]));
+          setS((p) => mergeRows(p, res.rows, urls, res.droppedPhotos));
+          left = res.left;
+          setSyncState(left ? 'syncing' : 'synced');
+          again.current ||= left > 0;
+        } catch {
+          setSyncState(navigator.onLine ? 'error' : 'offline');
+          break;
+        }
+      } while (again.current);
+      return left;
+    })();
+    running.current = run;
+    return run.finally(() => (running.current = null));
+  }, [fixed]);
+
+  const scheduleSync = useCallback(() => {
+    if (!remote.current) return;
+    clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => void runSync(), SYNC_DELAY);
+  }, [runSync]);
+
+  // Follows sign-in and sign-out, here or in another tab.
+  const live = !fixed && s.ready && !s.demo;
+  useEffect(() => {
+    const sb = cloud.supabase();
+    if (!live || !sb) return;
+    let gone = false;
+
+    const start = async (a: Account) => {
+      if (remote.current && accountId.current === a.id) return;
+      const meta = await store.syncMeta();
+      if (gone) return;
+      if (meta.owner && meta.owner !== a.id) {
+        // Another account's closet was left on this device. It isn't this person's to see or upload.
+        await store.clearAll();
+        replace({ ...EMPTY, ready: true });
+      }
+      if (meta.owner !== a.id) {
+        // First sign-in on this device: add the closet already here to the account.
+        await store.queueEverything();
+        await store.setSyncMeta({ owner: a.id });
+      }
+      remote.current = cloud.remoteFor(sb, a.id);
+      accountId.current = a.id;
+      setAccount(a);
+      void runSync();
+    };
+
+    const stop = async () => {
+      if (!remote.current) return;
+      remote.current = null;
+      accountId.current = null;
+      setAccount(null);
+      setSyncState('off');
+      // Signing out in another tab empties the closet on this device; show what's left.
+      replace(await fromDevice());
+    };
+
+    // Supabase advises against awaiting its calls inside this callback, so the work runs just after.
+    const { data } = sb.auth.onAuthStateChange((_event, session) => {
+      const a = cloud.toAccount(session?.user);
+      setTimeout(() => void (gone ? undefined : a ? start(a) : stop()), 0);
+    });
+    return () => {
+      gone = true;
+      data.subscription.unsubscribe();
+    };
+  }, [live, runSync, replace]);
+
+  // While signed in: sync when the app comes back into view, gets focus or goes online, and every minute while it's open.
+  // Focus matters on its own: switching back to a window that stayed in view doesn't change its visibility.
+  useEffect(() => {
+    if (!account || fixed) return;
+    const nudge = () => document.visibilityState === 'visible' && void runSync();
+    const offline = () => setSyncState('offline');
+    const every = setInterval(nudge, SYNC_EVERY);
+    document.addEventListener('visibilitychange', nudge);
+    window.addEventListener('focus', nudge);
+    window.addEventListener('online', nudge);
+    window.addEventListener('offline', offline);
+    return () => {
+      clearInterval(every);
+      document.removeEventListener('visibilitychange', nudge);
+      window.removeEventListener('focus', nudge);
+      window.removeEventListener('online', nudge);
+      window.removeEventListener('offline', offline);
+    };
+  }, [account, fixed, runSync]);
 
   // Weather for the saved city; a forecast for an old city is ignored.
   const { lat, lon } = s.settings;
@@ -133,7 +312,7 @@ function useStoreValue(fixture?: Fixture) {
   }, [placeKey, fixed]);
   const weather = fixed ? fixed.weather : placeKey && forecastFor?.key === placeKey ? forecastFor.data : null;
 
-  const persist = useCallback(<T,>(fn: () => Promise<T>) => (s.demo || fixed ? undefined : void fn().catch(() => {})), [s.demo, fixed]);
+  const persist = useCallback(<T,>(fn: () => Promise<T>) => (s.demo || fixed ? undefined : void fn().then(scheduleSync, () => {})), [s.demo, fixed, scheduleSync]);
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
@@ -261,11 +440,15 @@ function useStoreValue(fixture?: Fixture) {
   const addToList = useCallback((key: string) => setList((l) => (l.some((e) => e.key === key) ? l : [...l, { key, addedAt: new Date().toISOString() }])), [setList]);
   const removeFromList = useCallback((key: string) => setList((l) => l.filter((e) => e.key !== key)), [setList]);
 
+  /** Deletes the closet from this device and, when signed in, from the account too. The person stays signed in. */
   const resetAll = useCallback(async () => {
+    const r = remote.current;
+    if (r) await r.wipe();
+    const { owner } = await store.syncMeta();
     await store.clearAll();
-    Object.values(s.images).forEach((u) => URL.revokeObjectURL(u));
-    setS({ ...EMPTY, ready: true });
-  }, [s.images]);
+    if (r) await store.setSyncMeta({ owner });
+    replace({ ...EMPTY, ready: true });
+  }, [replace]);
 
   /** Everything, images included, as one JSON file the person keeps. */
   const exportData = useCallback(async () => {
@@ -287,7 +470,10 @@ function useStoreValue(fixture?: Fixture) {
   const importData = useCallback(async (json: string) => {
     const d = JSON.parse(json);
     if (d.app !== 'rotation') throw new Error('Not a Rotation export');
+    // Signed in, the file's closet goes up to the account, and anything only in the account comes back down.
+    const { owner } = await store.syncMeta();
     await store.clearAll();
+    if (remote.current) await store.setSyncMeta({ owner });
     const images: Record<string, string> = {};
     for (const [id, dataUrl] of Object.entries(d.images ?? {}) as [string, string][]) {
       const blob = await (await fetch(dataUrl)).blob();
@@ -303,8 +489,34 @@ function useStoreValue(fixture?: Fixture) {
       store.putList(d.list ?? []),
     ]);
     const items = withCats(d.items);
-    setS({ ready: true, demo: false, items, images, outfits: migrate(d.outfits ?? [], items), plans: migrate(d.plans ?? [], items), wears: migrate(d.wears ?? [], items), settings: { ...DEFAULT_SETTINGS, ...d.settings }, list: d.list ?? [] });
-  }, []);
+    replace({ ready: true, demo: false, items, images, outfits: migrate(d.outfits ?? [], items), plans: migrate(d.plans ?? [], items), wears: migrate(d.wears ?? [], items), settings: { ...DEFAULT_SETTINGS, ...d.settings }, list: d.list ?? [] });
+    scheduleSync();
+  }, [replace, scheduleSync]);
+
+  // A fixture sends nothing, so the sign-in steps can be clicked through in Storybook.
+  const sendCode = useCallback((email: string) => (fixed ? Promise.resolve() : cloud.sendCode(email)), [fixed]);
+  const verifyCode = useCallback((email: string, code: string) => (fixed ? Promise.resolve(null) : cloud.verifyCode(email, code)), [fixed]);
+
+  /** Signs out here and takes the closet off this device; it stays in the account. When some changes haven't
+      reached the account (offline, say), resolves to how many without signing out, unless `anyway`. */
+  const signOut = useCallback(
+    async (anyway = false) => {
+      if (fixed) return setAccount(null), setSyncState('off'), 0;
+      const left = await runSync();
+      if (left && !anyway) return left;
+      clearTimeout(syncTimer.current);
+      remote.current = null;
+      accountId.current = null;
+      await store.clearAll();
+      replace({ ...EMPTY, ready: true });
+      setAccount(null);
+      setSyncState('off');
+      // The session is forgotten here even when the server can't be reached.
+      await cloud.signOut().catch(() => {});
+      return 0;
+    },
+    [fixed, runSync, replace],
+  );
 
   /** Keeps demo mode on while moving around the app. */
   const href = useCallback((path: string) => (s.demo ? `${path}${path.includes('?') ? '&' : '?'}demo` : path), [s.demo]);
@@ -343,8 +555,16 @@ function useStoreValue(fixture?: Fixture) {
       resetAll,
       exportData,
       importData,
+      /** This build can sign people in. */
+      accountsOn,
+      account,
+      syncState,
+      sendCode,
+      verifyCode,
+      signOut,
+      syncNow: runSync,
     }),
-    [s, weather, draft, building, build, toastMsg, toast, itemById, wearableById, imageFor, href, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData],
+    [s, weather, draft, building, build, toastMsg, toast, itemById, wearableById, imageFor, href, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData, accountsOn, account, syncState, sendCode, verifyCode, signOut, runSync],
   );
 }
 
