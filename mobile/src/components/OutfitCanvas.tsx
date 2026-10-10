@@ -107,7 +107,11 @@ export function OutfitCanvas({
     scheduleOnRN(setPicked, null);
   });
 
-  const carryOver = useAnimatedStyle(() => ({ borderColor: carry && carry.over.get() ? C.gap : 'transparent' }));
+  // A worklet copies everything it reads to the UI thread. The carry context also holds the canvas's view, which
+  // can't be copied, so the border reads only the shared value it needs.
+  const noCarry = useSharedValue(0);
+  const over = carry?.over ?? noCarry;
+  const carryOver = useAnimatedStyle(() => ({ borderColor: over.get() ? C.gap : 'transparent' }));
 
   const sp = selected ? placed[selected] : undefined;
   const selItem = selected ? st.wearableById(slots[selected]) : undefined;
