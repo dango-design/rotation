@@ -11,7 +11,8 @@ const toDataUrl = async (uri: string) => {
   });
 };
 
-export const keepImage = (_id: string, uri: string, _size?: { width: number; height: number }) => toDataUrl(uri);
+export const asFile = (uri: string, _name: string) => uri;
+export const keepImage =(_id: string, uri: string, _size?: { width: number; height: number }) => toDataUrl(uri);
 export const uriFor = (ref: string) => ref;
 export const dropImage = (_ref: string) => {};
 export const clearImages = () => {};

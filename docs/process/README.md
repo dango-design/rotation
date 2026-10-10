@@ -32,6 +32,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | [012](decisions/012-find-the-right-piece.md) | Find the right piece in a photo or product page, and ask when unsure | Oct 9, 2026 |
 | [013](decisions/013-optional-accounts-and-sync.md) | Optional accounts that back up and sync the closet | Oct 9, 2026 |
 | [014](decisions/014-sign-in-to-save.md) | Build outfits without an account; sign in to build a closet and save | Oct 9, 2026 |
+| [017](decisions/017-cut-out-pieces-on-the-phone.md) | Cut pieces out of photos on the iPhone with Apple's subject lifting | Oct 10, 2026 |
 
 ## Capturing a milestone
 
