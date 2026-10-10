@@ -27,9 +27,10 @@ export default function About() {
         </p>
         <h2>Your data</h2>
         <p>
-          Your closet is stored in this browser. An account is optional: sign in and your pieces, outfits, plans and photos are also saved to your account,
-          so they follow you to your other devices, and only you can see them. Photo backgrounds are always removed on your device. If photo tagging is on,
-          a small copy of the photo is sent to Claude to suggest the type and color, and is not stored. You can download or delete everything in Settings.
+          You can build outfits with the demo closet without an account. Building your own closet and saving outfits need one: you sign in with your email,
+          and your pieces, outfits, plans and photos are saved in this browser and to your account, so they follow you to your other devices, and only you
+          can see them. Photo backgrounds are always removed on your device. If photo tagging is on, a small copy of the photo is sent to Claude to suggest
+          the type and color, and is not stored. You can download or delete everything in Settings.
         </p>
         <p>
           Rotation is an open, in-progress portfolio project.{' '}

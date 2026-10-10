@@ -1,6 +1,6 @@
 # 013 — Optional accounts that back up and sync the closet
 
-**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 9, 2026 · **Status:** Partly replaced by [014](014-sign-in-to-save.md): building a closet and saving now need an account · **Milestone:** next
 
 ## Context
 

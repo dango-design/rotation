@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { OutfitPanel } from '@/components/OutfitPanel';
 import { useUI } from '@/components/Shell';
-import { Flatlay, Icon, money, Tile } from '@/components/ui';
+import { DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { CATS } from '@/lib/catalog-meta';
 import { cpw, fitsBoard, slotOf } from '@/lib/engine';
 import { heightOf, resolveLayout, trueWidth } from '@/lib/layout';
@@ -63,6 +63,8 @@ export default function Closet() {
     }
     setDraft({ ...draft, slots: next, layout, focus: slot });
   };
+  /** Adding pieces builds a closet, so signed out it asks to sign in first. */
+  const addPieces = () => st.requireAccount('start your closet', () => ui.open({ type: 'add' }));
   const startOutfit = () => {
     if (!st.building) setDraft({ name: 'New outfit', slots: {}, focus: 'top' });
     st.setBuilding(true);
@@ -109,7 +111,7 @@ export default function Closet() {
               New outfit
             </button>
           )}
-          <button className="btn primary" onClick={() => ui.open({ type: 'add' })}>
+          <button className="btn primary" onClick={addPieces}>
             <Icon name="plus" />
             Add pieces
           </button>
@@ -119,11 +121,17 @@ export default function Closet() {
       {st.items.length === 0 ? (
         <div className="card empty">
           <h2>Your closet is empty</h2>
-          <p>Start with what you wear most. A photo on a plain surface works best; the background is removed on your device.</p>
-          <button className="btn primary" onClick={() => ui.open({ type: 'add' })}>
-            <Icon name="camera" />
-            Add your first piece
-          </button>
+          <p>
+            Start with what you wear most. A photo on a plain surface works best; the background is removed on your device.
+            {st.needsAccount && " You'll sign in with your email first, so your closet is saved to your account."}
+          </p>
+          <div className="row">
+            <button className="btn primary" onClick={addPieces}>
+              <Icon name="camera" />
+              Add your first piece
+            </button>
+            {st.needsAccount && <DemoLink />}
+          </div>
         </div>
       ) : (
         <div className={`closet-layout ${st.building ? 'building' : ''}`}>
@@ -205,7 +213,7 @@ export default function Closet() {
                   </button>
                   <div className="saved-meta">
                     <b>{o.name}</b>
-                    <button className="icon-btn" style={{ width: 28, height: 28 }} aria-label={`Delete ${o.name}`} onClick={() => (st.removeOutfit(o.id), st.toast('Outfit deleted'))}>
+                    <button className="icon-btn" style={{ width: 28, height: 28 }} aria-label={`Delete ${o.name}`} onClick={() => st.requireAccount('change your outfits', () => (st.removeOutfit(o.id), st.toast('Outfit deleted')))}>
                       <Icon name="trash" />
                     </button>
                   </div>

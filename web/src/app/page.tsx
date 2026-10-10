@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { DayPlanner } from '@/components/DayPlanner';
 import { useUI } from '@/components/Shell';
-import { Flatlay, Icon, money, Tile } from '@/components/ui';
+import { DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { isAccessory, onePhrase, TYPES } from '@/lib/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, todayISO, weekStart } from '@/lib/dates';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
@@ -53,17 +53,16 @@ export default function Today() {
       <div className="card empty" style={{ marginTop: 40 }}>
         <div className="eyebrow">Welcome to Rotation</div>
         <h2>Style what you own. Shop what&apos;s missing.</h2>
-        <p>Add a few pieces you wear often (a top, a bottom and some shoes is enough to start) and Rotation will build outfits from them every day.</p>
+        <p>
+          Add a few pieces you wear often (a top, a bottom and some shoes is enough to start) and Rotation will build outfits from them every day.
+          {st.needsAccount && " You'll sign in with your email first, so your closet is saved to your account."}
+        </p>
         <div className="row">
-          <button className="btn primary" onClick={() => ui.open({ type: 'add' })}>
+          <button className="btn primary" onClick={() => st.requireAccount('start your closet', () => ui.open({ type: 'add' }))}>
             <Icon name="plus" />
             Add your first piece
           </button>
-          {/* A full page load: demo mode is chosen once, when the app starts. */}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a className="btn" href="/?demo">
-            Explore a demo closet
-          </a>
+          <DemoLink />
         </div>
       </div>
     );
@@ -106,11 +105,12 @@ export default function Today() {
     setPlanning(null);
     setPicking(false);
     if (logDay < today) {
-      st.wear(s, logDay, layout);
-      st.toast('Logged as worn');
+      st.requireAccount('log what you wore', () => (st.wear(s, logDay, layout), st.toast('Logged as worn')));
     } else {
-      st.setPlan(logDay, { name, slots: s, ...(layout ? { layout } : {}) });
-      st.toast(logDay === today ? 'Planned for today' : `Planned for ${fmt(logDay, { weekday: 'long' })}`);
+      st.requireAccount('plan this outfit', () => {
+        st.setPlan(logDay, { name, slots: s, ...(layout ? { layout } : {}) });
+        st.toast(logDay === today ? 'Planned for today' : `Planned for ${fmt(logDay, { weekday: 'long' })}`);
+      });
     }
   };
 
@@ -248,7 +248,10 @@ export default function Today() {
                 ) : (
                   <>
                     {day <= today && (
-                      <button className="btn primary" onClick={() => (st.wear(slots, day, plan?.layout), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn'))}>
+                      <button
+                        className="btn primary"
+                        onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, day, plan?.layout), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn')))}
+                      >
                         <Icon name="check" />
                         {isToday ? 'Wear this' : 'Wore it'}
                       </button>
@@ -259,7 +262,7 @@ export default function Today() {
                         Change
                       </button>
                     )}
-                    <button className="btn ghost" onClick={() => (st.setPlan(day, null), st.toast('Plan cleared'))}>
+                    <button className="btn ghost" onClick={() => st.requireAccount('change your plans', () => (st.setPlan(day, null), st.toast('Plan cleared')))}>
                       Clear plan
                     </button>
                   </>

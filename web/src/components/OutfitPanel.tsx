@@ -81,10 +81,14 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
       </div>
 
       <div className="panel-actions">
-        <button className="btn primary" disabled={!ready} onClick={() => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout), st.toast('Saved to your outfits'))}>
+        <button
+          className="btn primary"
+          disabled={!ready}
+          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout), st.toast('Saved to your outfits')))}
+        >
           Save outfit
         </button>
-        <button className="btn" disabled={!ready} onClick={() => (st.wear(slots, undefined, draft.layout), st.toast('Logged as worn today'))}>
+        <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout), st.toast('Logged as worn today')))}>
           <Icon name="check" />
           Wear today
         </button>
@@ -95,7 +99,13 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
       <div className="panel-plan">
         <span>Plan it for</span>
         <input type="date" className="select" value={planDate} min={today} onChange={(e) => setPlanDate(e.target.value)} aria-label="Plan date" />
-        <button className="btn sm" disabled={!ready} onClick={() => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout }), st.toast(`Planned for ${shortDate(planDate)}`))}>
+        <button
+          className="btn sm"
+          disabled={!ready}
+          onClick={() =>
+            st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout }), st.toast(`Planned for ${shortDate(planDate)}`)))
+          }
+        >
           <Icon name="planner" />
           Plan
         </button>

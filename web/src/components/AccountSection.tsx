@@ -1,10 +1,11 @@
 'use client';
 
 /* Settings > Your account: sign in with a code sent by email, see where the closet stands with the
-   account, and sign out. Accounts are optional; without one the closet stays in this browser. */
+   account, and sign out. Building a closet and saving need an account (decision 014). */
 
 import { useState } from 'react';
 import { useStore, type SyncState } from '@/lib/store';
+import { SignInForm, SignInIntro } from './SignIn';
 
 const STATUS: Record<SyncState, string> = {
   off: '',
@@ -14,23 +15,9 @@ const STATUS: Record<SyncState, string> = {
   error: "Couldn't reach your account just now. Changes stay on this device and Rotation will try again.",
 };
 
-/** Plain words for what went wrong with a code. */
-function problem(e: unknown) {
-  const err = e as { status?: number; code?: string; message?: string };
-  if (err.status === 429 || err.code === 'over_email_send_rate_limit') return 'Wait a minute before asking for another code.';
-  if (err.code === 'otp_expired' || err.status === 403) return "That code didn't work or has expired. Check it, or send a new one.";
-  if (err.code === 'email_address_invalid' || err.code === 'validation_failed') return "That email address doesn't look right.";
-  if (!navigator.onLine) return "You're offline. Connect to the internet and try again.";
-  return "Something went wrong. Try again in a moment.";
-}
-
 export function AccountSection() {
   const st = useStore();
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [step, setStep] = useState<'email' | 'code'>('email');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
   /** Changes that haven't reached the account, when signing out would lose them. */
   const [unsaved, setUnsaved] = useState(0);
 
@@ -97,90 +84,23 @@ export function AccountSection() {
     );
   }
 
-  const send = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      await st.sendCode(email.trim());
-      setStep('code');
-      setCode('');
-    } catch (err) {
-      setError(problem(err));
-    }
-    setBusy(false);
-  };
-
-  const verify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      await st.verifyCode(email.trim(), code.trim());
-      st.toast('Signed in');
-    } catch (err) {
-      setError(problem(err));
-    }
-    setBusy(false);
-  };
-
   return (
     <section className="card settings-section">
       <h3>Your account</h3>
-      {step === 'email' ? (
-        <>
-          <p>
-            Sign in to back up your closet and see it on your other devices. There&apos;s no password: we email you a code. Your pieces, outfits, plans and
-            photos are saved to your account, and only you can see them. Backgrounds are still removed on this device.
-          </p>
-          <form style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }} onSubmit={send}>
-            <label className="field" style={{ minWidth: 260 }}>
-              <span>Email</span>
-              <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-            </label>
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'Sending…' : 'Email me a code'}
-            </button>
-          </form>
-          {st.items.length > 0 && <p>The {st.items.length === 1 ? 'piece' : `${st.items.length} pieces`} already here will be added to your account.</p>}
-        </>
-      ) : (
-        <>
-          <p>
-            We sent a code to <b>{email.trim()}</b>. Enter it here. If the email has a link instead, open it in this browser.
-          </p>
-          <form style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }} onSubmit={verify}>
-            <label className="field" style={{ width: 180 }}>
-              <span>Code</span>
-              <input
-                required
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]{6,10}"
-                maxLength={10}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              />
-            </label>
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'Signing in…' : 'Sign in'}
-            </button>
-          </form>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn ghost sm" disabled={busy} onClick={() => send()}>
-              Send a new code
-            </button>
-            <button className="btn ghost sm" disabled={busy} onClick={() => (setStep('email'), setError(''))}>
-              Use a different email
-            </button>
-          </div>
-        </>
-      )}
-      {error && (
-        <p className="error-note" role="alert">
-          {error}
-        </p>
-      )}
+      <SignInForm
+        intro={
+          st.owner ? (
+            // Signed in here before and never signed out, so the closet is still this account's (the session lapsed).
+            <p>You&apos;re signed out in this browser, but your closet is still here. Sign in with the same email to keep saving it to your account.</p>
+          ) : (
+            <>
+              <SignInIntro />
+              <p>Your pieces, outfits, plans and photos are saved to your account, and only you can see them. Backgrounds are still removed on this device.</p>
+            </>
+          )
+        }
+        onSignedIn={() => st.toast('Signed in')}
+      />
     </section>
   );
 }

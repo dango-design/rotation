@@ -73,7 +73,7 @@ export default function Fill() {
         <div className="card empty">
           <h2>Nothing to suggest yet</h2>
           <p>Suggestions need something to pair with. Add a few tops, bottoms and shoes, and Rotation will find the pieces that unlock the most new outfits.</p>
-          <button className="btn primary" onClick={() => ui.open({ type: 'add' })}>
+          <button className="btn primary" onClick={() => st.requireAccount('start your closet', () => ui.open({ type: 'add' }))}>
             <Icon name="plus" />
             Add pieces
           </button>

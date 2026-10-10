@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { expect, userEvent, within } from 'storybook/test';
 import Closet from '@/app/closet/page';
 import { pageModes } from '../../../.storybook/modes';
-import { inShell } from '../decorators';
+import { inShell, signInFromPrompt } from '../decorators';
 import { demoCloset, demoId as id, emptyCloset, photoCloset, savedOutfits } from '../fixtures';
 
 /* What you own. Pieces and saved outfits, with the outfit board opening beside the grid. While the board is open,
@@ -53,6 +53,23 @@ export const PutAPieceOnTheBoard: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Put Loose Straight Jeans on the board' }));
     const board = canvas.getByRole('complementary', { name: 'Outfit board' });
     await expect(within(board).getByRole('button', { name: 'Loose Straight Jeans' })).toBeVisible();
+  },
+};
+
+/** Signed out, an outfit can still be built, but Save outfit asks to sign in first. Nothing is saved until the code
+    works; then the outfit is saved to the account. */
+export const SavingSignedOut: Story = {
+  parameters: {
+    store: () =>
+      demoCloset({ accountsOn: true, building: true, draft: { name: 'Thursday', slots: { top: id('t4'), bottom: id('b3'), shoes: id('s2') }, focus: 'outer' } }),
+    chromatic: { disableSnapshot: true },
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Save outfit' }));
+    await expect(await canvas.findByRole('dialog', { name: 'Sign in to save this outfit' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Outfits' })).toBeInTheDocument();
+    await signInFromPrompt(canvasElement, 'save this outfit');
+    await expect(canvas.getByRole('button', { name: 'Outfits 1' })).toBeInTheDocument();
   },
 };
 

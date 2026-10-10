@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { expect, userEvent } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 import Today from '@/app/page';
 import { pageModes } from '../../../.storybook/modes';
 import { router } from '../../../.storybook/router';
-import { inShell, settled } from '../decorators';
+import { inShell, settled, signInFromPrompt } from '../decorators';
 import { demoCloset, emptyCloset, oneTee, openToday, savedOutfits } from '../fixtures';
 
 /* Getting dressed. The week strip picks a day; a planned day shows its outfit, and a day with nothing planned asks for
@@ -108,6 +108,27 @@ export const Evening: Story = {
 /** First run: what Rotation does and how to start, or a demo to look around. */
 export const NewCloset: Story = {
   parameters: { store: emptyCloset },
+};
+
+/** First run, signed out: building an outfit with the demo closet needs no account. Starting your own closet does, so
+    "Add your first piece" says you'll sign in first. */
+export const NewClosetSignedOut: Story = {
+  parameters: { store: () => ({ accountsOn: true }) },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('link', { name: 'Build an outfit with a demo closet' })).toHaveAttribute('href', '/builder?demo');
+  },
+};
+
+/** "Add your first piece" asks to sign in first. Once the code works and the account's closet is here, Add pieces opens. */
+export const SigningInToStart: Story = {
+  parameters: { store: () => ({ accountsOn: true }), chromatic: { disableSnapshot: true } },
+  play: async ({ canvas, canvasElement }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Add your first piece' }));
+    await signInFromPrompt(canvasElement, 'start your closet');
+    const add = await canvas.findByRole('dialog', { name: 'Add pieces' });
+    await settled();
+    await expect(within(add).getByRole('heading', { name: 'Add pieces' })).toBeVisible();
+  },
 };
 
 /** One piece is already enough to plan a day with. */
