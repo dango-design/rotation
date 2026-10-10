@@ -134,17 +134,26 @@ export function DayPlanner({
             </div>
           )}
         </div>
-        <div className="head-actions">
-          {mode === 'plan' && (
-            <button className="btn sm" onClick={surpriseMe}>
-              <Icon name="shuffle" />
-              Surprise me
-            </button>
-          )}
-          <button className="icon-btn" onClick={onCancel} aria-label="Cancel">
-            <Icon name="x" />
+        {/* A quiet action, so it doesn't read as one of the piece tabs. Cancel is in the bar at the bottom. */}
+        {mode === 'plan' && (
+          <button className="btn sm ghost" onClick={surpriseMe}>
+            <Icon name="shuffle" />
+            Surprise me
           </button>
-        </div>
+        )}
+      </div>
+
+      {/* The steps run across the top, so the canvas and the pieces beside it get the height. */}
+      <div className="step-tabs" role="tablist" aria-label="Pieces">
+        {STEPS.map((s) => {
+          const covered = s.slot === 'bottom' && dress;
+          return (
+            <button key={s.slot} role="tab" aria-selected={step === s.slot} className={`${step === s.slot ? 'active' : ''} ${slots[s.slot] || covered ? 'done' : ''}`} onClick={() => setStep(s.slot)} disabled={covered}>
+              {slots[s.slot] || covered ? <Icon name="check" /> : null}
+              {s.label}
+            </button>
+          );
+        })}
       </div>
 
       <div className="planner-body">
@@ -153,18 +162,8 @@ export function DayPlanner({
         </div>
 
         <div className="planner-steps">
-          <div className="step-toolbar">
-            <div className="step-tabs" role="tablist" aria-label="Pieces">
-              {STEPS.map((s) => {
-                const covered = s.slot === 'bottom' && dress;
-                return (
-                  <button key={s.slot} role="tab" aria-selected={step === s.slot} className={`${step === s.slot ? 'active' : ''} ${slots[s.slot] || covered ? 'done' : ''}`} onClick={() => setStep(s.slot)} disabled={covered}>
-                    {slots[s.slot] || covered ? <Icon name="check" /> : null}
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="step-sub">
+            <p className="step-hint">{stepHint}</p>
             <select className="select step-sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort pieces">
               {Object.entries(SORTS).map(([k, [label]]) => (
                 <option key={k} value={k}>
@@ -173,7 +172,6 @@ export function DayPlanner({
               ))}
             </select>
           </div>
-          {stepHint && <p className="step-hint">{stepHint}</p>}
           {rows.length ? (
             <div className="step-grid">
               {rows.map(({ item, fits, suggested, why }) => (
@@ -193,22 +191,23 @@ export function DayPlanner({
           ) : (
             <p className="empty-note">No {current.plural} in your closet yet.</p>
           )}
-          <div className="planner-foot">
-            {!slots[step] && following && (
-              <button className="btn ghost sm" onClick={() => setStep(following)}>
-                Skip
-              </button>
-            )}
-            <span className="spacer" />
-            <button className="btn ghost" onClick={onCancel}>
-              Cancel
-            </button>
-            <button className="btn primary" disabled={!ready} onClick={() => onDone(name.trim() || 'Planned outfit', slots, layout)}>
-              <Icon name={mode === 'log' ? 'check' : 'planner'} />
-              {mode === 'log' ? 'Log as worn' : `Plan for ${dayLabel}`}
-            </button>
-          </div>
         </div>
+      </div>
+
+      <div className="planner-foot">
+        {!slots[step] && following && (
+          <button className="btn ghost sm" onClick={() => setStep(following)}>
+            Skip
+          </button>
+        )}
+        <span className="spacer" />
+        <button className="btn ghost" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="btn primary" disabled={!ready} onClick={() => onDone(name.trim() || 'Planned outfit', slots, layout)}>
+          <Icon name={mode === 'log' ? 'check' : 'planner'} />
+          {mode === 'log' ? 'Log as worn' : `Plan for ${dayLabel}`}
+        </button>
       </div>
     </article>
   );
