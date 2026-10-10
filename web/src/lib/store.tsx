@@ -280,18 +280,21 @@ function useStoreValue(fixture?: Fixture) {
     };
   }, [live, runSync, replace]);
 
-  // While signed in: sync when the app comes back into view or online, and every minute while it's open.
+  // While signed in: sync when the app comes back into view, gets focus or goes online, and every minute while it's open.
+  // Focus matters on its own: switching back to a window that stayed in view doesn't change its visibility.
   useEffect(() => {
     if (!account || fixed) return;
     const nudge = () => document.visibilityState === 'visible' && void runSync();
     const offline = () => setSyncState('offline');
     const every = setInterval(nudge, SYNC_EVERY);
     document.addEventListener('visibilitychange', nudge);
+    window.addEventListener('focus', nudge);
     window.addEventListener('online', nudge);
     window.addEventListener('offline', offline);
     return () => {
       clearInterval(every);
       document.removeEventListener('visibilitychange', nudge);
+      window.removeEventListener('focus', nudge);
       window.removeEventListener('online', nudge);
       window.removeEventListener('offline', offline);
     };
