@@ -10,6 +10,7 @@
     "backgroundColor": "#F3F0EA",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.dangodesign.rotation",
       "infoPlist": {
         "NSCameraUsageDescription": "Rotation uses the camera to photograph pieces for your closet.",
         "NSPhotoLibraryUsageDescription": "Rotation adds photos of your clothes to your closet."

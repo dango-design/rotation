@@ -14,20 +14,25 @@ const folder = () => {
 /** Photos are kept at most this wide; plenty for a phone screen and much lighter than a camera original. */
 const MAX_SIDE = 1200;
 
+const isPng = (uri: string) => uri.startsWith('data:image/png') || /\.png($|\?)/i.test(uri);
+
+/** Pasted images and photos from a backup arrive as data URLs; this writes one out to a file and returns its URI. */
+export function asFile(uri: string, name: string): string {
+  if (!uri.startsWith('data:')) return uri;
+  const tmp = new File(Paths.cache, `${name}.${isPng(uri) ? 'png' : 'jpg'}`);
+  if (tmp.exists) tmp.delete();
+  tmp.create();
+  tmp.write(uri.slice(uri.indexOf(',') + 1), { encoding: 'base64' });
+  return tmp.uri;
+}
+
 /**
  * Keeps a picked, captured or pasted photo for a piece and returns the reference to store with it.
  * Cutouts (PNG with a transparent background) stay PNG; everything else is saved as JPEG.
  */
 export async function keepImage(id: string, uri: string, size?: { width: number; height: number }): Promise<string> {
-  const png = uri.startsWith('data:image/png') || /\.png($|\?)/i.test(uri);
-  if (uri.startsWith('data:')) {
-    // Pasted images and photos from a backup arrive as data URLs: write them out before resizing.
-    const tmp = new File(Paths.cache, `${id}-in.${png ? 'png' : 'jpg'}`);
-    if (tmp.exists) tmp.delete();
-    tmp.create();
-    tmp.write(uri.slice(uri.indexOf(',') + 1), { encoding: 'base64' });
-    uri = tmp.uri;
-  }
+  const png = isPng(uri);
+  uri = asFile(uri, `${id}-in`);
   const ctx = ImageManipulator.manipulate(uri);
   if (size && Math.max(size.width, size.height) > MAX_SIDE)
     ctx.resize(size.width >= size.height ? { width: MAX_SIDE } : { height: MAX_SIDE });
