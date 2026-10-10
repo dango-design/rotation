@@ -8,6 +8,7 @@ import { useThemeSync } from '@/lib/theme';
 import { AddItemDialog } from './AddItemDialog';
 import { CompareDrawer, ListDrawer } from './ShopDrawers';
 import { ItemDrawer } from './ItemDrawer';
+import { SignInDialog } from './SignIn';
 import { Icon } from './ui';
 
 type Overlay = { type: 'add' } | { type: 'item'; id: string } | { type: 'compare'; id: string } | { type: 'list' } | null;
@@ -17,11 +18,14 @@ export const UICtx = createContext<{ open: (o: Overlay) => void; close: () => vo
 export const useUI = () => useContext(UICtx)!;
 
 /** Where the closet is saved, for the note under the navigation. */
-function savedWhere(st: ReturnType<typeof useStore>) {
+function savedWhere(st: ReturnType<typeof useStore>): { title: string; note: string; dot?: 'idle' | 'waiting' } {
   if (st.demo) return { title: 'Demo closet', note: 'Changes are not saved' };
+  if (st.needsAccount) return { title: 'Not signed in', note: 'Sign in to save your closet', dot: 'idle' };
+  // Signed in here before and never signed out: the closet is still the account's, waiting for the session to come back.
+  if (!st.account && st.accountsOn) return { title: 'Signed out', note: 'Saved on this device; sign in to sync', dot: 'waiting' };
   if (!st.account) return { title: 'Saved on this device', note: 'Nothing leaves your browser' };
-  if (st.syncState === 'offline') return { title: 'Offline', note: 'Saved on this device for now' };
-  if (st.syncState === 'error') return { title: 'Not synced yet', note: 'Saved on this device; trying again' };
+  if (st.syncState === 'offline') return { title: 'Offline', note: 'Saved on this device for now', dot: 'waiting' };
+  if (st.syncState === 'error') return { title: 'Not synced yet', note: 'Saved on this device; trying again', dot: 'waiting' };
   return { title: 'Saved to your account', note: st.syncState === 'syncing' ? 'Syncing…' : 'On every device you sign in on' };
 }
 
@@ -59,6 +63,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
     setOverlay(null);
   }
 
+  /** Adding pieces builds a closet, so signed out it asks to sign in first. */
+  const addPieces = () => st.requireAccount('start your closet', () => open({ type: 'add' }));
+
   const navLink = (n: { path: string; label: string; icon: string }, count?: number) => {
     const active = pathname === n.path;
     return (
@@ -87,14 +94,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="side-foot">
             <div className="sync-status">
-              <span className={`pulse ${st.syncState === 'offline' || st.syncState === 'error' ? 'waiting' : ''}`} />
+              <span className={`pulse ${saved.dot}`} />
               <span>
                 <b>{saved.title}</b>
                 <br />
                 {saved.note}
               </span>
             </div>
-            <button className="btn primary" onClick={() => open({ type: 'add' })}>
+            <button className="btn primary" onClick={addPieces}>
               <Icon name="plus" />
               Add pieces
             </button>
@@ -126,6 +133,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {overlay?.type === 'item' && <ItemDrawer id={overlay.id} onClose={close} />}
       {overlay?.type === 'compare' && <CompareDrawer id={overlay.id} onClose={close} />}
       {overlay?.type === 'list' && <ListDrawer onClose={close} />}
+      {st.signInAsk && <SignInDialog />}
 
       <div className={`toast ${st.toastMsg ? 'show' : ''}`} role="status" aria-live="polite">
         <Icon name="check" />

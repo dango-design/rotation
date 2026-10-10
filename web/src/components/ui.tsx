@@ -110,13 +110,13 @@ const BOARD_BGS: [BoardBg, string][] = [
 
 /** Picks the background for every board and flat lay. The colors live in globals.css as --board-*. */
 export function BoardSwatches({ labels = false, className = '' }: { labels?: boolean; className?: string }) {
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, requireAccount } = useStore();
   const current = settings.board ?? 'linen';
   return (
     // Inside the canvas, keep clicks and keys from reaching it, so a swatch doesn't deselect or move a piece.
     <div className={`swatches ${labels ? 'labeled' : ''} ${className}`} role="group" aria-label="Board background" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       {BOARD_BGS.map(([k, label]) => (
-        <button key={k} aria-pressed={current === k} aria-label={labels ? undefined : `${label} background`} title={labels ? undefined : label} onClick={() => updateSettings({ board: k })}>
+        <button key={k} aria-pressed={current === k} aria-label={labels ? undefined : `${label} background`} title={labels ? undefined : label} onClick={() => requireAccount('save your settings', () => updateSettings({ board: k }))}>
           <i style={{ background: `var(--board-${k})` }} />
           {labels && label}
         </button>
@@ -126,20 +126,33 @@ export function BoardSwatches({ labels = false, className = '' }: { labels?: boo
 }
 
 export function ShopSwitch({ label = 'Show shopping suggestions' }: { label?: string }) {
-  const { settings, updateSettings, toast } = useStore();
+  const { settings, updateSettings, toast, requireAccount } = useStore();
   return (
     <button
       className="switch-row"
       aria-pressed={settings.showShop}
-      onClick={() => {
-        updateSettings({ showShop: !settings.showShop });
-        toast(settings.showShop ? 'Shopping suggestions hidden. Your closet still works the same.' : 'Shopping suggestions are on');
-      }}
+      onClick={() =>
+        requireAccount('save your settings', () => {
+          updateSettings({ showShop: !settings.showShop });
+          toast(settings.showShop ? 'Shopping suggestions hidden. Your closet still works the same.' : 'Shopping suggestions are on');
+        })
+      }
     >
       <span className={`switch ${settings.showShop ? 'on' : ''}`}>
         <span />
       </span>
       {label}
     </button>
+  );
+}
+
+/** The way into the demo closet from an empty one. Signed out, it's the way to build an outfit without an account, so it
+    opens the outfit board. A full page load: demo mode is chosen once, when the app starts. */
+export function DemoLink() {
+  const { needsAccount } = useStore();
+  return (
+    <a className="btn" href={needsAccount ? '/builder?demo' : '/?demo'}>
+      {needsAccount ? 'Build an outfit with a demo closet' : 'Explore a demo closet'}
+    </a>
   );
 }

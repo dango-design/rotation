@@ -24,7 +24,7 @@ export function sortedOptions(p: Piece, favorites: string[]): StoreOption[] {
 }
 
 export function OptionRows({ p }: { p: Piece }) {
-  const { settings, items, list, addToList, toast } = useStore();
+  const { settings, items, list, addToList, toast, requireAccount } = useStore();
   return (
     <div className="opt-list">
       {sortedOptions(p, settings.favoriteStores).map((o) => {
@@ -61,10 +61,12 @@ export function OptionRows({ p }: { p: Piece }) {
             ) : (
               <button
                 className="btn xs"
-                onClick={() => {
-                  addToList(key);
-                  toast(`Added to your list · ${o.product} from ${o.store}`);
-                }}
+                onClick={() =>
+                  requireAccount('save your shopping list', () => {
+                    addToList(key);
+                    toast(`Added to your list · ${o.product} from ${o.store}`);
+                  })
+                }
               >
                 Add to list
               </button>
@@ -113,7 +115,7 @@ export function CompareDrawer({ id, onClose }: { id: string; onClose: () => void
 }
 
 export function ListDrawer({ onClose }: { onClose: () => void }) {
-  const { list, items, removeFromList, toast } = useStore();
+  const { list, items, removeFromList, toast, requireAccount } = useStore();
   const entries = list
     .map((e) => {
       const [pid, store] = e.key.split('|');
@@ -157,10 +159,12 @@ export function ListDrawer({ onClose }: { onClose: () => void }) {
                     </div>
                     <button
                       className="btn xs"
-                      onClick={() => {
-                        removeFromList(key);
-                        toast('Removed from your list');
-                      }}
+                      onClick={() =>
+                        requireAccount('save your shopping list', () => {
+                          removeFromList(key);
+                          toast('Removed from your list');
+                        })
+                      }
                     >
                       Remove
                     </button>

@@ -97,10 +97,12 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
               </button>
               <button
                 className="btn"
-                onClick={() => {
-                  st.wear({ [slotOf(it)]: it.id });
-                  st.toast(`Logged a wear for the ${it.name}`);
-                }}
+                onClick={() =>
+                  st.requireAccount('log what you wore', () => {
+                    st.wear({ [slotOf(it)]: it.id });
+                    st.toast(`Logged a wear for the ${it.name}`);
+                  })
+                }
               >
                 <Icon name="check" />
                 Wore it today
@@ -152,7 +154,7 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
               <span>{SOURCE[it.source]}</span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn sm" onClick={() => setEditing(true)}>
+              <button className="btn sm" onClick={() => st.requireAccount('edit your closet', () => setEditing(true))}>
                 <Icon name="pencil" />
                 Edit
               </button>
@@ -169,7 +171,7 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
                   Remove permanently
                 </button>
               ) : (
-                <button className="btn sm ghost" onClick={() => setConfirmDelete(true)}>
+                <button className="btn sm ghost" onClick={() => st.requireAccount('edit your closet', () => setConfirmDelete(true))}>
                   <Icon name="trash" />
                   Remove
                 </button>

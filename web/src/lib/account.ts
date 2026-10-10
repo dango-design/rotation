@@ -1,6 +1,7 @@
-/* Accounts (decision 013). Optional: with no account the closet stays on this device, as before.
-   Signing in uses a code sent by email, with no password. The account's data lives in the shared
-   Supabase project's `rotation` schema and `rotation-photos` bucket (see supabase/README.md).
+/* Accounts (decision 013). Building a closet and saving need one (decision 014); a build without these
+   settings keeps the closet on the device with no sign-in. Signing in uses a code sent by email, with no
+   password. The account's data lives in the shared Supabase project's `rotation` schema and
+   `rotation-photos` bucket (see supabase/README.md).
 
    Only the publishable key reaches the browser. Every row and photo is locked to its owner by
    row-level security, so the key alone reads nothing. */
@@ -11,7 +12,7 @@ import type { Outgoing, Remote, Row } from './sync';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-/** This build can sign people in. Off when the Supabase settings are missing, as in Storybook. */
+/** This build can sign people in, so saving needs an account. Off when the Supabase settings are missing, as in Storybook. */
 export const accountsOn = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
 let client: SupabaseClient | null = null;

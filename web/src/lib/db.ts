@@ -1,5 +1,5 @@
-/* On-device storage (IndexedDB). The closet always lives here first, so the app works offline and with
-   no account. Each save also notes the change in an outbox; when someone is signed in, sync.ts sends
+/* On-device storage (IndexedDB). The closet always lives here first, so the app works offline (and with
+   no account in a build without accounts set up). Each save also notes the change in an outbox; when someone is signed in, sync.ts sends
    those changes to their account and brings back changes from their other devices (decision 013). */
 
 import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
