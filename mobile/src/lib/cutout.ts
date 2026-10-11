@@ -8,11 +8,28 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { Part } from '@core/garment-hints';
 import type { Finder } from '@/components/PieceFinder';
+import type { FoundPiece } from '../../finder/protocol';
 import Cutout, { type CutResult } from '../../modules/cutout';
 import { asFile } from './files';
 
 /** A photo or a cutout, with what the finder made of it. */
 export type Cut = { uri: string; width?: number; height?: number; label?: string; part?: Part; rgb?: [number, number, number] };
+
+/** A cutout from the piece finder, saved to a file, with what the finder saw. */
+export type FinderCut = Cut & { cutout: boolean; together: boolean; clipped: boolean; photo?: number };
+
+let saved = 0;
+export const fromFinder = (pieces: FoundPiece[]): FinderCut[] =>
+  pieces.map((p) => ({
+    uri: asFile(p.image, `piece-${Date.now().toString(36)}-${++saved}`),
+    label: p.label,
+    part: p.part as Part | undefined,
+    rgb: p.rgb,
+    cutout: p.cutout,
+    together: p.together,
+    clipped: p.clipped,
+    photo: p.photo,
+  }));
 
 /** The pieces in a photo, each cut out, and all of them as one when there's more than one. */
 export type Pieces = { pieces: Cut[]; together?: Cut };
@@ -42,11 +59,16 @@ async function appleCut(uri: string): Promise<CutResult | null> {
 
 const isPng = (uri: string) => uri.startsWith('data:image/png') || /\.png($|\?)/i.test(uri);
 
+let inputs = 0;
+
 /** A photo as a data URL for the finder, at most FINDER_SIDE on its long side. Cutouts stay PNG to keep them clear. */
-async function forFinder(c: Cut) {
+export async function forFinder(c: Cut) {
   const png = isPng(c.uri);
-  const ctx = ImageManipulator.manipulate(asFile(c.uri, 'finder-in'));
-  if (c.width && c.height && Math.max(c.width, c.height) > FINDER_SIDE) ctx.resize(c.width >= c.height ? { width: FINDER_SIDE } : { height: FINDER_SIDE });
+  const src = asFile(c.uri, `finder-in-${++inputs}`);
+  let { width, height } = c;
+  if (!width || !height) ({ width, height } = await ImageManipulator.manipulate(src).renderAsync());
+  const ctx = ImageManipulator.manipulate(src);
+  if (Math.max(width, height) > FINDER_SIDE) ctx.resize(width >= height ? { width: FINDER_SIDE } : { height: FINDER_SIDE });
   const img = await (await ctx.renderAsync()).saveAsync({ base64: true, format: png ? SaveFormat.PNG : SaveFormat.JPEG, compress: 0.9 });
   return `data:image/${png ? 'png' : 'jpeg'};base64,${img.base64}`;
 }
@@ -64,14 +86,7 @@ export async function findPieces(photo: Cut, finder: Finder): Promise<Pieces | n
   const source = subject ?? photo;
   const found = await finder.find(await forFinder(source).catch(() => source.uri));
   if (!found) return subject ? { pieces: [subject] } : 'failed';
-  const stamp = Date.now().toString(36);
-  const cuts = found.pieces.map((p, i): Cut & { together: boolean } => ({
-    uri: asFile(p.image, `piece-${stamp}-${i}`),
-    label: p.label,
-    part: p.part as Part | undefined,
-    rgb: p.rgb,
-    together: p.together,
-  }));
+  const cuts = fromFinder(found.pieces);
   const separate = cuts.filter((c) => !c.together);
   const whole = cuts.find((c) => c.together);
 

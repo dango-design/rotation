@@ -3,14 +3,14 @@
    models and ONNX Runtime are downloaded, once, from the CDN. scripts/build-finder.mjs bundles this file into
    src/lib/finder-bundle.ts; ONNX Runtime itself is loaded here, at the version the web app uses. */
 
-import { findInPhoto } from '../../web/src/lib/vision/find';
+import { findInPhoto, findInProduct, findInProductPhoto, type Found, type Piece, type PhotoLoader } from '../../web/src/lib/vision/find';
 import { ORT_VERSION, ready, setModelBase } from '../../web/src/lib/vision/models';
 import type { FinderReply, FinderRequest, FoundPiece } from './protocol';
 
 declare global {
   interface Window {
     ReactNativeWebView?: { postMessage(msg: string): void };
-    rotationFinder?: { handle(msg: FinderRequest): void };
+    rotationFinder?: { handle(msg: FinderRequest): void; photo(rid: string, data: string | null): void };
     /** Where the model files are; set by the page before this script runs. */
     ROTATION_MODELS?: string;
   }
@@ -36,25 +36,64 @@ const dataUrl = (blob: Blob) =>
     r.readAsDataURL(blob);
   });
 
+/** Product photos come from the app, which downloads them: the page can't read store images itself. */
+const asking = new Map<string, (data: string | null) => void>();
+let asks = 0;
+const photoFromApp: PhotoLoader = (url) =>
+  new Promise((resolve) => {
+    const rid = `p${++asks}`;
+    asking.set(rid, (data) => {
+      asking.delete(rid);
+      if (!data) return resolve(null);
+      fetch(data)
+        .then((r) => r.blob())
+        .then(resolve, () => resolve(null));
+    });
+    post({ type: 'photo', rid, url });
+  });
+
+async function send(id: string, type: 'find' | 'product' | 'productPhoto', found: Found) {
+  const pieces: FoundPiece[] = [];
+  for (const p of found.pieces) pieces.push(await asFound(p));
+  const guess = found.pieces.findIndex((p) => p.id === found.guess);
+  post({ id, ok: true, type, sure: found.sure, guess: guess >= 0 ? guess : undefined, pieces });
+}
+
+const asFound = async (p: Piece): Promise<FoundPiece> => ({
+  label: p.label,
+  part: p.part,
+  rgb: p.rgb,
+  cutout: p.cutout,
+  together: !!p.together,
+  clipped: !!p.clipped,
+  photo: p.photo,
+  image: await dataUrl(p.blob),
+});
+
 async function handle(msg: FinderRequest) {
   try {
     await runtime;
-    if (msg.type === 'warm') {
-      await ready();
-      return post({ id: msg.id, ok: true, type: 'warm' });
+    switch (msg.type) {
+      case 'warm':
+        await ready();
+        return post({ id: msg.id, ok: true, type: 'warm' });
+      case 'find': {
+        const found = await findInPhoto(await (await fetch(msg.image)).blob());
+        // The photo as it is comes last; for someone's own photo the app offers that itself.
+        return send(msg.id, 'find', { ...found, pieces: found.pieces.filter((p) => p.cutout) });
+      }
+      case 'product': {
+        const found = await findInProduct(msg.urls, msg.hint, (done, total) => post({ type: 'progress', id: msg.id, done, total }), photoFromApp);
+        if (!found) return post({ id: msg.id, ok: false, type: 'error', error: "Couldn't load the product's photos." });
+        return send(msg.id, 'product', found);
+      }
+      case 'productPhoto':
+        return send(msg.id, 'productPhoto', { sure: false, pieces: await findInProductPhoto(msg.url, msg.index, msg.hint, photoFromApp) });
     }
-    const found = await findInPhoto(await (await fetch(msg.image)).blob());
-    // The photo as it is comes last; the app offers that itself.
-    const cutouts = found.pieces.filter((p) => p.cutout);
-    const pieces: FoundPiece[] = [];
-    for (const p of cutouts)
-      pieces.push({ label: p.label, part: p.part, rgb: p.rgb, together: !!p.together, clipped: !!p.clipped, image: await dataUrl(p.blob) });
-    const guess = cutouts.findIndex((p) => p.id === found.guess);
-    post({ id: msg.id, ok: true, type: 'find', sure: found.sure, guess: guess >= 0 ? guess : undefined, pieces });
   } catch (e) {
-    post({ id: msg.id, ok: false, error: e instanceof Error ? e.message : String(e) });
+    post({ id: msg.id, ok: false, type: 'error', error: e instanceof Error ? e.message : String(e) });
   }
 }
 
-window.rotationFinder = { handle: (msg) => void handle(msg) };
+window.rotationFinder = { handle: (msg) => void handle(msg), photo: (rid, data) => asking.get(rid)?.(data) };
 post({ type: 'loaded' });
