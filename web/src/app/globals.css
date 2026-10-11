@@ -324,11 +324,6 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .trial-tag { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 11px; border-radius: 99px; background: var(--gap); color: #fff; font-size: 11.5px; font-weight: 600; box-shadow: 0 4px 12px rgba(30, 58, 110, 0.3); }
 .trial-tag .btn { height: 24px; padding: 0 9px; font-size: 11.5px; background: #fff; color: var(--gap-ink); border: 0; }
 .board-status { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; }
-.verdict { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; font-weight: 500; }
-.verdict svg { width: 17px; height: 17px; flex: none; }
-.verdict.ok { background: var(--good-tint); color: var(--good); }
-.verdict.bad { background: var(--warn-tint); color: var(--warn); }
-.verdict.todo { background: var(--panel); color: var(--ink-3); border: 1px solid var(--line); }
 
 .slot-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 14px 0 6px; padding: 3px; background: var(--fill); border-radius: 12px; }
 .slot-tabs button { border: 0; background: none; height: 30px; border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
@@ -709,8 +704,6 @@ a.nav-item { text-decoration: none; }
 /* ---------- Closet with the outfit board ---------- */
 .closet-layout.building { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
 .closet-layout.building .closet-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-.item-card.faded .tile, .item-card.faded > div { opacity: 0.38; }
-.item-card.faded:hover .tile { opacity: 0.7; }
 .item-card.on-board .tile { box-shadow: inset 0 0 0 2px var(--ink); }
 .src.good { background: var(--good-tint); color: var(--good); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }

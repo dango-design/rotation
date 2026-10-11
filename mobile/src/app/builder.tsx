@@ -1,6 +1,6 @@
 /* The outfit builder, phone first: the canvas fills the top of the screen and your closet is the tray below it.
-   Tap a piece to put it on, or touch and hold it and drag it onto the canvas. Pieces that don't go with the outfit
-   fade and sort to the end, and Shop the gap offers pieces you could try on the canvas before buying them.
+   Tap a piece to put it on, or touch and hold it and drag it onto the canvas. Any pieces can go together; the builder
+   doesn't judge. Shop the gap offers pieces you could try on the canvas before buying them.
    Started from a day on Today, the same builder plans that day (or logs it, for a past day). */
 
 import { useRouter } from 'expo-router';
@@ -9,9 +9,9 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATS } from '@core/catalog-meta';
 import { addDays, fmt } from '@core/dates';
-import { check, fitsBoard, forSlot, isComplete, slotOf, SLOTS } from '@core/engine';
+import { forSlot, slotOf, SLOTS } from '@core/engine';
 import { ASPECT } from '@core/layout';
-import type { Cat, Item, Piece, Slot } from '@core/types';
+import type { Cat, Piece, Slot } from '@core/types';
 import { Tile } from '@/components/Art';
 import { CarryProvider, CarryTile } from '@/components/Carry';
 import { Icon } from '@/components/Icon';
@@ -38,14 +38,11 @@ export default function Builder() {
 
   const slots = draft.slots;
   const pieces = SLOTS.filter((s) => slots[s]).map((s) => st.wearableById(slots[s])!).filter(Boolean);
-  const complete = isComplete(slots, st.wearableById);
-  const verdict = check(pieces);
   const trial = pieces.filter((p) => !('wears' in p)) as Piece[];
   // Any owned piece can be saved, worn or planned; a piece you'd still have to buy can't.
   const ready = pieces.length > 0 && trial.length === 0;
   const onBoard = new Set(Object.values(slots));
-  const fits = (i: Item) => fitsBoard(i, slots, st.wearableById);
-  const closet = st.items.filter((i) => cat === 'all' || i.cat === cat).sort((a, b) => Number(fits(b)) - Number(fits(a)) || a.wears - b.wears);
+  const closet = st.items.filter((i) => cat === 'all' || i.cat === cat).sort((a, b) => a.wears - b.wears);
   const dressOn = st.wearableById(slots.top)?.cat === 'dress';
   const shop = st.settings.showShop ? forSlot(draft.focus, slots, st.items, st.catalog).shop : [];
 
@@ -151,23 +148,6 @@ export default function Builder() {
         </View>
 
         <View style={styles.status}>
-          {!verdict.ok ? (
-            <View style={styles.verdict}>
-              <Icon name="alert" size={15} color={C.warn} />
-              <T v="small" style={{ color: C.warn, flex: 1 }} numberOfLines={2}>
-                {verdict.reason}
-              </T>
-            </View>
-          ) : complete ? (
-            <View style={styles.verdict}>
-              <Icon name="check" size={15} color={C.good} width={2.2} />
-              <T v="small" style={{ color: C.good }}>
-                These work together
-              </T>
-            </View>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
           {trial.length > 0 && (
             <T v="small" style={{ color: C.gapInk, fontFamily: F.semibold }}>
               {trial.length} to shop
@@ -196,7 +176,7 @@ export default function Builder() {
               </ScrollView>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tray}>
                 {closet.map((it) => (
-                  <CarryTile key={it.id} w={it} onTap={() => put(it.id)} faded={!fits(it)} style={styles.trayPiece} accessibilityLabel={`Put ${it.name} on the canvas`}>
+                  <CarryTile key={it.id} w={it} onTap={() => put(it.id)} style={styles.trayPiece} accessibilityLabel={`Put ${it.name} on the canvas`}>
                     <View>
                       <Tile w={it} style={onBoard.has(it.id) ? styles.on : undefined} />
                       {onBoard.has(it.id) && (
@@ -319,7 +299,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: GUTTER, paddingBottom: 10 },
   name: { fontFamily: F.serif, fontSize: 26, lineHeight: 30, color: C.ink, padding: 0, marginTop: 2 },
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, paddingBottom: 8 },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, minHeight: 26 },
+  status: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingHorizontal: GUTTER, minHeight: 26 },
   verdict: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   trayBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingHorizontal: GUTTER, paddingTop: 2 },
   tray: { paddingHorizontal: GUTTER, gap: 10, paddingBottom: 4 },

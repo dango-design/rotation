@@ -213,7 +213,7 @@ export default function Today() {
             {past ? `Nothing logged · ${dayName}` : `Nothing planned · ${dayName}`}
           </T>
           <T v="h2">{past ? `What did you wear on ${weekday}?` : isToday ? "Today's a blank canvas." : `${weekday}'s a blank canvas.`}</T>
-          <T>{past ? 'Put what you wore on the canvas so Rotation knows what you reach for.' : "Start with any piece you feel like wearing. Pieces that don't go with it fade as you build."}</T>
+          <T>{past ? 'Put what you wore on the canvas so Rotation knows what you reach for.' : 'Start with any piece you feel like wearing and build around it.'}</T>
           {!past && wx && (
             <View style={styles.wxLine}>
               <Icon name={wx.sky} size={18} color={C.ink2} />

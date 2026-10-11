@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { addDays, fmt, shortDate } from '@/lib/dates';
 import { useDays } from '@/lib/days';
-import { check, forSlot, isComplete, SLOTS } from '@/lib/engine';
+import { forSlot, SLOTS } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
 import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
@@ -31,8 +31,6 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   const [planDate, setPlanDate] = useState(addDays(today, 1));
   const slots = draft.slots;
   const pieces = SLOTS.filter((s) => slots[s]).map((s) => st.wearableById(slots[s])!).filter(Boolean);
-  const complete = isComplete(slots, st.wearableById);
-  const verdict = check(pieces);
   const trial = pieces.filter((p) => !('wears' in p)) as Piece[];
   const dressOn = st.wearableById(slots.top)?.cat === 'dress';
   // Any owned piece can be saved, worn or planned; a piece you'd still have to buy can't.
@@ -87,7 +85,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         </button>
       </div>
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
-      <p className="panel-hint">Click or drag pieces from your closet onto the board. Faded pieces don&apos;t go with this outfit.</p>
+      <p className="panel-hint">Click or drag pieces from your closet onto the board.</p>
       {ahead && (
         <div className="panel-day">
           {wx ? (
@@ -118,27 +116,16 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
 
       <OutfitBoard slots={slots} layout={draft.layout} onLayout={(layout) => setDraft({ ...draft, layout })} onRemove={remove} onSelect={focus} onDrop={onPut} />
 
-      <div className="board-status">
-        {!verdict.ok ? (
-          <span className="verdict bad">
-            <Icon name="alert" />
-            {verdict.reason}
-          </span>
-        ) : complete ? (
-          <span className="verdict ok">
-            <Icon name="check" />
-            These work together
-          </span>
-        ) : null}
-        {trial.length > 0 && (
+      {trial.length > 0 && (
+        <div className="board-status">
           <span className="share-line">
             <Icon name="unlock" />
             <span>
               <b>{trial.length}</b> to shop
             </span>
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="panel-actions">
         {day && (

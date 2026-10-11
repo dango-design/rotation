@@ -245,7 +245,7 @@ export default function Today() {
               <p>
                 {past
                   ? 'Put what you wore on the board so Rotation knows what you reach for.'
-                  : "Start with any piece you feel like wearing. Pieces that don't go with it fade as you build."}
+                  : 'Start with any piece you feel like wearing and build around it.'}
               </p>
               {!past && wx && (
                 <p className="callout-wx">

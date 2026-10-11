@@ -23,7 +23,7 @@ While it's set to a day:
 - **Surprise me** fills the canvas with a suggested outfit to adjust. Pressing it again offers a different one. When the closet has no top, bottom and shoes that go together (or a dress and shoes), it says so instead of disappearing.
 - **Cancel** goes back to Today without planning anything.
 
-Everything else is the builder as it was: any piece, in any order, clashing pieces faded, and Shop the gap to try pieces you don't own. As before, an outfit with a piece still to buy can't be planned.
+Everything else is the builder as it was: any piece, in any order, and Shop the gap to try pieces you don't own. (Since [022](022-no-outfit-judging.md), the builder no longer fades pieces that clash.) As before, an outfit with a piece still to buy can't be planned.
 
 **Removed:** the day planner, its step order, the Suggested badges and their reasons, the sort menu, and the occasion toggle. The occasion setting still shapes Surprise me and Today's suggestions; it just isn't shown while planning.
 
@@ -36,6 +36,6 @@ Everything else is the builder as it was: any piece, in any order, clashing piec
 ## Consequences
 
 - On the web, planning a day leaves Today for the closet, then comes back to the day when it's planned or cancelled.
-- Pieces aren't suggested one slot at a time any more. Faded pieces still show what clashes, and Surprise me still does the matching for people who want it.
+- Pieces aren't suggested one slot at a time any more. Surprise me still does the matching for people who want it.
 - The occasion can't be changed in the app for now. If it's missed, Settings is the place for it.
 - Shop the gap is available while planning, so a day can be tried with a piece you don't own yet, though it can only be planned once every piece is owned.

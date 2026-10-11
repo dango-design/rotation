@@ -7,7 +7,7 @@ import { inShell, signInFromPrompt } from '../decorators';
 import { demoCloset, demoId as id, emptyCloset, photoCloset, savedOutfits } from '../fixtures';
 
 /* What you own. Pieces and saved outfits, with the outfit board opening beside the grid. While the board is open,
-   clicking a piece puts it on the board, and pieces that don't go with the outfit fade and sort to the end. */
+   clicking a piece puts it on the board. Any pieces can go together; the board doesn't judge. */
 
 const meta = {
   title: 'Pages/Closet',
@@ -18,9 +18,8 @@ const meta = {
     nextjs: { navigation: { pathname: '/closet' } },
     store: demoCloset,
     chromatic: { modes: pageModes },
-    // Known issues while the board is open: faded pieces fall below 4.5:1 (color-contrast), cards are labelled
-    // "Put … on the board" instead of their visible text (label-content-name-mismatch), and board places are buttons
-    // holding a remove button (nested-interactive). Shown in the Accessibility panel without failing the tests.
+    // Known issues while the board is open: cards are labelled "Put … on the board" instead of their visible text
+    // (label-content-name-mismatch), and board places are buttons holding a remove button (nested-interactive). Shown in the Accessibility panel without failing the tests.
     a11y: { test: 'todo' },
   },
 } satisfies Meta<typeof Closet>;
@@ -40,7 +39,7 @@ export const FilteredAndSorted: Story = {
   },
 };
 
-/** Building an outfit: the board is open, pieces on it are marked, and pieces that clash are faded. */
+/** Building an outfit: the board is open and pieces on it are marked. */
 export const BuildingAnOutfit: Story = {
   parameters: {
     store: () => demoCloset({ building: true, draft: { name: 'Thursday', slots: { top: id('t4'), bottom: id('b3'), shoes: id('s2') }, focus: 'outer' } }),

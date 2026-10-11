@@ -83,26 +83,22 @@ export function CarryProvider({ onDrop, children, style }: { onDrop: (id: string
 export function CarryTile({
   w,
   onTap,
-  faded,
   children,
   style,
   accessibilityLabel,
 }: {
   w: Item | Piece;
   onTap: () => void;
-  /** Shown faded, for pieces that don't go with the outfit so far. */
-  faded?: boolean;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }) {
   const carry = useCarry();
   const lifting = useSharedValue(0);
-  const rest = faded ? 0.38 : 1;
-  const dim = useAnimatedStyle(() => ({ opacity: lifting.get() ? 0.3 : rest }));
+  const dim = useAnimatedStyle(() => ({ opacity: lifting.get() ? 0.3 : 1 }));
   if (!carry) {
     return (
-      <Pressable onPress={onTap} style={[style, { opacity: rest }]} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
+      <Pressable onPress={onTap} style={style} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
         {children}
       </Pressable>
     );

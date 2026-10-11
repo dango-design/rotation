@@ -37,6 +37,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | [019](decisions/019-product-links-on-the-phone.md) | Read product links on the phone itself, with no server | Oct 10, 2026 |
 | [020](decisions/020-read-screenshots.md) | Fill in a piece's details from a screenshot of its product page | Oct 10, 2026 |
 | [021](decisions/021-plan-in-the-builder.md) | Plan a day in the outfit builder | Oct 10, 2026 |
+| [022](decisions/022-no-outfit-judging.md) | The builder doesn't judge whether pieces go together | Oct 10, 2026 |
 
 ## Capturing a milestone
 
