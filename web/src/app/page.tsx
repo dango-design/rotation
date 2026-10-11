@@ -2,52 +2,42 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
-import { DayPlanner } from '@/components/DayPlanner';
+import { useEffect, useMemo, useState } from 'react';
 import { useUI } from '@/components/Shell';
 import { boardProps, DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { backgroundOf } from '@/lib/backgrounds';
 import { isAccessory, onePhrase, TYPES } from '@/lib/catalog-meta';
-import { addDays, ago, daysBetween, fmt, longDay, todayISO, weekStart } from '@/lib/dates';
+import { addDays, ago, daysBetween, fmt, longDay, weekStart } from '@/lib/dates';
+import { useDays } from '@/lib/days';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
-import { suggest } from '@/lib/today';
 import type { Background, Layout, OutfitSlots } from '@/lib/types';
-import { skyWord } from '@/lib/weather';
 
 function greeting() {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-type Planning = { day: string; mode: 'plan' | 'log'; slots?: OutfitSlots; layout?: Layout; bg?: Background; name: string; offset: number };
-
 /* Today is the day view and the week planner in one. The strip picks a day; a day with nothing planned
-   asks for an outfit, which is built piece by piece with suggestions along the way. */
+   asks for an outfit, which is built on the outfit board beside the closet, the same way as any other outfit. */
 export default function Today() {
   const st = useStore();
   const ui = useUI();
   const router = useRouter();
-  const today = todayISO();
+  const { today, wxFor, suggestFor, startPlanning } = useDays();
   const [day, setDay] = useState(today);
-  const [planning, setPlanning] = useState<Planning | null>(null);
   const [picking, setPicking] = useState(false);
+  // Coming back from planning a day on the board shows that day. Deferred so the first render matches the server.
+  useEffect(() => {
+    const d = new URLSearchParams(window.location.search).get('day');
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) queueMicrotask(() => setDay(d));
+  }, []);
   const isToday = day === today;
   const past = day < today;
   const start = weekStart(day);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const picks = useMemo(() => rankPieces(st.catalog, st.items).filter((p) => p.unlock > 0 && p.dup.level < 1), [st.catalog, st.items]);
-
-  const wxFor = (date: string) => {
-    if (date === today && st.weather) return { temp: st.weather.now, sky: st.weather.sky, word: st.skyWord ?? '' };
-    const d = st.weather?.days.find((x) => x.date === date);
-    return d ? { temp: d.high, sky: d.sky, word: skyWord(d.sky) } : undefined;
-  };
-  const suggestFor = (date: string, n: number, occasion = st.settings.occasion) => {
-    const wx = wxFor(date);
-    return suggest(st.items, { occasion, today: date, shuffle: n, temp: wx?.temp, sky: wx?.sky, skyWord: wx?.word });
-  };
 
   if (!st.items.length) {
     return (
@@ -85,26 +75,17 @@ export default function Today() {
   const thisWeek = weekStart(today);
   const weekLabel =
     start === thisWeek ? 'This week' : start === addDays(thisWeek, 7) ? 'Next week' : start === addDays(thisWeek, -7) ? 'Last week' : `Week of ${fmt(start, { month: 'short', day: 'numeric' })}`;
-  const isPlanning = planning?.day === day;
   // A full outfit Rotation could suggest, for "Surprise me". Planning itself only needs one piece.
   const idea = suggestFor(day, 0);
 
-  const startPlanning = (d: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; offset?: number; name?: string } = {}) => {
-    setDay(d);
-    setPicking(false);
-    const label = d === today ? "Today's outfit" : `${fmt(d, { weekday: 'long' })}'s outfit`;
-    setPlanning({ day: d, mode: d < today ? 'log' : 'plan', slots: opts.slots, layout: opts.layout, bg: opts.bg, offset: opts.offset ?? 0, name: opts.name ?? label });
-  };
   const surpriseMe = () => {
-    if (idea) startPlanning(day, { slots: idea.slots, offset: 1 });
+    if (idea) startPlanning(day, { slots: idea.slots, shuffle: 1 });
   };
   const pickDay = (d: string) => {
     setDay(d);
     setPicking(false);
-    if (planning && planning.day !== d) setPlanning(null);
   };
   const finish = (name: string, s: OutfitSlots, layout?: Layout, bg?: Background, logDay = day) => {
-    setPlanning(null);
     setPicking(false);
     if (logDay < today) {
       st.requireAccount('log what you wore', () => (st.wear(s, logDay, layout, bg), st.toast('Logged as worn')));
@@ -208,23 +189,8 @@ export default function Today() {
         </div>
       </section>
 
-      <section className={`today-grid ${lead && !isPlanning ? '' : 'solo'}`}>
-        {isPlanning ? (
-          <DayPlanner
-            key={`${planning.day}-${planning.offset}-${planning.slots ? 'seeded' : 'blank'}`}
-            date={day}
-            dayLabel={weekday}
-            mode={planning.mode}
-            initial={planning.slots}
-            initialLayout={planning.layout}
-            initialBg={planning.bg}
-            initialName={planning.name}
-            weather={wx ? { temp: wx.temp, word: wx.word } : undefined}
-            surprise={(n, occasion) => suggestFor(day, n + planning.offset, occasion)?.slots ?? null}
-            onDone={(name, s, layout, bg) => finish(name, s, layout, bg)}
-            onCancel={() => setPlanning(null)}
-          />
-        ) : slots ? (
+      <section className={`today-grid ${lead ? '' : 'solo'}`}>
+        {slots ? (
           <article className="card hero">
             <div className="hero-visual" {...boardProps(heroBg)}>
               <Flatlay slots={slots} layout={worn ? worn.layout : plan?.layout} bg={heroBg} />
@@ -281,8 +247,8 @@ export default function Today() {
               <h2>{past ? `What did you wear on ${weekday}?` : isToday ? "Today's a blank canvas." : `${weekday}'s a blank canvas.`}</h2>
               <p>
                 {past
-                  ? 'Log it piece by piece so Rotation knows what you reach for.'
-                  : 'Start with a piece you feel like wearing. Rotation suggests what goes with it as you build.'}
+                  ? 'Put what you wore on the board so Rotation knows what you reach for.'
+                  : 'Start with any piece you feel like wearing and build around it.'}
               </p>
               {!past && wx && (
                 <p className="callout-wx">
@@ -312,7 +278,7 @@ export default function Today() {
           </article>
         )}
 
-        {lead && !isPlanning && (
+        {lead && (
           <aside className="today-side">
             <article className="card unlock-card">
               <div className="eyebrow">Fill the gap</div>

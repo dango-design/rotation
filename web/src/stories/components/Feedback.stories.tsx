@@ -13,30 +13,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The outfit board's live check: incomplete, works, or why it doesn't. */
-export const Verdicts: Story = {
-  render: () => (
-    <div style={stack}>
-      <span className="verdict empty">
-        <Icon name="info" />
-        Add a top, bottom and shoes (or a dress and shoes)
-      </span>
-      <span className="verdict ok">
-        <Icon name="check" />
-        These work together
-      </span>
-      <span className="verdict bad">
-        <Icon name="alert" />
-        Forest and Burgundy compete for attention
-      </span>
-      <span className="verdict bad">
-        <Icon name="alert" />
-        The wool-blend blazer is much dressier than the tapered jogger
-      </span>
-    </div>
-  ),
-};
-
 /** Confirmation after an action. In the app it slides up from the bottom and leaves after 2.8 seconds. */
 export const Toast: Story = {
   render: () => (

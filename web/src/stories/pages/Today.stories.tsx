@@ -7,8 +7,8 @@ import { inShell, settled, signInFromPrompt } from '../decorators';
 import { demoCloset, emptyCloset, oneTee, openToday, savedOutfits } from '../fixtures';
 
 /* Getting dressed. The week strip picks a day; a planned day shows its outfit, and a day with nothing planned asks for
-   one, built piece by piece with suggestions along the way. Stories run on Thursday, October 8, 2026 at 9am, so the
-   strip has worn, empty and planned days. */
+   one, built on the outfit board beside the closet like any other outfit. Stories run on Thursday, October 8, 2026 at
+   9am, so the strip has worn, empty and planned days. */
 
 const meta = {
   title: 'Pages/Today',
@@ -36,21 +36,21 @@ export const BlankDay: Story = {
   parameters: { store: () => openToday({ outfits: savedOutfits() }) },
 };
 
-/** Planning today piece by piece, in place of the outfit card. */
+/** Planning today opens the outfit board in the closet, set to plan today. A behavior test only. */
 export const PlanningToday: Story = {
-  parameters: { store: openToday },
+  parameters: { store: openToday, chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: "Plan today's outfit" }));
-    await expect(canvas.getByRole('article', { name: 'Plan today' })).toBeVisible();
+    await expect(router().push).toHaveBeenCalledWith('/closet');
   },
 };
 
-/** "Change" reopens a planned day in the planner. */
+/** "Change" opens the planned outfit on the board in the closet. A behavior test only. */
 export const ChangingAPlan: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Change' }));
-    await expect(canvas.getByRole('article', { name: 'Plan today' })).toBeVisible();
-    await expect(canvas.getByLabelText('Outfit name')).toHaveValue('Client presentation');
+    await expect(router().push).toHaveBeenCalledWith('/closet');
   },
 };
 

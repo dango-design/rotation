@@ -1,6 +1,6 @@
 'use client';
 
-/* The outfit canvas, shared by the day planner on Today and the outfit board in the closet.
+/* The outfit canvas on the outfit board in the closet, where outfits are built, planned for a day and logged.
    It works like a design canvas: drag a piece to move it, drag a corner to resize it, and bring it forward or send it
    back. Pieces start at true-to-life sizes. Keyboard: arrows nudge (Shift for bigger steps), ] and [ move a piece up
    and down the stack (with ⌘ or Ctrl, all the way), Delete removes it, Escape deselects. */

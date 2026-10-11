@@ -27,8 +27,10 @@ export interface Draft {
   layout?: Layout;
   bg?: Background;
   focus: Slot;
-  /** The day to plan it for, when it was started from a day on Today. */
+  /** The day to plan it for (or log it on, for a past day), when it was started from a day on Today. */
   date?: string;
+  /** The next suggestion "Surprise me" offers for that day, so it doesn't repeat the one already on the board. */
+  shuffle?: number;
 }
 
 interface State {
