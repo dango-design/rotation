@@ -7,7 +7,8 @@ import { inShell, signInFromPrompt } from '../decorators';
 import { demoCloset, demoId as id, emptyCloset, photoCloset, savedOutfits } from '../fixtures';
 
 /* What you own. Pieces and saved outfits, with the outfit board opening beside the grid. While the board is open,
-   clicking a piece puts it on the board. Any pieces can go together; the board doesn't judge. */
+   clicking a piece puts it on the board (and clicking it again takes it off). Any pieces can go together; the board
+   doesn't judge. */
 
 const meta = {
   title: 'Pages/Closet',
@@ -46,13 +47,15 @@ export const BuildingAnOutfit: Story = {
   },
 };
 
-/** Clicking a piece in the grid puts it on the board. */
+/** Clicking a piece in the grid puts it on the board, and clicking it again takes it off. */
 export const PutAPieceOnTheBoard: Story = {
   parameters: { store: () => demoCloset({ building: true, draft: { name: 'New outfit', slots: { top: id('t1') }, focus: 'bottom' } }) },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Put Loose Straight Jeans on the board' }));
     const board = canvas.getByRole('complementary', { name: 'Outfit board' });
     await expect(within(board).getByRole('button', { name: 'Loose Straight Jeans' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Take Loose Straight Jeans off the board' }));
+    await expect(within(board).queryByRole('button', { name: 'Loose Straight Jeans' })).toBeNull();
   },
 };
 

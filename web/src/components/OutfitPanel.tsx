@@ -85,7 +85,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         </button>
       </div>
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
-      <p className="panel-hint">Click or drag pieces from your closet onto the board.</p>
+      <p className="panel-hint">Click or drag pieces from your closet onto the board, and click one again to take it off.</p>
       {ahead && (
         <div className="panel-day">
           {wx ? (
