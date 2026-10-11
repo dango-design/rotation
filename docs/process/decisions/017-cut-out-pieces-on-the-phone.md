@@ -1,6 +1,6 @@
 # 017 — Cut pieces out of photos on the iPhone with Apple's subject lifting
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Extended by:** [018](018-piece-finder-on-the-phone.md), which runs the web app's piece finder everywhere · **Milestone:** next
 
 ## Context
 
@@ -23,11 +23,11 @@ Denise chose Apple's.
 
 **A photo that's already a cutout is kept as it is.** If the corners are see-through, as with a piece copied from Photos, it isn't cut again.
 
-**When the phone can't cut out, the photo is kept and the form says why.** That covers Expo Go, iPhones before iOS 17, Android and the browser preview. A cutout pasted from Photos still comes in clean.
+**When the phone can't cut out, the photo is kept and the form says why.** That covered Expo Go, iPhones before iOS 17, Android and the browser preview. Since [018](018-piece-finder-on-the-phone.md), the web app's piece finder cuts photos out in all of them except the browser preview.
 
 **It's a local Expo module,** `mobile/modules/cutout`. The cutting is plain Swift with no UIKit (`Cutter.swift`), so it also runs on a Mac and can be tried on real photos without an iPhone build. `CutoutModule.swift` is the thin bridge to the app.
 
-**The app runs as a development build,** made in the cloud with EAS Build, since this Mac has no Xcode. The build includes `expo-dev-client`, and the bundle identifier is `com.dangodesign.rotation`. The steps are in [mobile/README.md](../../../mobile/README.md#cut-out-backgrounds-development-build).
+**The app runs as a development build,** made in the cloud with EAS Build, since this Mac has no Xcode. The build includes `expo-dev-client`, and the bundle identifier is `com.dangodesign.rotation`. The steps are in [mobile/README.md](../../../mobile/README.md#apples-cutout-development-build).
 
 ## Why
 

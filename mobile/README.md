@@ -23,9 +23,13 @@ For a quick look in a browser at phone size, run `npx expo start --web`, or use 
 
 Checks: `npm run typecheck` and `npm run lint`.
 
-## Cut out backgrounds (development build)
+## Cut out backgrounds
 
-Expo Go can't cut pieces out of photos, so it keeps them as they are. The cutout runs in Rotation's own development build ([decision 017](../docs/process/decisions/017-cut-out-pieces-on-the-phone.md)), made in the cloud with EAS Build, so no Xcode is needed. It needs an iPhone on iOS 17 or later and an [Apple Developer Program](https://developer.apple.com/programs/) membership. Run these in `mobile/`:
+Pieces are cut out of photos on the phone, in Expo Go too, by the web app's own piece finder running in a hidden web view ([decision 018](../docs/process/decisions/018-piece-finder-on-the-phone.md)). The first time Add pieces opens, it downloads about 23 MB (the models and ONNX Runtime) and caches them. After changing `web/src/lib/vision` or `finder/entry.ts`, run `npm run build:finder` and commit `src/lib/finder-bundle.ts`.
+
+### Apple's cutout (development build)
+
+Rotation's own development build adds Apple's subject lifting, the same cutout Photos makes ([decision 017](../docs/process/decisions/017-cut-out-pieces-on-the-phone.md)). It's near-instant with cleaner edges, and the finder still splits pieces that touch. It's made in the cloud with EAS Build, so no Xcode is needed. It needs an iPhone on iOS 17 or later and an [Apple Developer Program](https://developer.apple.com/programs/) membership. Run these in `mobile/`:
 
 1. Link the app to your Expo account (once). This adds the project's ID to `app.json`, so commit that change:
 
@@ -76,8 +80,7 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
   - Arrangements use the same layout model as the web canvas.
 - **Adding pieces:**
   - Take a photo, choose one from Photos, or paste one.
-  - In the development build on iOS 17 or later, each piece is cut out of the photo on the phone with Apple's subject lifting. A photo with several pieces asks which to add, and each gets its own details. A pair, like shoes, can stay one piece.
-  - In Expo Go, photos keep their background. To get a clean piece there, touch and hold it in Photos until it lifts out, tap Copy, then paste it in Rotation.
+  - Each piece is cut out of the photo on the phone: by the web app's piece finder everywhere, and with Apple's subject lifting too in the development build. A photo with several pieces asks which to add, and each gets its own details, starting from the type and color the finder saw. A pair, like shoes, can stay one piece.
   - Describe it, and Rotation draws it.
 - **More screens:** piece details, store comparison, the shopping list, and Settings (city, shopping suggestions, favorite stores).
 - **Your data:**
@@ -87,7 +90,7 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
 ## Not yet
 
 - **Dragging pieces in from other apps.** It needs another small Swift add-on in the development build.
-- **Cutouts on Android.** Android keeps photos as they are; ML Kit's subject segmentation would be the counterpart.
+- **Apple's cutout on Android.** Android uses the piece finder only; ML Kit's subject segmentation would be the counterpart.
 - **Product links and Claude photo tagging.** They use the web app's server routes, which aren't hosted yet.
 - **The Closet report and How it works pages.**
 - **Accounts and sync,** so one closet shows up everywhere. Until then, back up on one device and restore on the other.
@@ -101,7 +104,10 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
 | `src/components/Carry.tsx` | Touch-and-hold dragging from a tray onto the canvas |
 | `src/lib/store.tsx` | App state, mirroring the web store's actions |
 | `src/lib/files.ts` | Photos and backup files on the phone (`files.web.ts` for the browser preview) |
-| `src/lib/cutout.ts` | Cutting pieces out of photos, when the phone can |
+| `src/lib/cutout.ts` | Cutting pieces out of photos: Apple's cutout when it's there, the piece finder for the rest |
+| `src/components/PieceFinder.tsx` | The hidden web view that runs the web app's piece finder |
+| `finder/` | The finder page's script (`entry.ts`) and its messages (`protocol.ts`) |
+| `scripts/build-finder.mjs` | Bundles `finder/entry.ts` and `web/src/lib/vision` into `src/lib/finder-bundle.ts` |
 | `modules/cutout/` | The cutout's native module: `ios/Cutter.swift` does the cutting with Vision, `ios/CutoutModule.swift` connects it to the app |
 | `eas.json` | EAS Build profiles; `development` is the build with the cutout |
 | `metro.config.js` | Lets Metro load the shared code from `web/src/lib` |

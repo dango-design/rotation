@@ -1,8 +1,8 @@
 /* Adding a piece on the phone: take a photo, pick one from Photos, paste one, or describe it.
-   On an iPhone with iOS 17 or later, every photo's background is cut out on the phone (src/lib/cutout.ts). When a
-   photo holds several pieces, you pick which to add and each gets its own details; a pair can stay one piece.
-   Expo Go doesn't include the cutout module, so there a photo is kept as it is, and a cutout copied from Photos still
-   pastes in clean. Dragging pieces in from other apps still needs its own add-on (see mobile/README.md). */
+   Every photo's pieces are cut out on the phone (src/lib/cutout.ts): with Apple's subject lifting in the development
+   build, and with the web app's piece finder everywhere, Expo Go included. When a photo holds several pieces, you pick
+   which to add and each gets its own details, starting from the type and color the finder saw; a pair can stay one
+   piece. Dragging pieces in from other apps still needs its own add-on (see mobile/README.md). */
 
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
@@ -10,30 +10,46 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { nearestSwatch, TYPES } from '@core/catalog-meta';
+import { PART_TYPE } from '@core/garment-hints';
 import { Icon, type IconName } from '@/components/Icon';
 import { ItemForm, type ItemFields } from '@/components/ItemForm';
 import { ModalScreen } from '@/components/ModalScreen';
+import { usePieceFinder } from '@/components/PieceFinder';
 import { Btn, T, tap } from '@/components/ui';
-import { canCutOut, cutOut, keptAsIs, looksLikePair, type CutResult } from '@/lib/cutout';
+import { canCutOut, couldntStart, findPieces, keptAsIs, looksLikePair, nothingFound, type Cut, type Pieces } from '@/lib/cutout';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/theme';
 
-type Photo = { uri: string; width?: number; height?: number };
-type FormStep = { kind: 'form'; photo?: Photo; queue: Photo[]; total: number; note?: string };
+type FormStep = { kind: 'form'; photo?: Cut; queue: Cut[]; total: number; note?: string };
 type Step =
   | { kind: 'choose' }
-  | { kind: 'cutting'; photo: Photo }
-  | { kind: 'pick'; photo: Photo; cut: CutResult; chosen: number[]; together: boolean }
+  | { kind: 'cutting'; photo: Cut }
+  | { kind: 'pick'; photo: Cut; cut: Pieces; chosen: number[]; together: boolean }
   | FormStep
   | { kind: 'saving' };
 
-const one = (photo?: Photo, note?: string): FormStep => ({ kind: 'form', photo, queue: [], total: 1, note });
+const one = (photo?: Cut, note?: string): FormStep => ({ kind: 'form', photo, queue: [], total: 1, note });
+
+/** The details form's starting point: the type and color the finder saw, when it saw them. */
+function fieldsFor(c?: Cut): Partial<ItemFields> {
+  const f: Partial<ItemFields> = { source: c ? 'photo' : 'manual' };
+  if (c?.part) {
+    f.type = PART_TYPE[c.part];
+    f.cat = TYPES[f.type].cat;
+  }
+  if (c?.rgb) f.colorName = nearestSwatch(...c.rgb).name;
+  return f;
+}
 
 export default function AddScreen() {
   const st = useStore();
   const router = useRouter();
   const [step, setStep] = useState<Step>({ kind: 'choose' });
   const [error, setError] = useState('');
+  // Mounted with the screen, so the finder's models are downloading while you choose a photo.
+  const finder = usePieceFinder();
+  const canFind = canCutOut || finder.available;
   // Counts each photo, so a cut that finishes after you've gone back doesn't jump ahead.
   const run = useRef(0);
 
@@ -43,13 +59,14 @@ export default function AddScreen() {
     setStep({ kind: 'choose' });
   };
 
-  const withPhoto = async (photo: Photo, pasted: boolean) => {
-    if (!canCutOut) return setStep(one(photo, pasted ? undefined : keptAsIs));
+  const withPhoto = async (photo: Cut, pasted: boolean) => {
+    if (!canFind) return setStep(one(photo, pasted ? undefined : keptAsIs));
     const mine = ++run.current;
     setStep({ kind: 'cutting', photo });
-    const cut = await cutOut(photo.uri);
+    const cut = await findPieces(photo, finder);
     if (mine !== run.current) return;
-    if (!cut || !cut.pieces.length) return setStep(one(photo, 'No piece stood out from the background, so the photo is kept as it is.'));
+    if (cut === 'failed') return setStep(one(photo, couldntStart));
+    if (!cut || !cut.pieces.length) return setStep(one(photo, nothingFound));
     if (cut.pieces.length === 1) return setStep(one(cut.pieces[0]));
     const together = looksLikePair(cut.pieces) && !!cut.together;
     setStep({ kind: 'pick', photo, cut, chosen: together ? [] : cut.pieces.map((_, i) => i), together });
@@ -74,7 +91,7 @@ export default function AddScreen() {
     const img = has ? await Clipboard.getImageAsync({ format: 'png' }).catch(() => null) : null;
     if (!img)
       return setError(
-        canCutOut
+        canFind
           ? 'There’s no image to paste yet. Copy a photo of the piece in another app, then come back and paste.'
           : 'There’s no image to paste yet. In Photos, touch and hold the piece until it lifts out, tap Copy, then come back and paste.',
       );
@@ -98,95 +115,110 @@ export default function AddScreen() {
     }
   };
 
-  if (step.kind === 'form') {
-    const n = step.total - step.queue.length;
-    return (
-      <ModalScreen eyebrow={step.total > 1 ? `Piece ${n} of ${step.total}` : 'Add pieces'} onClose={restart}>
-        <T v="h2">Check the details</T>
-        <T>Type and color decide what it pairs with. Price makes cost per wear work.</T>
-        {step.note ? <T v="small">{step.note}</T> : null}
-        {error ? <T style={{ color: C.warn }}>{error}</T> : null}
-        <ItemForm
-          key={step.photo?.uri ?? 'described'}
-          initial={{ source: step.photo ? 'photo' : 'manual' }}
-          previewUrl={step.photo?.uri}
-          submitLabel={step.queue.length ? 'Add and go to the next piece' : 'Add to closet'}
-          onSubmit={(f) => save(f, step)}
-          onCancel={restart}
-        />
-      </ModalScreen>
-    );
-  }
+  // The finder's web view stays mounted across the steps, so its models load once per visit.
+  const screen = (() => {
+    if (step.kind === 'form') {
+      const n = step.total - step.queue.length;
+      return (
+        <ModalScreen eyebrow={step.total > 1 ? `Piece ${n} of ${step.total}` : 'Add pieces'} onClose={restart}>
+          <T v="h2">Check the details</T>
+          <T>Type and color decide what it pairs with. Price makes cost per wear work.</T>
+          {step.note ? <T v="small">{step.note}</T> : null}
+          {error ? <T style={{ color: C.warn }}>{error}</T> : null}
+          <ItemForm
+            key={step.photo?.uri ?? 'described'}
+            initial={fieldsFor(step.photo)}
+            previewUrl={step.photo?.uri}
+            submitLabel={step.queue.length ? 'Add and go to the next piece' : 'Add to closet'}
+            onSubmit={(f) => save(f, step)}
+            onCancel={restart}
+          />
+        </ModalScreen>
+      );
+    }
 
-  if (step.kind === 'cutting')
-    return (
-      <ModalScreen eyebrow="Add pieces" onClose={restart}>
-        <View style={{ paddingVertical: 40, alignItems: 'center', gap: 14 }}>
-          <View style={styles.cutting}>
-            <Image source={{ uri: step.photo.uri }} style={StyleSheet.absoluteFill} contentFit="contain" />
+    if (step.kind === 'cutting')
+      return (
+        <ModalScreen eyebrow="Add pieces" onClose={restart}>
+          <View style={{ paddingVertical: 40, alignItems: 'center', gap: 14 }}>
+            <View style={styles.cutting}>
+              <Image source={{ uri: step.photo.uri }} style={StyleSheet.absoluteFill} contentFit="contain" />
+            </View>
+            <ActivityIndicator color={C.ink} />
+            <T>Cutting out the piece…</T>
+            {finder.status === 'loading' && !canCutOut ? (
+              <T v="small" style={{ textAlign: 'center' }}>
+                The first time takes a little longer while the cutout tools download.
+              </T>
+            ) : null}
           </View>
-          <ActivityIndicator color={C.ink} />
-          <T>Cutting out the piece…</T>
-        </View>
-      </ModalScreen>
-    );
+        </ModalScreen>
+      );
 
-  if (step.kind === 'pick') {
-    const { cut, chosen, together } = step;
-    const count = together ? 1 : chosen.length;
-    const toggle = (i: number) => setStep({ ...step, together: false, chosen: chosen.includes(i) ? chosen.filter((x) => x !== i) : [...chosen, i].sort((a, b) => a - b) });
-    const keepTogether = () => setStep({ ...step, together: !together, chosen: together ? cut.pieces.map((_, i) => i) : [] });
-    const add = () => {
-      const photos = together && cut.together ? [cut.together] : chosen.map((i) => cut.pieces[i]);
-      setStep({ kind: 'form', photo: photos[0], queue: photos.slice(1), total: photos.length });
-    };
-    return (
-      <ModalScreen eyebrow="Add pieces" onClose={restart}>
-        <T v="h2">Which pieces?</T>
-        <T>
-          We found {cut.pieces.length} pieces in your photo. Pick the ones to add; each gets its own details next. A pair, like shoes, can stay together as one piece.
-        </T>
-        <View style={styles.picks}>
-          {cut.pieces.map((p, i) => (
-            <PickCard key={p.uri} uri={p.uri} label={`Piece ${i + 1}`} on={!together && chosen.includes(i)} onPress={() => toggle(i)} />
-          ))}
-          {cut.together && <PickCard uri={cut.together.uri} label="All together as one piece" on={together} onPress={keepTogether} />}
-        </View>
-        <View style={styles.actions}>
-          <Btn kind="ghost" label="Use the photo as it is" onPress={() => setStep(one(step.photo))} />
-          <Btn kind="primary" label={count > 1 ? `Add ${count} pieces` : 'Add this piece'} disabled={!count} onPress={add} />
-        </View>
-      </ModalScreen>
-    );
-  }
+    if (step.kind === 'pick') {
+      const { cut, chosen, together } = step;
+      const count = together ? 1 : chosen.length;
+      const toggle = (i: number) => setStep({ ...step, together: false, chosen: chosen.includes(i) ? chosen.filter((x) => x !== i) : [...chosen, i].sort((a, b) => a - b) });
+      const keepTogether = () => setStep({ ...step, together: !together, chosen: together ? cut.pieces.map((_, i) => i) : [] });
+      const add = () => {
+        const photos = together && cut.together ? [cut.together] : chosen.map((i) => cut.pieces[i]);
+        setStep({ kind: 'form', photo: photos[0], queue: photos.slice(1), total: photos.length });
+      };
+      return (
+        <ModalScreen eyebrow="Add pieces" onClose={restart}>
+          <T v="h2">Which pieces?</T>
+          <T>
+            We found {cut.pieces.length} pieces in your photo. Pick the ones to add; each gets its own details next. A pair, like shoes, can stay together as one piece.
+          </T>
+          <View style={styles.picks}>
+            {cut.pieces.map((p, i) => (
+              <PickCard key={p.uri} uri={p.uri} label={p.label ?? `Piece ${i + 1}`} on={!together && chosen.includes(i)} onPress={() => toggle(i)} />
+            ))}
+            {cut.together && <PickCard uri={cut.together.uri} label="All together as one piece" on={together} onPress={keepTogether} />}
+          </View>
+          <View style={styles.actions}>
+            <Btn kind="ghost" label="Use the photo as it is" onPress={() => setStep(one(step.photo))} />
+            <Btn kind="primary" label={count > 1 ? `Add ${count} pieces` : 'Add this piece'} disabled={!count} onPress={add} />
+          </View>
+        </ModalScreen>
+      );
+    }
 
-  if (step.kind === 'saving')
+    if (step.kind === 'saving')
+      return (
+        <ModalScreen eyebrow="Add pieces">
+          <View style={{ paddingVertical: 60, alignItems: 'center', gap: 12 }}>
+            <ActivityIndicator color={C.ink} />
+            <T>Saving to your closet…</T>
+          </View>
+        </ModalScreen>
+      );
+
     return (
       <ModalScreen eyebrow="Add pieces">
-        <View style={{ paddingVertical: 60, alignItems: 'center', gap: 12 }}>
-          <ActivityIndicator color={C.ink} />
-          <T>Saving to your closet…</T>
+        <T v="h2">Add pieces</T>
+        <T>{canFind ? 'A photo is fastest for anything you own. The background is cut out on your phone.' : 'A photo is fastest for anything you own. For a clean cutout, paste one from Photos.'}</T>
+        <View style={{ gap: 10 }}>
+          <Option icon="camera" title="Take a photo" sub="Lay it flat on a plain surface" recommended onPress={() => fromPicker(true)} />
+          <Option icon="photos" title="Choose from Photos" sub="Any photo of the piece" onPress={() => fromPicker(false)} />
+          {canFind ? (
+            <Option icon="paste" title="Paste a photo" sub="Copy a photo of the piece in another app, then paste it here" onPress={paste} />
+          ) : (
+            <Option icon="paste" title="Paste a cutout" sub="In Photos, touch and hold the piece, tap Copy, then paste here" onPress={paste} />
+          )}
+          <Option icon="pencil" title="Describe it" sub="Pick the type and color; we draw it for you" onPress={() => setStep(one())} />
+          <Option icon="link" title="Product link" sub="Coming to the phone app; use the web app for now" disabled />
         </View>
+        {error ? <T style={{ color: C.warn }}>{error}</T> : null}
       </ModalScreen>
     );
+  })();
 
   return (
-    <ModalScreen eyebrow="Add pieces">
-      <T v="h2">Add pieces</T>
-      <T>{canCutOut ? 'A photo is fastest for anything you own. The background is cut out on your phone.' : 'A photo is fastest for anything you own. For a clean cutout, paste one from Photos.'}</T>
-      <View style={{ gap: 10 }}>
-        <Option icon="camera" title="Take a photo" sub="Lay it flat on a plain surface" recommended onPress={() => fromPicker(true)} />
-        <Option icon="photos" title="Choose from Photos" sub="Any photo of the piece" onPress={() => fromPicker(false)} />
-        {canCutOut ? (
-          <Option icon="paste" title="Paste a photo" sub="Copy a photo of the piece in another app, then paste it here" onPress={paste} />
-        ) : (
-          <Option icon="paste" title="Paste a cutout" sub="In Photos, touch and hold the piece, tap Copy, then paste here" onPress={paste} />
-        )}
-        <Option icon="pencil" title="Describe it" sub="Pick the type and color; we draw it for you" onPress={() => setStep(one())} />
-        <Option icon="link" title="Product link" sub="Coming to the phone app; use the web app for now" disabled />
-      </View>
-      {error ? <T style={{ color: C.warn }}>{error}</T> : null}
-    </ModalScreen>
+    <View style={{ flex: 1 }}>
+      {screen}
+      {finder.host}
+    </View>
   );
 }
 
