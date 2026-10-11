@@ -3,14 +3,15 @@
    models and ONNX Runtime are downloaded, once, from the CDN. scripts/build-finder.mjs bundles this file into
    src/lib/finder-bundle.ts; ONNX Runtime itself is loaded here, at the version the web app uses. */
 
-import { findInPhoto } from '../../web/src/lib/vision/find';
+import { findInPhoto, findInProduct, findInProductPhoto, type Found, type Piece, type PhotoLoader } from '../../web/src/lib/vision/find';
 import { ORT_VERSION, ready, setModelBase } from '../../web/src/lib/vision/models';
+import type { TextLine } from '../../web/src/lib/page-text';
 import type { FinderReply, FinderRequest, FoundPiece } from './protocol';
 
 declare global {
   interface Window {
     ReactNativeWebView?: { postMessage(msg: string): void };
-    rotationFinder?: { handle(msg: FinderRequest): void };
+    rotationFinder?: { handle(msg: FinderRequest): void; photo(rid: string, data: string | null): void };
     /** Where the model files are; set by the page before this script runs. */
     ROTATION_MODELS?: string;
   }
@@ -18,13 +19,47 @@ declare global {
 
 const post = (msg: FinderReply) => window.ReactNativeWebView?.postMessage(JSON.stringify(msg));
 
-const runtime = new Promise<void>((resolve, reject) => {
-  const s = document.createElement('script');
-  s.src = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/ort.wasm.min.js`;
-  s.onload = () => resolve();
-  s.onerror = () => reject(new Error("Couldn't load ONNX Runtime"));
-  document.head.appendChild(s);
-});
+const script = (src: string) =>
+  new Promise<void>((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Couldn't load ${src}`));
+    document.head.appendChild(s);
+  });
+
+const runtime = script(`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/ort.wasm.min.js`);
+
+/* The text reader for screenshots: Tesseract, loaded the first time it's needed. About 7 MB with its English data,
+   which it keeps in the page's storage after that. */
+const TESSERACT = '7.0.0';
+type Box = { x0: number; y0: number; x1: number; y1: number };
+type OcrLine = { text: string; confidence: number; bbox: Box };
+type OcrWorker = { recognize(image: Blob, options: object, output: object): Promise<{ data: { blocks: { paragraphs: { lines: OcrLine[] }[] }[] | null } }> };
+let reader: Promise<OcrWorker> | null = null;
+const textReader = () => {
+  reader ??= script(`https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT}/dist/tesseract.min.js`).then(() =>
+    (window as unknown as { Tesseract: { createWorker(lang: string, oem: number, options: object): Promise<OcrWorker> } }).Tesseract.createWorker('eng', 1, {
+      workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT}/dist/worker.min.js`,
+      corePath: `https://cdn.jsdelivr.net/npm/tesseract.js-core@${TESSERACT}`,
+      langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',
+    }),
+  );
+  reader.catch(() => (reader = null));
+  return reader;
+};
+
+/** The lines of text in an image, in fractions of its width, leaving out what the reader wasn't sure of. */
+async function readText(image: Blob): Promise<TextLine[]> {
+  const bmp = await createImageBitmap(image);
+  const w = bmp.width;
+  bmp.close();
+  const { data } = await (await textReader()).recognize(image, {}, { blocks: true });
+  return (data.blocks ?? [])
+    .flatMap((b) => b.paragraphs.flatMap((p) => p.lines))
+    .filter((l) => l.confidence >= 50 && l.text.trim())
+    .map((l) => ({ text: l.text.trim(), x: l.bbox.x0 / w, y: l.bbox.y0 / w, w: (l.bbox.x1 - l.bbox.x0) / w, h: (l.bbox.y1 - l.bbox.y0) / w }));
+}
 
 if (window.ROTATION_MODELS) setModelBase(window.ROTATION_MODELS);
 
@@ -36,25 +71,69 @@ const dataUrl = (blob: Blob) =>
     r.readAsDataURL(blob);
   });
 
+/** Product photos come from the app, which downloads them: the page can't read store images itself. */
+const asking = new Map<string, (data: string | null) => void>();
+let asks = 0;
+const photoFromApp: PhotoLoader = (url) =>
+  new Promise((resolve) => {
+    const rid = `p${++asks}`;
+    asking.set(rid, (data) => {
+      asking.delete(rid);
+      if (!data) return resolve(null);
+      fetch(data)
+        .then((r) => r.blob())
+        .then(resolve, () => resolve(null));
+    });
+    post({ type: 'photo', rid, url });
+  });
+
+async function send(id: string, type: 'find' | 'product' | 'productPhoto', found: Found) {
+  const pieces: FoundPiece[] = [];
+  for (const p of found.pieces) pieces.push(await asFound(p));
+  const guess = found.pieces.findIndex((p) => p.id === found.guess);
+  post({ id, ok: true, type, sure: found.sure, guess: guess >= 0 ? guess : undefined, pieces });
+}
+
+const asFound = async (p: Piece): Promise<FoundPiece> => ({
+  label: p.label,
+  part: p.part,
+  rgb: p.rgb,
+  cutout: p.cutout,
+  together: !!p.together,
+  clipped: !!p.clipped,
+  photo: p.photo,
+  image: await dataUrl(p.blob),
+});
+
 async function handle(msg: FinderRequest) {
   try {
-    await runtime;
-    if (msg.type === 'warm') {
-      await ready();
-      return post({ id: msg.id, ok: true, type: 'warm' });
+    if (msg.type === 'warmText') {
+      await textReader();
+      return post({ id: msg.id, ok: true, type: 'warmText' });
     }
-    const found = await findInPhoto(await (await fetch(msg.image)).blob());
-    // The photo as it is comes last; the app offers that itself.
-    const cutouts = found.pieces.filter((p) => p.cutout);
-    const pieces: FoundPiece[] = [];
-    for (const p of cutouts)
-      pieces.push({ label: p.label, part: p.part, rgb: p.rgb, together: !!p.together, clipped: !!p.clipped, image: await dataUrl(p.blob) });
-    const guess = cutouts.findIndex((p) => p.id === found.guess);
-    post({ id: msg.id, ok: true, type: 'find', sure: found.sure, guess: guess >= 0 ? guess : undefined, pieces });
+    if (msg.type === 'text') return post({ id: msg.id, ok: true, type: 'text', lines: await readText(await (await fetch(msg.image)).blob()) });
+    await runtime;
+    switch (msg.type) {
+      case 'warm':
+        await ready();
+        return post({ id: msg.id, ok: true, type: 'warm' });
+      case 'find': {
+        const found = await findInPhoto(await (await fetch(msg.image)).blob());
+        // The photo as it is comes last; for someone's own photo the app offers that itself.
+        return send(msg.id, 'find', { ...found, pieces: found.pieces.filter((p) => p.cutout) });
+      }
+      case 'product': {
+        const found = await findInProduct(msg.urls, msg.hint, (done, total) => post({ type: 'progress', id: msg.id, done, total }), photoFromApp);
+        if (!found) return post({ id: msg.id, ok: false, type: 'error', error: "Couldn't load the product's photos." });
+        return send(msg.id, 'product', found);
+      }
+      case 'productPhoto':
+        return send(msg.id, 'productPhoto', { sure: false, pieces: await findInProductPhoto(msg.url, msg.index, msg.hint, photoFromApp) });
+    }
   } catch (e) {
-    post({ id: msg.id, ok: false, error: e instanceof Error ? e.message : String(e) });
+    post({ id: msg.id, ok: false, type: 'error', error: e instanceof Error ? e.message : String(e) });
   }
 }
 
-window.rotationFinder = { handle: (msg) => void handle(msg) };
+window.rotationFinder = { handle: (msg) => void handle(msg), photo: (rid, data) => asking.get(rid)?.(data) };
 post({ type: 'loaded' });

@@ -81,6 +81,8 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
 - **Adding pieces:**
   - Take a photo, choose one from Photos, or paste one.
   - Each piece is cut out of the photo on the phone: by the web app's piece finder everywhere, and with Apple's subject lifting too in the development build. A photo with several pieces asks which to add, and each gets its own details, starting from the type and color the finder saw. A pair, like shoes, can stay one piece.
+  - Paste a product link from any online store. The phone reads the page itself, with the web app's own reader, and the piece finder picks the product out of the page's photos. If it isn't sure, **Which one is it?** shows the cutouts and the page's photos to choose from. The details start filled in with the name, brand, store, price, type and color ([decision 019](../docs/process/decisions/019-product-links-on-the-phone.md)).
+  - A screenshot of a product page, chosen from Photos or pasted, fills in the name, brand, store and price from the text on it. Apple's text recognition reads it in the development build, and Tesseract in the finder's web view elsewhere ([decision 020](../docs/process/decisions/020-read-screenshots.md)).
   - Describe it, and Rotation draws it.
 - **More screens:** piece details, store comparison, the shopping list, and Settings (city, shopping suggestions, favorite stores).
 - **Your data:**
@@ -91,7 +93,8 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
 
 - **Dragging pieces in from other apps.** It needs another small Swift add-on in the development build.
 - **Apple's cutout on Android.** Android uses the piece finder only; ML Kit's subject segmentation would be the counterpart.
-- **Product links and Claude photo tagging.** They use the web app's server routes, which aren't hosted yet.
+- **Claude photo tagging.** It uses the web app's server route, with its API key, which isn't hosted yet.
+- **Share to Rotation** from Safari's share sheet, so a product link doesn't need copying. It needs the development build.
 - **The Closet report and How it works pages.**
 - **Accounts and sync,** so one closet shows up everywhere. Until then, back up on one device and restore on the other.
 
@@ -105,9 +108,10 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
 | `src/lib/store.tsx` | App state, mirroring the web store's actions |
 | `src/lib/files.ts` | Photos and backup files on the phone (`files.web.ts` for the browser preview) |
 | `src/lib/cutout.ts` | Cutting pieces out of photos: Apple's cutout when it's there, the piece finder for the rest |
-| `src/components/PieceFinder.tsx` | The hidden web view that runs the web app's piece finder |
+| `src/components/PieceFinder.tsx` | The hidden web view that runs the web app's piece finder, and downloads product photos for it |
+| `src/lib/product-link.ts` | Reading a product page on the phone with the web app's reader |
 | `finder/` | The finder page's script (`entry.ts`) and its messages (`protocol.ts`) |
 | `scripts/build-finder.mjs` | Bundles `finder/entry.ts` and `web/src/lib/vision` into `src/lib/finder-bundle.ts` |
-| `modules/cutout/` | The cutout's native module: `ios/Cutter.swift` does the cutting with Vision, `ios/CutoutModule.swift` connects it to the app |
+| `modules/cutout/` | The cutout's native module: `ios/Cutter.swift` does the cutting and `ios/TextReader.swift` reads text, both with Vision; `ios/CutoutModule.swift` connects them to the app |
 | `eas.json` | EAS Build profiles; `development` is the build with the cutout |
 | `metro.config.js` | Lets Metro load the shared code from `web/src/lib` |

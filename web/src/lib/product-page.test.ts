@@ -1,9 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { decode, readProductPage } from './product-page';
+import { decode, isChallengePage, readProductPage } from './product-page';
 
 const page = (head: string, body = '') => `<!doctype html><html><head>${head}</head><body>${body}</body></html>`;
 const ld = (data: unknown) => `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
 const url = new URL('https://shop.example.com/products/relaxed-linen-shirt');
+
+describe('isChallengePage', () => {
+  it('spots the bot checks stores send instead of the product', () => {
+    for (const title of ['Client Challenge', 'Access Denied', 'Just a moment...', 'Attention Required! | Cloudflare', 'Pardon Our Interruption', 'Robot or human?'])
+      expect(isChallengePage({ title })).toBe(true);
+  });
+  it('leaves product names alone', () => {
+    for (const title of ['The A&F Madeline Merino Wool-Blend Crew Sweater', 'Mid Rise Barrel Khakis', 'Access Denim Jacket'])
+      expect(isChallengePage({ title })).toBe(false);
+  });
+  it('reads a challenge page as one', () => {
+    const html = '<html><head><title>Client Challenge</title></head><body><noscript>Please enable JavaScript</noscript></body></html>';
+    expect(isChallengePage(readProductPage(html, new URL('https://www.abercrombie.com/shop/us/p/sweater-63566835')))).toBe(true);
+  });
+});
 
 describe('readProductPage', () => {
   it('reads name, brand, price and category from JSON-LD', () => {

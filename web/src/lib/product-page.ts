@@ -15,6 +15,13 @@ export interface ProductPage {
 
 export const MAX_IMAGES = 8;
 
+/** Bot checks and access-denied pages that some stores show, instead of the product, to anything but a full browser. */
+const CHALLENGE =
+  /^\s*(client challenge|access denied|just a moment|attention required|pardon our interruption|robot or human|are you a (robot|human)|security check|request rejected|checking your browser|please verify you are a human|bot verification)\b/i;
+
+/** The store sent a bot check instead of the product page. Rotation doesn't try to get past these. */
+export const isChallengePage = (page: Pick<ProductPage, 'title'>) => CHALLENGE.test(page.title);
+
 const ENTITIES: Record<string, string> = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', trade: '™', reg: '®' };
 
 export const decode = (s: string) =>
