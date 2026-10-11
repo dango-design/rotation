@@ -3,7 +3,16 @@
 
 import type { Finder } from './PieceFinder';
 
-const none: Finder = { available: false, status: 'failed', find: async () => null, findProduct: async () => null, findProductPhoto: async () => null, host: <></> };
+const none: Finder = {
+  available: false,
+  status: 'failed',
+  find: async () => null,
+  findProduct: async () => null,
+  findProductPhoto: async () => null,
+  warmText: () => {},
+  readText: async () => null,
+  host: <></>,
+};
 
 export const usePieceFinder = (): Finder => none;
 export type { Finder, Found } from './PieceFinder';

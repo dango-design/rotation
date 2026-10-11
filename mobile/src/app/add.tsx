@@ -3,7 +3,9 @@
    build, and with the web app's piece finder everywhere, Expo Go included. When a photo holds several pieces, you pick
    which to add and each gets its own details, starting from the type and color the finder saw; a pair can stay one
    piece. A product link is read on the phone (src/lib/product-link.ts) and the finder picks the product out of the
-   page's photos; when it isn't sure, you pick the cutout or another photo from the page, as on the web.
+   page's photos; when it isn't sure, you pick the cutout or another photo from the page, as on the web. A photo
+   from the library or a paste is also read for text, so a screenshot of a product page fills in its name, brand,
+   store and price (src/lib/cutout.ts readScreenshot, @core/page-text).
    Dragging pieces in from other apps still needs its own add-on (see mobile/README.md). */
 
 import * as Clipboard from 'expo-clipboard';
@@ -13,13 +15,13 @@ import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { nearestSwatch, TYPES } from '@core/catalog-meta';
-import { PART_TYPE } from '@core/garment-hints';
+import { hintFrom, PART_TYPE } from '@core/garment-hints';
 import { Icon, type IconName } from '@/components/Icon';
 import { ItemForm, type ItemFields } from '@/components/ItemForm';
 import { ModalScreen } from '@/components/ModalScreen';
 import { usePieceFinder } from '@/components/PieceFinder';
 import { Btn, T, tap } from '@/components/ui';
-import { canCutOut, couldntStart, findPieces, fromFinder, keptAsIs, looksLikePair, nothingFound, type Cut, type FinderCut, type Pieces } from '@/lib/cutout';
+import { canCutOut, couldntStart, findPieces, fromFinder, keptAsIs, looksLikePair, nothingFound, readScreenshot, type Cut, type FinderCut, type Pieces } from '@/lib/cutout';
 import { blockedNote, linkIn, readLink, type Product } from '@/lib/product-link';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/theme';
@@ -40,18 +42,25 @@ type Step =
 const one = (photo?: Cut, note?: string): FormStep => ({ kind: 'form', photo, queue: [], total: 1, note });
 
 /**
- * The details form's starting point: the type and color the finder saw, when it saw them. From a product page, also
- * its name, brand, store and price, and the type its name says, unless the finder saw a different kind of piece.
+ * The details form's starting point: the type and color the finder saw, when it saw them. From a product page or a
+ * screenshot of one, also its name, brand, store and price, and the type its name says, unless the finder saw a
+ * different kind of piece.
  */
 function fieldsFor(c?: Cut & { cutout?: boolean }, p?: Product): Partial<ItemFields> {
   const f: Partial<ItemFields> = { source: p ? 'link' : c ? 'photo' : 'manual' };
-  const fromName = p?.hint && (!c?.part || c.part === p.hint.part) ? (p.hint.type ?? PART_TYPE[p.hint.part]) : undefined;
+  const page = c?.page;
+  const hint = p?.hint ?? (page?.name ? hintFrom(page.name) : undefined);
+  const fromName = hint && (!c?.part || c.part === hint.part) ? (hint.type ?? PART_TYPE[hint.part]) : undefined;
   const type = fromName ?? (c?.part ? PART_TYPE[c.part] : undefined);
   if (type) {
     f.type = type;
     f.cat = TYPES[type].cat;
   }
   if (c?.rgb) f.colorName = nearestSwatch(...c.rgb).name;
+  if (!p && page) {
+    const brand = page.brand ?? page.store;
+    return { ...f, ...(page.name && { name: page.name }), ...(brand && { brand }), ...(page.store && page.store !== brand && { store: page.store }), ...(page.price && { price: page.price }) };
+  }
   if (!p) return f;
   return {
     ...f,
@@ -84,14 +93,24 @@ export default function AddScreen() {
     setStep({ kind: 'choose' });
   };
 
-  const withPhoto = async (photo: Cut, pasted: boolean) => {
-    if (!canFind) return setStep(one(photo, pasted ? undefined : keptAsIs));
+  /** A photo to add. One from the library or pasted may be a screenshot of a product page, so its text is read too. */
+  const withPhoto = async (photo: Cut, from: 'camera' | 'library' | 'paste') => {
+    if (!canFind) return setStep(one(photo, from === 'paste' ? undefined : keptAsIs));
     const mine = ++run.current;
     setStep({ kind: 'cutting', photo });
-    const cut = await findPieces(photo, finder);
+    const [cut, page] = await Promise.all([findPieces(photo, finder), from === 'camera' ? null : readScreenshot(photo, finder).catch(() => null)]);
     if (mine !== run.current) return;
-    if (cut === 'failed') return setStep(one(photo, couldntStart));
-    if (!cut || !cut.pieces.length) return setStep(one(photo, nothingFound));
+    if (cut === 'failed') return setStep(one({ ...photo, page: page ?? undefined }, couldntStart));
+    if (!cut || !cut.pieces.length) return setStep(one({ ...photo, page: page ?? undefined }, nothingFound));
+    if (page) {
+      // A screenshot is about one product: its text goes with the piece it names, and that piece is picked.
+      const part = page.name ? hintFrom(page.name)?.part : undefined;
+      const target = Math.max(0, cut.pieces.findIndex((p) => p.part === part));
+      const pieces = cut.pieces.map((p, i) => (i === target ? { ...p, page } : p));
+      const together = cut.together && { ...cut.together, page };
+      if (pieces.length === 1) return setStep(one(pieces[0]));
+      return setStep({ kind: 'pick', photo, cut: { pieces, together: together || undefined }, chosen: [target], together: false });
+    }
     if (cut.pieces.length === 1) return setStep(one(cut.pieces[0]));
     const together = looksLikePair(cut.pieces) && !!cut.together;
     setStep({ kind: 'pick', photo, cut, chosen: together ? [] : cut.pieces.map((_, i) => i), together });
@@ -103,11 +122,13 @@ export default function AddScreen() {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) return setError('Rotation needs the camera to photograph a piece. You can allow it in Settings, or pick a photo instead.');
     }
+    // Get the text reader ready while a photo is picked, in case it's a screenshot of a product page.
+    if (!camera && !canCutOut) finder.warmText();
     const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.9 };
     const res = camera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
     if (res.canceled || !res.assets?.[0]) return;
     const a = res.assets[0];
-    withPhoto({ uri: a.uri, width: a.width, height: a.height }, false);
+    withPhoto({ uri: a.uri, width: a.width, height: a.height }, camera ? 'camera' : 'library');
   };
 
   const paste = async () => {
@@ -120,7 +141,7 @@ export default function AddScreen() {
           ? 'There’s no image to paste yet. Copy a photo of the piece in another app, then come back and paste.'
           : 'There’s no image to paste yet. In Photos, touch and hold the piece until it lifts out, tap Copy, then come back and paste.',
       );
-    withPhoto({ uri: img.data, width: img.size.width, height: img.size.height }, true);
+    withPhoto({ uri: img.data, width: img.size.width, height: img.size.height }, 'paste');
   };
 
   const pasteLink = async () => {
@@ -204,6 +225,7 @@ export default function AddScreen() {
           <T v="h2">Check the details</T>
           <T>Type and color decide what it pairs with. Price makes cost per wear work.</T>
           {step.note ? <T v="small">{step.note}</T> : null}
+          {step.photo?.page && !step.product ? <T v="small">Filled in from the text in your screenshot. Check it before adding.</T> : null}
           {error ? <T style={{ color: C.warn }}>{error}</T> : null}
           {step.pick ? <Btn kind="default" size="sm" icon="camera" label="Change photo" style={{ alignSelf: 'flex-start' }} onPress={() => setStep(step.pick!)} /> : null}
           <ItemForm

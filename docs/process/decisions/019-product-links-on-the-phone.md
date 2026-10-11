@@ -31,7 +31,7 @@ A phone app isn't held to the browser's cross-site rules. The two pieces that ma
 
 **When a page can't be read,** Rotation says why: the link isn't a web link, the store blocked the request, the store took too long, or the page doesn't describe a product.
 
-**Some stores check for a full web browser before showing a page.** Abercrombie & Fitch sends a "Client Challenge" page instead of the product, and other stores send "Access Denied" or "Just a moment…". The shared reader recognizes these pages (`isChallengePage`), in both apps, and Rotation doesn't try to get past them. It names the store and suggests a screenshot of the product page, added with **Choose from Photos**; the piece finder cuts the piece out of the screenshot.
+**Some stores check for a full web browser before showing a page.** Abercrombie & Fitch sends a "Client Challenge" page instead of the product, and other stores send "Access Denied" or "Just a moment…". The shared reader recognizes these pages (`isChallengePage`), in both apps, and Rotation doesn't try to get past them. It names the store and suggests a screenshot of the product page, added with **Choose from Photos**; the piece finder cuts the piece out of the screenshot, and since [020](020-read-screenshots.md) its name, brand, store and price are read from the screenshot's text.
 
 **A logo is never offered as the product.** When none of the page's photos shows a piece, Rotation says so instead of showing a picker. When the page still looks like a real product, with a price or a garment named, it offers **Use the page's details without a photo**, and the piece is drawn from its type and color.
 

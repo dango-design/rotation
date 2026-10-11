@@ -27,6 +27,18 @@ public class CutoutModule: Module {
       }
       return out
     }
+
+    // The lines of text in a photo, for screenshots of product pages.
+    AsyncFunction("readTextAsync") { (uri: String, maxSide: Int) -> [[String: Any]] in
+      guard let source = URL(string: uri), source.isFileURL else {
+        throw NotAFileException(uri)
+      }
+      do {
+        return try TextReader.read(source, maxSide: maxSide).map { ["text": $0.text, "x": $0.x, "y": $0.y, "w": $0.w, "h": $0.h] }
+      } catch {
+        throw ReadFailedException(String(describing: error))
+      }
+    }
   }
 }
 
@@ -39,5 +51,11 @@ internal final class NotAFileException: GenericException<String> {
 internal final class CutFailedException: GenericException<String> {
   override var reason: String {
     "Couldn't cut the piece out of the photo: \(param)"
+  }
+}
+
+internal final class ReadFailedException: GenericException<String> {
+  override var reason: String {
+    "Couldn't read the text in the photo: \(param)"
   }
 }

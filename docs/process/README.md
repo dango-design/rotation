@@ -35,6 +35,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | [017](decisions/017-cut-out-pieces-on-the-phone.md) | Cut pieces out of photos on the iPhone with Apple's subject lifting | Oct 10, 2026 |
 | [018](decisions/018-piece-finder-on-the-phone.md) | Run the web app's piece finder on the phone, with Apple's cutout when it's there | Oct 10, 2026 |
 | [019](decisions/019-product-links-on-the-phone.md) | Read product links on the phone itself, with no server | Oct 10, 2026 |
+| [020](decisions/020-read-screenshots.md) | Fill in a piece's details from a screenshot of its product page | Oct 10, 2026 |
 
 ## Capturing a milestone
 

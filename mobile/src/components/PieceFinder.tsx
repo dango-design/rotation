@@ -8,6 +8,7 @@ import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { Hint } from '@core/garment-hints';
+import type { TextLine } from '@core/page-text';
 import type { FinderReply, FoundPiece } from '../../finder/protocol';
 import { forFinder } from '@/lib/cutout';
 import { FINDER_JS } from '@/lib/finder-bundle';
@@ -17,13 +18,19 @@ import { READER_HEADERS } from '@/lib/product-link';
 const MODELS = 'https://cdn.jsdelivr.net/gh/dango-design/rotation@eaaac184a41d814f2a2dd28575c9ce5bec7c88ab/web/public/models/';
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><script>window.ROTATION_MODELS=${JSON.stringify(MODELS)};</script><script>${FINDER_JS.replace(/<\/script/gi, '<\\/script')}</script></head><body></body></html>`;
 /** The first photo can wait on about 23 MB of downloads; a product page has several photos to check. */
-const TIMEOUT = { warm: 120_000, find: 120_000, product: 180_000, productPhoto: 120_000 };
+const TIMEOUT = { warm: 120_000, find: 120_000, product: 180_000, productPhoto: 120_000, warmText: 120_000, text: 120_000 };
 
 export type Found = { sure: boolean; guess?: number; pieces: FoundPiece[] };
 
 /** A reply to a request (everything but the page's own messages). */
 type Reply = Exclude<FinderReply, { type: 'loaded' | 'photo' | 'progress' }>;
-type Request = { type: 'warm' } | { type: 'find'; image: string } | { type: 'product'; urls: string[]; hint?: Hint } | { type: 'productPhoto'; url: string; index: number; hint?: Hint };
+type Request =
+  | { type: 'warm' }
+  | { type: 'find'; image: string }
+  | { type: 'product'; urls: string[]; hint?: Hint }
+  | { type: 'productPhoto'; url: string; index: number; hint?: Hint }
+  | { type: 'warmText' }
+  | { type: 'text'; image: string };
 type Pending = { done: (r: Reply | null) => void; progress?: (done: number, total: number) => void };
 
 export type Finder = {
@@ -36,6 +43,10 @@ export type Finder = {
   findProduct: (urls: string[], hint: Hint | undefined, onProgress?: (done: number, total: number) => void) => Promise<Found | null>;
   /** The product in one of the page's photos, picked by the person. */
   findProductPhoto: (url: string, index: number, hint: Hint | undefined) => Promise<Found | null>;
+  /** Start loading the text reader (about 7 MB the first time), e.g. while someone picks a photo. */
+  warmText: () => void;
+  /** The lines of text in a photo (a data URL). Null if the reader couldn't run. */
+  readText: (image: string) => Promise<TextLine[] | null>;
   /** Mount this once, anywhere in the screen. */
   host: React.ReactElement;
 };
@@ -104,7 +115,7 @@ export function usePieceFinder(): Finder {
   };
 
   const found = (r: Reply | null): Found | null => {
-    if (!r || !r.ok || r.type === 'warm') return null;
+    if (!r || !r.ok || !('pieces' in r)) return null;
     setStatus('ready');
     return { sure: r.sure, guess: r.guess, pieces: r.pieces };
   };
@@ -131,6 +142,11 @@ export function usePieceFinder(): Finder {
     find: async (image) => found(await ask({ type: 'find', image })),
     findProduct: async (urls, hint, onProgress) => found(await ask({ type: 'product', urls, hint }, onProgress)),
     findProductPhoto: async (url, index, hint) => found(await ask({ type: 'productPhoto', url, index, hint })),
+    warmText: () => void ask({ type: 'warmText' }),
+    readText: async (image) => {
+      const r = await ask({ type: 'text', image });
+      return r && r.ok && r.type === 'text' ? r.lines : null;
+    },
     host,
   };
 }
