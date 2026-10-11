@@ -7,7 +7,7 @@ import { fmt, todayISO } from './dates';
 import { SLOTS } from './engine';
 import { useStore } from './store';
 import { suggest } from './today';
-import type { Layout, OutfitSlots, Settings } from './types';
+import type { Background, Layout, OutfitSlots, Settings } from './types';
 import { skyWord } from './weather';
 
 export function useDays() {
@@ -27,10 +27,10 @@ export function useDays() {
   };
 
   /** Opens the outfit board beside the closet for a day: logging for a past day, planning for today or later. */
-  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; shuffle?: number; name?: string } = {}) => {
+  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; shuffle?: number; name?: string } = {}) => {
     const slots = opts.slots ?? {};
     const name = opts.name ?? (day === today ? "Today's outfit" : `${fmt(day, { weekday: 'long' })}'s outfit`);
-    st.build({ name, slots, layout: opts.layout, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle });
+    st.build({ name, slots, layout: opts.layout, bg: opts.bg, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle });
     router.push(st.href('/closet'));
   };
 

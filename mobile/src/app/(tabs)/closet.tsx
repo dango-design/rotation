@@ -157,13 +157,13 @@ export default function Closet() {
             <Card key={o.id} pad={10} style={{ width: (Math.min(width, 900) - GUTTER * 2 - GAP) / 2, gap: 8 }}>
               <Pressable
                 onPress={() => {
-                  st.setDraft({ name: o.name, slots: o.slots, layout: o.layout, focus: 'top' });
+                  st.setDraft({ name: o.name, slots: o.slots, layout: o.layout, bg: o.bg, focus: 'top' });
                   router.push('/builder');
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${o.name}`}
               >
-                <Flatlay slots={o.slots} layout={o.layout} />
+                <Flatlay slots={o.slots} layout={o.layout} outfitBg={o.bg} />
               </Pressable>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <T v="label" style={{ flex: 1, fontSize: 13 }} numberOfLines={1}>

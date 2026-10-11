@@ -12,7 +12,7 @@ import { useDays } from '@/lib/days';
 import { forSlot, SLOTS } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
-import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
+import { ExportOutfit, OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
 import { Icon, money, ShopSwitch, Tile } from './ui';
 
@@ -66,10 +66,10 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   const finishDay = () => {
     if (!day) return;
     if (day < today) {
-      st.requireAccount('log what you wore', () => (st.wear(slots, day, draft.layout), st.toast('Logged as worn'), backToDay()));
+      st.requireAccount('log what you wore', () => (st.wear(slots, day, draft.layout, draft.bg), st.toast('Logged as worn'), backToDay()));
     } else {
       st.requireAccount('plan this outfit', () => {
-        st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}) });
+        st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
         st.toast(day === today ? 'Planned for today' : `Planned for ${fmt(day, { weekday: 'long' })}`);
         backToDay();
       });
@@ -114,7 +114,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         </div>
       )}
 
-      <OutfitBoard slots={slots} layout={draft.layout} onLayout={(layout) => setDraft({ ...draft, layout })} onRemove={remove} onSelect={focus} onDrop={onPut} />
+      <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} />
 
       {trial.length > 0 && (
         <div className="board-status">
@@ -137,16 +137,17 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         <button
           className={day ? 'btn' : 'btn primary'}
           disabled={!ready}
-          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout), st.toast('Saved to your outfits')))}
+          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
         >
           Save outfit
         </button>
         {!day && (
-          <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout), st.toast('Logged as worn today')))}>
+          <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout, draft.bg), st.toast('Logged as worn today')))}>
             <Icon name="check" />
             Wear today
           </button>
         )}
+        <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} />
         <button className="btn ghost" onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
           Clear
         </button>
@@ -159,7 +160,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
             className="btn sm"
             disabled={!ready}
             onClick={() =>
-              st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout }), st.toast(`Planned for ${shortDate(planDate)}`)))
+              st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout, bg: draft.bg }), st.toast(`Planned for ${shortDate(planDate)}`)))
             }
           >
             <Icon name="planner" />

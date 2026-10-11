@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, waitFor } from 'storybook/test';
 import { OutfitBoard } from '@/components/OutfitBoard';
-import type { Layout, OutfitSlots, Slot } from '@/lib/types';
+import type { Background, Layout, OutfitSlots, Slot } from '@/lib/types';
 import { settled } from '../decorators';
 import { demoCloset, demoId as id } from '../fixtures';
 
@@ -14,12 +14,15 @@ import { demoCloset, demoId as id } from '../fixtures';
 function Canvas({ slots: initialSlots, layout: initialLayout, onLayout, onRemove }: { slots: OutfitSlots; layout?: Layout; onLayout: (l?: Layout) => void; onRemove: (s: Slot) => void }) {
   const [slots, setSlots] = useState(initialSlots);
   const [layout, setLayout] = useState(initialLayout);
+  const [bg, setBg] = useState<Background>();
   return (
     <div style={{ width: 380 }}>
       <OutfitBoard
         slots={slots}
         layout={layout}
+        bg={bg}
         onLayout={(l) => (setLayout(l), onLayout(l))}
+        onBg={setBg}
         onRemove={(s) => {
           const next = { ...slots };
           delete next[s];

@@ -4,14 +4,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useUI } from '@/components/Shell';
-import { DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
+import { boardProps, DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
+import { backgroundOf } from '@/lib/backgrounds';
 import { isAccessory, onePhrase, TYPES } from '@/lib/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, weekStart } from '@/lib/dates';
 import { useDays } from '@/lib/days';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
-import type { Layout, OutfitSlots } from '@/lib/types';
+import type { Background, Layout, OutfitSlots } from '@/lib/types';
 
 function greeting() {
   const h = new Date().getHours();
@@ -60,6 +61,7 @@ export default function Today() {
 
   const plan = st.plans.find((p) => p.date === day);
   const worn = st.wears.filter((w) => w.date === day).at(-1);
+  const heroBg = backgroundOf(worn ? worn.bg : plan?.bg, st.settings.board);
   const slots = worn?.slots ?? plan?.slots;
   const weekday = isToday ? 'today' : fmt(day, { weekday: 'long' });
   const dayName = isToday ? 'today' : fmt(day, { weekday: 'long', month: 'short', day: 'numeric' });
@@ -83,13 +85,13 @@ export default function Today() {
     setDay(d);
     setPicking(false);
   };
-  const finish = (name: string, s: OutfitSlots, layout?: Layout, logDay = day) => {
+  const finish = (name: string, s: OutfitSlots, layout?: Layout, bg?: Background, logDay = day) => {
     setPicking(false);
     if (logDay < today) {
-      st.requireAccount('log what you wore', () => (st.wear(s, logDay, layout), st.toast('Logged as worn')));
+      st.requireAccount('log what you wore', () => (st.wear(s, logDay, layout, bg), st.toast('Logged as worn')));
     } else {
       st.requireAccount('plan this outfit', () => {
-        st.setPlan(logDay, { name, slots: s, ...(layout ? { layout } : {}) });
+        st.setPlan(logDay, { name, slots: s, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
         st.toast(logDay === today ? 'Planned for today' : `Planned for ${fmt(logDay, { weekday: 'long' })}`);
       });
     }
@@ -150,6 +152,7 @@ export default function Today() {
             const dwx = st.weather?.days.find((x) => x.date === d);
             const s = w?.slots ?? p?.slots;
             const sl = w ? w.layout : p?.layout;
+            const sbg = w ? w.bg : p?.bg;
             const open = !s && d >= today;
             return (
               <button
@@ -173,7 +176,7 @@ export default function Today() {
                   )}
                 </span>
                 {s ? (
-                  <Flatlay slots={s} layout={sl} />
+                  <Flatlay slots={s} layout={sl} bg={sbg} />
                 ) : (
                   <span className="strip-empty">
                     {open ? <Icon name="plus" /> : '–'}
@@ -189,8 +192,8 @@ export default function Today() {
       <section className={`today-grid ${lead ? '' : 'solo'}`}>
         {slots ? (
           <article className="card hero">
-            <div className="hero-visual">
-              <Flatlay slots={slots} layout={worn ? worn.layout : plan?.layout} />
+            <div className="hero-visual" {...boardProps(heroBg)}>
+              <Flatlay slots={slots} layout={worn ? worn.layout : plan?.layout} bg={heroBg} />
             </div>
             <div className="hero-body">
               <div>
@@ -217,14 +220,14 @@ export default function Today() {
                     {day <= today && (
                       <button
                         className="btn primary"
-                        onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, day, plan?.layout), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn')))}
+                        onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, day, plan?.layout, plan?.bg), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn')))}
                       >
                         <Icon name="check" />
                         {isToday ? 'Wear this' : 'Wore it'}
                       </button>
                     )}
                     {!past && (
-                      <button className="btn" onClick={() => startPlanning(day, { slots: plan!.slots, layout: plan!.layout, name: plan!.name })}>
+                      <button className="btn" onClick={() => startPlanning(day, { slots: plan!.slots, layout: plan!.layout, bg: plan!.bg, name: plan!.name })}>
                         <Icon name="pencil" />
                         Change
                       </button>
@@ -344,8 +347,8 @@ export default function Today() {
               <p className="lede">{past ? 'Which of your saved outfits did you wear?' : 'Pick one of your saved outfits.'}</p>
               <div className="picker">
                 {st.outfits.map((o) => (
-                  <button key={o.id} onClick={() => finish(o.name, o.slots, o.layout)}>
-                    <Flatlay slots={o.slots} layout={o.layout} />
+                  <button key={o.id} onClick={() => finish(o.name, o.slots, o.layout, o.bg)}>
+                    <Flatlay slots={o.slots} layout={o.layout} bg={o.bg} />
                     {o.name}
                   </button>
                 ))}

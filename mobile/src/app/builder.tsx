@@ -56,7 +56,7 @@ export default function Builder() {
   // The canvas takes what's left once the header, the day's row, the tray and the buttons have their room.
   // Narrower than about 380pt, Surprise me wraps under the tray toggle and takes another row.
   const reserved = insets.top + insets.bottom + (ahead ? (width < 380 ? 502 : 460) : 430);
-  const canvasW = Math.max(220, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
+  const canvasW = Math.max(150, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
 
   const close = () => (router.canGoBack() ? router.back() : router.replace(day ? '/' : '/closet'));
   /** Leaves a day being planned and goes back to it on Today. */
@@ -67,10 +67,10 @@ export default function Builder() {
   const finishDay = () => {
     if (!day) return;
     if (day < today) {
-      st.wear(slots, day, draft.layout);
+      st.wear(slots, day, draft.layout, draft.bg);
       st.toast('Logged as worn');
     } else {
-      st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}) });
+      st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
       st.toast(day === today ? 'Planned for today' : `Planned for ${fmt(day, { weekday: 'long' })}`);
     }
     leaveDay();
@@ -145,6 +145,7 @@ export default function Builder() {
           <OutfitCanvas
             slots={slots}
             layout={draft.layout}
+            bg={draft.bg}
             width={canvasW}
             onLayout={(layout) => setDraft({ ...draft, layout })}
             onRemove={remove}
@@ -248,7 +249,7 @@ export default function Builder() {
                 label="Save outfit"
                 disabled={!ready}
                 onPress={() => {
-                  st.saveOutfit(name, slots, draft.layout);
+                  st.saveOutfit(name, slots, draft.layout, draft.bg);
                   st.toast('Saved to your outfits');
                 }}
               />
@@ -263,7 +264,7 @@ export default function Builder() {
                 label="Wear today"
                 disabled={!ready}
                 onPress={() => {
-                  st.wear(slots, undefined, draft.layout);
+                  st.wear(slots, undefined, draft.layout, draft.bg);
                   st.toast('Logged as worn today');
                 }}
               />
@@ -274,7 +275,7 @@ export default function Builder() {
                 label="Save outfit"
                 disabled={!ready}
                 onPress={() => {
-                  st.saveOutfit(name, slots, draft.layout);
+                  st.saveOutfit(name, slots, draft.layout, draft.bg);
                   st.toast('Saved to your outfits');
                 }}
               />
@@ -292,7 +293,7 @@ export default function Builder() {
           return [d, label, existing ? `Replaces "${existing.name}"` : undefined] as [string, string, string?];
         })}
         onPick={(d) => {
-          st.setPlan(d, { name, slots, ...(draft.layout ? { layout: draft.layout } : {}) });
+          st.setPlan(d, { name, slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
           st.toast(d === today ? 'Planned for today' : `Planned for ${fmt(d, { weekday: 'long' })}`);
         }}
         onClose={() => setPlanning(false)}
