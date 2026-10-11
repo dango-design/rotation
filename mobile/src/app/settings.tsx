@@ -2,12 +2,13 @@
    from the browser to the phone and back until accounts and sync arrive. */
 
 import * as DocumentPicker from 'expo-document-picker';
+import * as Updates from 'expo-updates';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { KNOWN_STORES } from '@core/catalog-meta';
 import { todayISO } from '@core/dates';
 import { ModalScreen } from '@/components/ModalScreen';
-import { build, buildLabel, committedAt, runtime, server, version } from '@/components/BuildTag';
+import { build, buildLabel, committedAt, runtime, server, updateLabel, version } from '@/components/BuildTag';
 import { Btn, Card, FilterChip, SwitchRow, T } from '@/components/ui';
 import { readText, shareJson } from '@/lib/files';
 import { useStore } from '@/lib/store';
@@ -19,6 +20,7 @@ export default function SettingsScreen() {
   const [cityError, setCityError] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const [busy, setBusy] = useState('');
+  const { isUpdatePending } = Updates.useUpdates();
 
   const toggleStore = (s: string) => {
     const fav = st.settings.favoriteStores;
@@ -129,6 +131,13 @@ export default function SettingsScreen() {
             {build.branch && build.branch !== 'HEAD' ? `Branch ${build.branch} · ` : ''}commit {build.commit}
             {committedAt ? `, ${committedAt}` : ''}
           </T>
+        ) : null}
+        {updateLabel() ? <T v="small">{updateLabel()}</T> : null}
+        {isUpdatePending ? (
+          <>
+            <T v="small">A newer version has downloaded. It opens the next time Rotation starts.</T>
+            <Btn label="Restart now" onPress={() => Updates.reloadAsync()} />
+          </>
         ) : null}
         {build?.changed ? <T v="small">Includes changes that aren&apos;t committed yet.</T> : null}
         {server ? <T v="small">Running from {server}</T> : null}
