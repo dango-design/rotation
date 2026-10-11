@@ -57,7 +57,8 @@ export default function Builder() {
   const idea = ahead ? suggestFor(day, draft.shuffle ?? 0) : null;
 
   // The canvas takes what's left once the header, the day's row, the tray and the buttons have their room.
-  const reserved = insets.top + insets.bottom + (ahead ? 460 : 430);
+  // Narrower than about 380pt, Surprise me wraps under the tray toggle and takes another row.
+  const reserved = insets.top + insets.bottom + (ahead ? (width < 380 ? 502 : 460) : 430);
   const canvasW = Math.max(220, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
 
   const close = () => (router.canGoBack() ? router.back() : router.replace(day ? '/' : '/closet'));
@@ -172,8 +173,6 @@ export default function Builder() {
               {trial.length} to shop
             </T>
           )}
-          {/* Under the canvas, with the rest of the actions in reach. */}
-          {ahead && <Btn size="sm" icon="shuffle" label="Surprise me" onPress={surpriseMe} />}
         </View>
 
         <View style={{ flex: 1, gap: 8 }}>
@@ -186,6 +185,8 @@ export default function Builder() {
               value={tray}
               onChange={setTray}
             />
+            {/* Beside the tray toggle, with the rest of the actions in reach; on a narrow phone it wraps under it, still on the right. */}
+            {ahead && <Btn kind="ghost" size="sm" icon="shuffle" label="Surprise me" onPress={surpriseMe} style={{ marginLeft: 'auto' }} />}
           </View>
           {tray === 'closet' ? (
             <>
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, paddingBottom: 8 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, minHeight: 26 },
   verdict: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  trayBar: { paddingHorizontal: GUTTER, paddingTop: 2 },
+  trayBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingHorizontal: GUTTER, paddingTop: 2 },
   tray: { paddingHorizontal: GUTTER, gap: 10, paddingBottom: 4 },
   trayPiece: { width: 96, gap: 3 },
   on: { borderWidth: 2, borderColor: C.ink },
