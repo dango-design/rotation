@@ -63,6 +63,17 @@ export default function Closet() {
     }
     setDraft({ ...draft, slots: next, layout, focus: slot });
   };
+  /** A click takes a piece that's already on the board back off, and puts any other piece on. */
+  const toggle = (id: string) => {
+    const it = st.itemById(id);
+    if (!it || draft.slots[slotOf(it)] !== id) return put(id);
+    const slot = slotOf(it);
+    const slots = { ...draft.slots };
+    delete slots[slot];
+    const layout = draft.layout ? { ...draft.layout } : undefined;
+    if (layout) delete layout[slot];
+    setDraft({ ...draft, slots, layout, focus: slot });
+  };
   /** Adding pieces builds a closet, so signed out it asks to sign in first. */
   const addPieces = () => st.requireAccount('start your closet', () => ui.open({ type: 'add' }));
   const startOutfit = () => {
@@ -171,8 +182,8 @@ export default function Closet() {
                       className={`item-card ${state}`}
                       draggable={st.building}
                       onDragStart={(e) => e.dataTransfer.setData('text/plain', it.id)}
-                      onClick={() => (st.building ? put(it.id) : ui.open({ type: 'item', id: it.id }))}
-                      aria-label={st.building ? `Put ${it.name} on the board` : undefined}
+                      onClick={() => (st.building ? toggle(it.id) : ui.open({ type: 'item', id: it.id }))}
+                      aria-label={st.building ? (onBoard.has(it.id) ? `Take ${it.name} off the board` : `Put ${it.name} on the board`) : undefined}
                     >
                       {st.building ? (
                         onBoard.has(it.id) && (
