@@ -1,7 +1,9 @@
-/* The weather and the suggested outfit for a day, shared by Today and the day planner. Same rules as the web app. */
+/* The weather and the suggested outfit for a day, shared by Today and the outfit builder when it plans a day.
+   Same rules as the web app. */
 
 import { useRouter } from 'expo-router';
 import { fmt, todayISO } from '@core/dates';
+import { SLOTS } from '@core/engine';
 import { suggest } from '@core/today';
 import type { Layout, OutfitSlots, Settings } from '@core/types';
 import { skyWord, type Sky } from '@core/weather';
@@ -23,11 +25,12 @@ export function useDays() {
     return suggest(st.items, { occasion, today: date, shuffle: n, temp: wx?.temp, sky: wx?.sky, skyWord: wx?.word });
   };
 
-  /** Opens the day planner: logging for a past day, planning for today or later. */
-  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; offset?: number; name?: string } = {}) => {
-    const label = day === today ? "Today's outfit" : `${fmt(day, { weekday: 'long' })}'s outfit`;
-    st.setPlanSeed({ day, mode: day < today ? 'log' : 'plan', slots: opts.slots, layout: opts.layout, offset: opts.offset ?? 0, name: opts.name ?? label });
-    router.push('/plan');
+  /** Opens the outfit builder for a day: logging for a past day, planning for today or later. */
+  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; shuffle?: number; name?: string } = {}) => {
+    const slots = opts.slots ?? {};
+    const name = opts.name ?? (day === today ? "Today's outfit" : `${fmt(day, { weekday: 'long' })}'s outfit`);
+    st.setDraft({ name, slots, layout: opts.layout, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle });
+    router.push('/builder');
   };
 
   return { today, wxFor, suggestFor, startPlanning };

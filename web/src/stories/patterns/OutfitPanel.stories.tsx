@@ -51,16 +51,16 @@ export const Empty: Story = {
   },
 };
 
-/** A complete outfit that works, at true-to-life sizes. */
+/** A complete outfit, at true-to-life sizes. The board doesn't judge whether pieces go together. */
 export const Complete: Story = {
   parameters: { store: board({ name: 'Client presentation', slots: { outer: id('o2'), top: id('t3'), bottom: id('b1'), shoes: id('s2'), bag: id('a1') }, focus: 'bottom' }) },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('These work together')).toBeVisible();
+    await expect(canvas.queryByText('These work together')).toBeNull();
     await expect(canvas.getByRole('button', { name: 'Save outfit' })).toBeEnabled();
   },
 };
 
-/** Selecting a piece shows its tools; removing the shoes leaves an outfit that can still be saved, just not a complete one. */
+/** Selecting a piece shows its tools; removing the shoes leaves an outfit that can still be saved. */
 export const RemovingAPiece: Story = {
   ...Complete,
   play: async ({ canvas, args }) => {
@@ -68,16 +68,15 @@ export const RemovingAPiece: Story = {
     await expect(args.onFocus).toHaveBeenCalledWith('shoes');
     await userEvent.click(canvas.getByRole('button', { name: 'Remove from outfit' }));
     await expect(canvas.queryByRole('button', { name: 'Chelsea Boots' })).toBeNull();
-    await expect(canvas.queryByText('These work together')).toBeNull();
     await expect(canvas.getByRole('button', { name: 'Save outfit' })).toBeEnabled();
   },
 };
 
-/** Two colors that compete: the check says why. It's a hint; the outfit can still be worn. */
-export const Clash: Story = {
+/** Burgundy with rust: a bold pairing the old check would have flagged. Style is personal, so the board says nothing. */
+export const BoldPairing: Story = {
   parameters: { store: board({ name: 'Weekend', slots: { top: id('t9'), bottom: id('b2'), shoes: id('s1'), acc: id('a2') }, focus: 'acc' }) },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Burgundy and Rust compete for attention')).toBeVisible();
+    await expect(canvas.queryByText(/compete for attention/)).toBeNull();
     await expect(canvas.getByRole('button', { name: 'Wear today' })).toBeEnabled();
   },
 };

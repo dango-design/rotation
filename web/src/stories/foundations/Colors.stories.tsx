@@ -48,8 +48,8 @@ const GROUPS: { title: string; note: string; tokens: Token[] }[] = [
     title: 'Meaning',
     note: 'Status colors, each with a tint for backgrounds.',
     tokens: [
-      { name: '--good', use: '"These work together", worn, switches on' },
-      { name: '--good-tint', use: 'Background for good chips and verdicts' },
+      { name: '--good', use: 'Worn, switches on' },
+      { name: '--good-tint', use: 'Background for good chips' },
       { name: '--warn', use: 'Clashes, "You own this", destructive confirmation' },
       { name: '--warn-tint', use: 'Background for warnings' },
       { name: '--clay', use: 'The logo dot, favorite-store star, the plan button on an open day' },
@@ -147,8 +147,8 @@ const PAIRS: { fg: string; bg: string; where: string }[] = [
   { fg: '#ffffff', bg: '--clay', where: 'Plan button on an open day' },
   { fg: '--gap-ink', bg: '--gap-tint', where: 'Gap chips, banners, sync status' },
   { fg: '--gap', bg: '--panel', where: 'Text links' },
-  { fg: '--good', bg: '--good-tint', where: 'Good chips, "These work together"' },
-  { fg: '--warn', bg: '--warn-tint', where: 'Clash verdicts, "You own this"' },
+  { fg: '--good', bg: '--good-tint', where: 'Good chips' },
+  { fg: '--warn', bg: '--warn-tint', where: '"You own this"' },
   { fg: '--warn', bg: '--panel', where: 'Error notes, "Remove permanently"' },
   { fg: '--note-ink', bg: '--note-tint', where: 'Demo banner, Claude-suggested chip' },
 ];

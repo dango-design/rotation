@@ -6,7 +6,7 @@ import type { Layout, OutfitSlots, Slot } from '@/lib/types';
 import { settled } from '../decorators';
 import { demoCloset, demoId as id } from '../fixtures';
 
-/* The outfit canvas, shared by the day planner and the outfit board. It works like a design canvas: pieces start at
+/* The outfit canvas, the heart of the outfit board. It works like a design canvas: pieces start at
    true-to-life sizes (jeans come out taller than a tee, earrings small), and can be dragged, resized from a corner,
    and brought forward or sent back. Keyboard: arrows nudge, ] and [ restack, Delete removes, Escape deselects.
    Here the canvas keeps its own state, so every change sticks. */
