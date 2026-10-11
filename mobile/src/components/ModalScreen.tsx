@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, GUTTER } from '@/theme';
+import { BuildTag } from './BuildTag';
 import { IconBtn, T } from './ui';
 
 export function ModalScreen({ eyebrow, children, onClose }: { eyebrow?: string; children: React.ReactNode; onClose?: () => void }) {
@@ -20,6 +21,7 @@ export function ModalScreen({ eyebrow, children, onClose }: { eyebrow?: string; 
         </T>
         <IconBtn icon="x" label="Close" size={36} onPress={close} />
       </View>
+      <BuildTag style={styles.tag} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: insets.bottom + 32, gap: 16 }} keyboardShouldPersistTaps="handled">
         {children}
       </ScrollView>
@@ -29,4 +31,5 @@ export function ModalScreen({ eyebrow, children, onClose }: { eyebrow?: string; 
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: GUTTER, paddingBottom: 8 },
+  tag: { paddingHorizontal: GUTTER, marginTop: -6, marginBottom: 8 },
 });

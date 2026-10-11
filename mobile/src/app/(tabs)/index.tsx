@@ -14,6 +14,7 @@ import { Flatlay, Tile } from '@/components/Art';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
+import { BuildTag } from '@/components/BuildTag';
 import { Btn, Card, Chip, IconBtn, money, Row, SectionHead, T, tap } from '@/components/ui';
 import { useDays } from '@/lib/days';
 import { useStore } from '@/lib/store';
@@ -318,6 +319,7 @@ function Header() {
         </T>
         <IconBtn icon="settings" label="Settings" size={38} onPress={() => router.push('/settings')} />
       </View>
+      <BuildTag style={{ marginTop: -6 }} />
       <T v="h1">{greeting()}</T>
       <Pressable style={styles.wxLine} disabled={!!st.weather} onPress={() => router.push('/settings')} accessibilityRole={st.weather ? 'text' : 'link'}>
         <Icon name={st.weather?.sky ?? 'cloud'} size={19} color={C.ink2} />
