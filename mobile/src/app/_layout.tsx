@@ -43,8 +43,7 @@ function App() {
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
         <Stack.Screen name="(tabs)" />
-        {/* The canvas screens take the whole screen, so a drag never pulls the screen down by accident. */}
-        <Stack.Screen name="plan" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        {/* The canvas screen takes the whole screen, so a drag never pulls the screen down by accident. */}
         <Stack.Screen name="builder" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         <Stack.Screen name="item/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="add" options={{ presentation: 'modal' }} />

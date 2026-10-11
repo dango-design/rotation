@@ -681,7 +681,6 @@ a.nav-item { text-decoration: none; }
 .prose { max-width: 720px; display: flex; flex-direction: column; gap: 14px; }
 .prose h2 { font: 28px/1.1 var(--serif); font-weight: 400; margin-top: 16px; }
 .prose p, .prose li { color: var(--ink-2); font-size: 15px; }
-.occasion-seg { margin-top: 10px; }
 @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
 
 /* ---------- Week strip (Today) ---------- */
@@ -722,6 +721,10 @@ a.nav-item { text-decoration: none; }
 .panel-head .icon-btn svg { width: 16px; height: 16px; }
 .outfit-name { font: 30px/1.05 var(--serif); border: 0; background: transparent; padding: 0; width: 100%; color: inherit; }
 .panel-hint { font-size: 12.5px; color: var(--ink-3); }
+.panel-head .eyebrow.for-day { color: var(--clay-ink); }
+/* Planning a day: the forecast and "Surprise me" under the hint. */
+.panel-day { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.panel-day .callout-wx { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
 .outfit-panel .board { flex: none; border-radius: 14px; }
 .outfit-panel .board-status { font-size: 12.5px; }
 .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -765,51 +768,9 @@ a.nav-item { text-decoration: none; }
 .plan-callout.is-past .eyebrow { color: var(--ink-3); }
 .plan-callout.is-past .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 
-.day-planner { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
-.planner-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.planner-head .eyebrow { color: var(--clay-ink); }
-.planner-head .outfit-name { font-size: 34px; }
-.planner-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; align-items: stretch; }
-.planner-board { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.planner-board .board { width: 100%; }
-/* The canvas sets the planner's height and the pieces scroll beside it, so the outfit is the biggest thing here and
-   reaches the bottom of the planner. Size containment keeps the pieces from stretching the row past the canvas. */
-.planner-steps { contain: size; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
-.planner-steps .step-grid { flex: 1; min-height: 0; margin-top: 0; overflow-y: auto; align-content: start; padding: 2px 6px 6px 2px; }
-.step-sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.step-sub .step-hint { margin: 0; flex: 1; }
-.step-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-.step-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--panel); font-size: 13px; font-weight: 600; color: var(--ink-2); }
-.step-tabs button svg { width: 14px; height: 14px; color: var(--good); }
-.step-tabs button small { font-size: 11px; font-weight: 500; color: var(--ink-3); }
-.step-tabs button.active { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
-.step-tabs button.active svg { color: var(--on-ink); }
-.step-tabs button.active small { color: color-mix(in srgb, var(--on-ink) 65%, transparent); }
-.step-tabs button:disabled { opacity: 0.45; cursor: default; }
-.step-hint { font-size: 13px; color: var(--ink-3); margin-top: 12px; }
-.step-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 14px; margin-top: 14px; }
-.step-piece { position: relative; border: 0; padding: 0; background: none; text-align: left; display: flex; flex-direction: column; gap: 4px; }
-.step-piece .tile { transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 4px; }
-.step-piece:hover .tile { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(28, 27, 25, 0.1); }
-.step-piece.on .tile { box-shadow: inset 0 0 0 2px var(--ink); }
-.step-piece.faded .tile, .step-piece.faded .step-name, .step-piece.faded .step-why { opacity: 0.38; }
-.step-name { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
-.step-why { font-size: 11.5px; color: var(--ink-3); }
-.suggest-badge { position: absolute; top: 7px; left: 7px; z-index: 1; display: inline-flex; align-items: center; gap: 4px; height: 21px; padding: 0 8px; border-radius: 99px; background: var(--clay); color: #fff; font-size: 10.5px; font-weight: 600; box-shadow: 0 3px 8px rgba(181, 83, 44, 0.3); }
-.suggest-badge svg { width: 11px; height: 11px; }
-.suggest-badge ~ .step-why { color: var(--clay-ink); font-weight: 500; }
-.planner-foot { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
-.planner-foot .spacer { flex: 1; }
-
 @media (max-width: 900px) {
   .plan-callout { padding: 22px 20px; }
   .callout-body h2 { font-size: 34px; }
-  .planner-body { grid-template-columns: 1fr; }
-  .planner-board .board { width: min(300px, 100%); margin: 0 auto; }
-  /* Stacked, the pieces flow under the canvas instead of scrolling beside it. */
-  .planner-steps { contain: none; }
-  .planner-steps .step-grid { overflow: visible; }
-  .planner-head .outfit-name { font-size: 28px; }
 }
 
 /* The outfit card stays side by side until a phone is too narrow for both halves. */
@@ -817,7 +778,6 @@ a.nav-item { text-decoration: none; }
   .hero { grid-template-columns: 1fr; }
   .hero-visual { border-radius: var(--radius) var(--radius) 0 0; }
 }
-.step-sort { height: 34px; }
 
 /* ---------- Outfit canvas ---------- */
 .canvas { touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }

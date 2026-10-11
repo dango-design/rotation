@@ -1,5 +1,5 @@
 /* Today: the day view and the week planner in one, as on the web. The strip picks a day; a day with nothing
-   planned asks for an outfit, which is built piece by piece in the day planner. */
+   planned asks for an outfit, which is built in the outfit builder like any other outfit. */
 
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -213,7 +213,7 @@ export default function Today() {
             {past ? `Nothing logged · ${dayName}` : `Nothing planned · ${dayName}`}
           </T>
           <T v="h2">{past ? `What did you wear on ${weekday}?` : isToday ? "Today's a blank canvas." : `${weekday}'s a blank canvas.`}</T>
-          <T>{past ? 'Log it piece by piece so Rotation knows what you reach for.' : 'Start with a piece you feel like wearing. Rotation suggests what goes with it as you build.'}</T>
+          <T>{past ? 'Put what you wore on the canvas so Rotation knows what you reach for.' : "Start with any piece you feel like wearing. Pieces that don't go with it fade as you build."}</T>
           {!past && wx && (
             <View style={styles.wxLine}>
               <Icon name={wx.sky} size={18} color={C.ink2} />
@@ -227,7 +227,7 @@ export default function Today() {
             <Btn kind="primary" icon="plus" label={past ? 'Log an outfit' : `Plan ${isToday ? "today's" : `${weekday}'s`} outfit`} onPress={() => startPlanning(day)} />
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {st.outfits.length > 0 && <Btn grow label="Use a saved outfit" onPress={() => setPicking(true)} />}
-              {!past && idea && <Btn grow kind="ghost" icon="shuffle" label="Surprise me" onPress={() => startPlanning(day, { slots: idea.slots, offset: 1 })} />}
+              {!past && idea && <Btn grow kind="ghost" icon="shuffle" label="Surprise me" onPress={() => startPlanning(day, { slots: idea.slots, shuffle: 1 })} />}
             </View>
           </View>
         </Card>

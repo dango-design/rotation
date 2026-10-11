@@ -2,7 +2,7 @@
 
 The phone app, built with React Native and Expo (SDK 57). Why React Native: [decision 009](../docs/process/decisions/009-react-native-phone-app.md).
 
-It shares the web app's engine. Everything in `web/src/lib` that decides what to wear or buy is imported as `@core/*`: pairing rules, Outfit Unlock, Today's suggestions, the planner's steps, the canvas layout, the garment drawings and the demo closet. Both apps give the same answers for the same closet. Only storage and screens are written for the phone.
+It shares the web app's engine. Everything in `web/src/lib` that decides what to wear or buy is imported as `@core/*`: pairing rules, Outfit Unlock, Today's suggestions, the canvas layout, the garment drawings and the demo closet. Both apps give the same answers for the same closet. Only storage and screens are written for the phone.
 
 ## Try it on your phone
 
@@ -66,14 +66,11 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
 ## What's in it
 
 - **Today, Closet and Fill the gap,** with the system tab bar on iOS and Android.
-- **Day planner:**
-  - Opens full screen, with the canvas on top and each step's pieces in a tray below.
-  - Suggested pieces are badged, and pieces that clash are faded.
-  - Occasion, Surprise me and sorting work as on the web.
 - **Outfit builder:**
   - Opens full screen, with your closet as the tray.
   - A Shop the gap tray offers pieces you could try on the canvas before buying them.
   - Save, wear today, or plan the outfit for any of the next two weeks.
+  - Planning a day from Today opens the same builder for that day, with the forecast, Surprise me, and Plan for that day (or Log as worn, for a past day).
 - **The canvas:**
   - Tap a tray piece to add it, or touch and hold it and drag it onto the canvas.
   - Drag pieces to move them.

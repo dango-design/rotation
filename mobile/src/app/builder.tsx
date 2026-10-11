@@ -1,6 +1,7 @@
 /* The outfit builder, phone first: the canvas fills the top of the screen and your closet is the tray below it.
    Tap a piece to put it on, or touch and hold it and drag it onto the canvas. Pieces that don't go with the outfit
-   fade and sort to the end, and Shop the gap offers pieces you could try on the canvas before buying them. */
+   fade and sort to the end, and Shop the gap offers pieces you could try on the canvas before buying them.
+   Started from a day on Today, the same builder plans that day (or logs it, for a past day). */
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -29,7 +30,7 @@ export default function Builder() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const { today } = useDays();
+  const { today, wxFor, suggestFor } = useDays();
   const { draft, setDraft } = st;
   const [tray, setTray] = useState<'closet' | 'shop'>('closet');
   const [cat, setCat] = useState<Cat | 'all'>('all');
@@ -48,10 +49,35 @@ export default function Builder() {
   const dressOn = st.wearableById(slots.top)?.cat === 'dress';
   const shop = st.settings.showShop ? forSlot(draft.focus, slots, st.items, st.catalog).shop : [];
 
-  const reserved = insets.top + insets.bottom + 430;
+  const day = draft.date;
+  const dayLabel = day === today ? 'today' : day ? fmt(day, { weekday: 'long' }) : '';
+  const wx = day && day >= today ? wxFor(day) : undefined;
+  const idea = day && day >= today ? suggestFor(day, draft.shuffle ?? 0) : null;
+
+  // The canvas takes what's left once the header, the day's row, the tray and the buttons have their room.
+  const reserved = insets.top + insets.bottom + (wx || idea ? 470 : 430);
   const canvasW = Math.max(220, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
 
-  const close = () => (router.canGoBack() ? router.back() : router.replace('/closet'));
+  const close = () => (router.canGoBack() ? router.back() : router.replace(day ? '/' : '/closet'));
+  /** Leaves a day being planned and goes back to it on Today. */
+  const leaveDay = () => {
+    setDraft({ ...draft, date: undefined, shuffle: undefined });
+    close();
+  };
+  const finishDay = () => {
+    if (!day) return;
+    if (day < today) {
+      st.wear(slots, day, draft.layout);
+      st.toast('Logged as worn');
+    } else {
+      st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}) });
+      st.toast(day === today ? 'Planned for today' : `Planned for ${fmt(day, { weekday: 'long' })}`);
+    }
+    leaveDay();
+  };
+  const surpriseMe = () => {
+    if (idea) setDraft({ ...draft, slots: idea.slots, layout: undefined, focus: 'top', shuffle: (draft.shuffle ?? 0) + 1 });
+  };
   const put = (id: string, at?: { x: number; y: number }) => {
     const w = st.wearableById(id);
     if (!w) return;
@@ -67,13 +93,32 @@ export default function Builder() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <CarryProvider onDrop={put} style={{ paddingTop: insets.top + 8 }}>
         <View style={styles.head}>
-          <IconBtn icon="x" label="Close" size={38} onPress={close} />
+          <IconBtn icon="x" label={day ? 'Cancel' : 'Close'} size={38} onPress={day ? leaveDay : close} />
           <View style={{ flex: 1 }}>
-            <T v="eyebrow">Building an outfit</T>
+            <T v="eyebrow" style={day ? { color: C.clayInk } : undefined}>
+              {!day ? 'Building an outfit' : day < today ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}
+            </T>
             <TextInput value={draft.name} onChangeText={(t) => setDraft({ ...draft, name: t })} style={styles.name} accessibilityLabel="Outfit name" returnKeyType="done" />
           </View>
-          {pieces.length > 0 && <Btn kind="ghost" size="sm" label="Clear" onPress={() => setDraft({ name: 'New outfit', slots: {}, focus: 'top' })} />}
+          {pieces.length > 0 && (
+            <Btn kind="ghost" size="sm" label="Clear" onPress={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })} />
+          )}
         </View>
+        {(wx || idea) && (
+          <View style={styles.dayRow}>
+            {wx ? (
+              <View style={styles.verdict}>
+                <Icon name={wx.sky} size={15} color={C.ink2} />
+                <T v="small" style={{ flex: 1 }} numberOfLines={2}>
+                  {wx.temp}° and {wx.word}: {wx.temp >= 66 ? 'warm enough to skip a layer.' : 'a layer will help.'}
+                </T>
+              </View>
+            ) : (
+              <View style={{ flex: 1 }} />
+            )}
+            {idea && <Btn size="sm" icon="shuffle" label="Surprise me" onPress={surpriseMe} />}
+          </View>
+        )}
 
         <View style={{ alignItems: 'center', paddingHorizontal: GUTTER }}>
           <OutfitCanvas
@@ -190,27 +235,45 @@ export default function Builder() {
         </View>
 
         <View style={[styles.foot, { paddingBottom: insets.bottom + 10 }]}>
-          <Btn
-            size="sm"
-            icon="check"
-            label="Wear today"
-            disabled={!ready}
-            onPress={() => {
-              st.wear(slots, undefined, draft.layout);
-              st.toast('Logged as worn today');
-            }}
-          />
-          <Btn size="sm" icon="planner" label="Plan" disabled={!ready} onPress={() => setPlanning(true)} />
-          <View style={{ flex: 1 }} />
-          <Btn
-            kind="primary"
-            label="Save outfit"
-            disabled={!ready}
-            onPress={() => {
-              st.saveOutfit(name, slots, draft.layout);
-              st.toast('Saved to your outfits');
-            }}
-          />
+          {day ? (
+            <>
+              <Btn
+                size="sm"
+                label="Save outfit"
+                disabled={!ready}
+                onPress={() => {
+                  st.saveOutfit(name, slots, draft.layout);
+                  st.toast('Saved to your outfits');
+                }}
+              />
+              <View style={{ flex: 1 }} />
+              <Btn kind="primary" icon={day < today ? 'check' : 'planner'} label={day < today ? 'Log as worn' : `Plan for ${dayLabel}`} disabled={!ready} onPress={finishDay} />
+            </>
+          ) : (
+            <>
+              <Btn
+                size="sm"
+                icon="check"
+                label="Wear today"
+                disabled={!ready}
+                onPress={() => {
+                  st.wear(slots, undefined, draft.layout);
+                  st.toast('Logged as worn today');
+                }}
+              />
+              <Btn size="sm" icon="planner" label="Plan" disabled={!ready} onPress={() => setPlanning(true)} />
+              <View style={{ flex: 1 }} />
+              <Btn
+                kind="primary"
+                label="Save outfit"
+                disabled={!ready}
+                onPress={() => {
+                  st.saveOutfit(name, slots, draft.layout);
+                  st.toast('Saved to your outfits');
+                }}
+              />
+            </>
+          )}
         </View>
       </CarryProvider>
 
@@ -235,6 +298,7 @@ export default function Builder() {
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: GUTTER, paddingBottom: 10 },
   name: { fontFamily: F.serif, fontSize: 26, lineHeight: 30, color: C.ink, padding: 0, marginTop: 2 },
+  dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, paddingBottom: 10 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, minHeight: 26 },
   verdict: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   trayBar: { paddingHorizontal: GUTTER, paddingTop: 2 },

@@ -4,13 +4,10 @@ import { demoData } from './demo';
 import { TYPES } from './catalog-meta';
 import { check, duplicate, fitsBoard, isComplete, rankPieces, slotOf, totalOutfits, unlock, whyLine } from './engine';
 import { garmentSvg } from './garments';
-import { nextStep, piecesFor } from './planning';
-import { RANGE } from './today';
-import { daysBetween } from './dates';
 import type { GarmentType, Item } from './types';
 
-/** The day the planning tests plan for. The demo closet dates its wears back from the clock, so it's built as of
-    this day too; otherwise which pieces count as worn this week would depend on the day the tests run. */
+/** The demo closet dates its wears back from the clock, so it's built as of a fixed day; otherwise its wear
+    history would depend on the day the tests run. */
 const TODAY = '2026-10-07';
 vi.useFakeTimers({ toFake: ['Date'] });
 vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
@@ -83,57 +80,6 @@ describe('fitting pieces to the board', () => {
   });
   it('lets a dress replace the bottom', () => {
     expect(fitsBoard(pieceById('p-dress-black')!, { bottom: byShort('b2').id }, byId)).toBe(true);
-  });
-});
-
-describe('planning a day piece by piece', () => {
-  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
-  const opts = { occasion: 'work' as const, today: TODAY };
-  it('suggests two pieces that work with the picks so far', () => {
-    const slots = { top: byShort('t8').id };
-    const rows = piecesFor('bottom', slots, items, byId, opts);
-    const suggested = rows.filter((r) => r.suggested);
-    expect(suggested).toHaveLength(2);
-    expect(suggested.every((r) => r.fits)).toBe(true);
-    expect(rows.findIndex((r) => !r.fits)).toBeGreaterThan(rows.findLastIndex((r) => r.fits));
-  });
-  it('asks for the required pieces first, then the optional ones', () => {
-    expect(nextStep({}, byId)).toBe('top');
-    expect(nextStep({ top: byShort('t8').id }, byId)).toBe('bottom');
-    expect(nextStep({ top: byShort('t8').id, bottom: byShort('b2').id, shoes: byShort('s1').id }, byId)).toBe('outer');
-  });
-  it('skips the bottom when a dress is picked', () => {
-    expect(nextStep({ top: 'p-dress-black' }, byId)).toBe('shoes');
-  });
-});
-
-describe('the occasion shapes suggestions', () => {
-  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
-  const top = (occasion: 'casual' | 'work' | 'dressy') =>
-    piecesFor('top', {}, items, byId, { occasion, today: TODAY }).filter((r) => r.suggested).map((r) => r.item.f);
-  it("suggests tops at the occasion's own formality", () => {
-    for (const occasion of ['casual', 'work', 'dressy'] as const) {
-      const [lo, hi] = RANGE[occasion];
-      const fs = top(occasion);
-      if (occasion !== 'dressy') expect(fs).toHaveLength(2);
-      expect(fs.every((f) => f >= lo && f <= hi) || occasion === 'dressy').toBe(true);
-    }
-    expect(top('casual')).not.toEqual(top('work'));
-  });
-});
-
-describe('suggestions follow the season, not just the calendar', () => {
-  const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
-  const suggestedTops = (temp?: number) =>
-    piecesFor('top', {}, items, byId, { occasion: 'work', today: TODAY, temp }).filter((r) => r.suggested).map((r) => r.item);
-  it("doesn't push a sweater on a hot day just because it hasn't been worn", () => {
-    expect(suggestedTops(84).some((i) => i.type === 'sweater')).toBe(false);
-  });
-  it('suggests something warm on a cold day', () => {
-    expect(suggestedTops(48).some((i) => i.type === 'sweater')).toBe(true);
-  });
-  it("doesn't suggest a piece worn this week", () => {
-    expect(suggestedTops().every((i) => !i.lastWorn || daysBetween(i.lastWorn, TODAY) >= 7)).toBe(true);
   });
 });
 

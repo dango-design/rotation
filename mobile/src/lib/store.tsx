@@ -15,23 +15,16 @@ import * as persist from './persist';
 
 export const DEFAULT_SETTINGS: Settings = { city: '', favoriteStores: [], showShop: true, occasion: 'work' };
 
-/** The outfit on the board in the closet's outfit builder. */
+/** The outfit on the outfit builder's canvas. */
 export interface Draft {
   name: string;
   slots: OutfitSlots;
   layout?: Layout;
   focus: Slot;
-}
-
-/** What the day planner opens with. */
-export interface PlanSeed {
-  day: string;
-  mode: 'plan' | 'log';
-  slots?: OutfitSlots;
-  layout?: Layout;
-  name: string;
-  /** Moves "Surprise me" along, so a planner opened from a suggestion doesn't offer the same outfit again. */
-  offset: number;
+  /** The day to plan it for (or log it on, for a past day), when it was started from a day on Today. */
+  date?: string;
+  /** The next suggestion "Surprise me" offers for that day, so it doesn't repeat the one already on the canvas. */
+  shuffle?: number;
 }
 
 interface State {
@@ -79,7 +72,6 @@ function fromSnapshot(d: Partial<persist.Snapshot>): State {
 function useStoreValue() {
   const [s, setS] = useState<State>(EMPTY);
   const [draft, setDraft] = useState<Draft>({ name: 'New outfit', slots: {}, focus: 'top' });
-  const [planSeed, setPlanSeed] = useState<PlanSeed | null>(null);
   const [forecastFor, setForecastFor] = useState<{ key: string; data: Forecast | null } | null>(null);
   const [toastMsg, setToastMsg] = useState<{ text: string; n: number } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -133,7 +125,6 @@ function useStoreValue() {
   }, []);
   const leaveDemo = useCallback(() => {
     setDraft({ name: 'New outfit', slots: {}, focus: 'top' });
-    setPlanSeed(null);
     persist
       .load()
       .then((d) => setS(d ? fromSnapshot(d) : { ...EMPTY, ready: true }))
@@ -248,8 +239,6 @@ function useStoreValue() {
       skyWord: weather ? skyWord(weather.sky) : undefined,
       draft,
       setDraft,
-      planSeed,
-      setPlanSeed,
       toastMsg,
       toast,
       itemById,
@@ -272,7 +261,7 @@ function useStoreValue() {
       exportData,
       importData,
     }),
-    [s, weather, draft, planSeed, toastMsg, toast, itemById, wearableById, imageFor, startDemo, leaveDemo, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData],
+    [s, weather, draft, toastMsg, toast, itemById, wearableById, imageFor, startDemo, leaveDemo, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData],
   );
 }
 
