@@ -21,6 +21,8 @@ It shares the web app's engine. Everything in `web/src/lib` that decides what to
 
 For a quick look in a browser at phone size, run `npx expo start --web`, or use the `mobile-web` launch config. The browser preview is for checking screens; gestures and haptics feel right only on a phone.
 
+**Which version is this?** While testing, a small grey line at the top of each sheet and on Today shows what the copy is running, such as `feature/phone-product-links · 49fa0f9 · port 8082`: the branch, the commit (`+ changes` when there are uncommitted edits), and the dev server's port. 8081 is the usual copy; a test copy runs on another port. **Settings › This version** has the details. It comes from `app.config.js` when the dev server starts. The browser preview doesn't show it.
+
 Checks: `npm run typecheck` and `npm run lint`.
 
 ## Cut out backgrounds
@@ -31,7 +33,7 @@ Pieces are cut out of photos on the phone, in Expo Go too, by the web app's own 
 
 Rotation's own development build adds Apple's subject lifting, the same cutout Photos makes ([decision 017](../docs/process/decisions/017-cut-out-pieces-on-the-phone.md)). It's near-instant with cleaner edges, and the finder still splits pieces that touch. It's made in the cloud with EAS Build, so no Xcode is needed. It needs an iPhone on iOS 17 or later and an [Apple Developer Program](https://developer.apple.com/programs/) membership. Run these in `mobile/`:
 
-1. Link the app to your Expo account (once). This adds the project's ID to `app.json`, so commit that change:
+1. Link the app to your Expo account (once). This gives the project an ID to keep in `app.json`, under `extra.eas.projectId`. Since the config also has `app.config.js`, EAS may ask you to add it there yourself; then commit the change:
 
    ```bash
    npx eas-cli@latest init
