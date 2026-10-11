@@ -70,6 +70,26 @@ export const PlanningADay: Story = {
   },
 };
 
+/** Planning a day with no city set and no top, bottom and shoes that go together: the board asks for a city, and
+    Surprise me says what it needs instead of hiding. */
+export const PlanningWithoutACity: Story = {
+  parameters: {
+    store: () =>
+      demoCloset({
+        items: demoCloset().items!.filter((i) => i.cat !== 'shoes'),
+        weather: null,
+        settings: { ...demoCloset().settings, city: '' },
+        building: true,
+        draft: { name: "Saturday's outfit", slots: {}, focus: 'top', date: '2026-10-10' },
+      }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('link', { name: 'Add your city' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Surprise me' }));
+    await expect(canvas.getByRole('status')).toHaveTextContent(/Surprise me needs a top, bottom and shoes/);
+  },
+};
+
 /** A past day with nothing logged: the board logs what was worn. */
 export const LoggingAPastDay: Story = {
   parameters: {

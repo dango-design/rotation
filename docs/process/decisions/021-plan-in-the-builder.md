@@ -19,8 +19,8 @@ While it's set to a day:
 
 - **The header says so:** "Planning Saturday", or "Logging Tuesday" for a past day.
 - **The main button is "Plan for Saturday"** (or **Log as worn**). It saves the plan and goes back to that day on Today. Save outfit stays beside it.
-- **The forecast is shown,** with whether it calls for a layer.
-- **Surprise me** fills the canvas with a suggested outfit to adjust. Pressing it again offers a different one.
+- **The forecast is shown,** with whether it calls for a layer. With no city set, it asks for one; past the 7-day forecast, it says there's no forecast yet.
+- **Surprise me** fills the canvas with a suggested outfit to adjust. Pressing it again offers a different one. When the closet has no top, bottom and shoes that go together (or a dress and shoes), it says so instead of disappearing.
 - **Cancel** goes back to Today without planning anything.
 
 Everything else is the builder as it was: any piece, in any order, clashing pieces faded, and Shop the gap to try pieces you don't own. As before, an outfit with a piece still to buy can't be planned.

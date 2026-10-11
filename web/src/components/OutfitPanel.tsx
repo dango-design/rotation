@@ -4,6 +4,7 @@
    puts it on the board, so this panel only holds the board, its actions, and pieces to shop.
    Started from a day on Today, the same board plans that day (or logs it, for a past day). */
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { addDays, fmt, shortDate } from '@/lib/dates';
@@ -23,8 +24,10 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   const { draft, setDraft } = st;
   const day = draft.date;
   const dayLabel = day === today ? 'today' : day ? fmt(day, { weekday: 'long' }) : '';
-  const wx = day && day >= today ? wxFor(day) : undefined;
-  const idea = day && day >= today ? suggestFor(day, draft.shuffle ?? 0) : null;
+  // Planning today or later shows the day's forecast and Surprise me, or says what each still needs.
+  const ahead = !!day && day >= today;
+  const wx = ahead ? wxFor(day) : undefined;
+  const idea = ahead ? suggestFor(day, draft.shuffle ?? 0) : null;
   const [planDate, setPlanDate] = useState(addDays(today, 1));
   const slots = draft.slots;
   const pieces = SLOTS.filter((s) => slots[s]).map((s) => st.wearableById(slots[s])!).filter(Boolean);
@@ -53,7 +56,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
     setDraft({ ...draft, slots: next, focus: slot });
   };
   const surpriseMe = () => {
-    if (!idea) return;
+    if (!idea) return st.toast('Surprise me needs a top, bottom and shoes that go together, or a dress and shoes.');
     setDraft({ ...draft, slots: idea.slots, layout: undefined, focus: 'top', shuffle: (draft.shuffle ?? 0) + 1 });
   };
   /** Leaves the day: closes the board and goes back to that day on Today. */
@@ -85,20 +88,31 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
       </div>
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
       <p className="panel-hint">Click or drag pieces from your closet onto the board. Faded pieces don&apos;t go with this outfit.</p>
-      {(wx || idea) && (
+      {ahead && (
         <div className="panel-day">
-          {wx && (
+          {wx ? (
             <span className="callout-wx">
               <Icon name={wx.sky} />
               {wx.temp}° and {wx.word}: {wx.temp >= 66 ? 'warm enough to skip a layer.' : 'a layer will help.'}
             </span>
+          ) : !st.settings.city ? (
+            <span className="callout-wx">
+              <Icon name="cloud" />
+              <Link href={st.href('/settings')} className="link">
+                Add your city
+              </Link>
+              for the forecast
+            </span>
+          ) : (
+            <span className="callout-wx">
+              <Icon name="cloud" />
+              No forecast this far ahead yet.
+            </span>
           )}
-          {idea && (
-            <button className="btn sm ghost" onClick={surpriseMe}>
-              <Icon name="shuffle" />
-              Surprise me
-            </button>
-          )}
+          <button className="btn sm ghost" onClick={surpriseMe}>
+            <Icon name="shuffle" />
+            Surprise me
+          </button>
         </div>
       )}
 

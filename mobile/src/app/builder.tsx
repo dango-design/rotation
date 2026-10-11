@@ -5,7 +5,7 @@
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATS } from '@core/catalog-meta';
 import { addDays, fmt } from '@core/dates';
@@ -51,11 +51,13 @@ export default function Builder() {
 
   const day = draft.date;
   const dayLabel = day === today ? 'today' : day ? fmt(day, { weekday: 'long' }) : '';
-  const wx = day && day >= today ? wxFor(day) : undefined;
-  const idea = day && day >= today ? suggestFor(day, draft.shuffle ?? 0) : null;
+  // Planning today or later shows the day's forecast and Surprise me, or says what each still needs.
+  const ahead = !!day && day >= today;
+  const wx = ahead ? wxFor(day) : undefined;
+  const idea = ahead ? suggestFor(day, draft.shuffle ?? 0) : null;
 
   // The canvas takes what's left once the header, the day's row, the tray and the buttons have their room.
-  const reserved = insets.top + insets.bottom + (wx || idea ? 470 : 430);
+  const reserved = insets.top + insets.bottom + (ahead ? 470 : 430);
   const canvasW = Math.max(220, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
 
   const close = () => (router.canGoBack() ? router.back() : router.replace(day ? '/' : '/closet'));
@@ -76,7 +78,8 @@ export default function Builder() {
     leaveDay();
   };
   const surpriseMe = () => {
-    if (idea) setDraft({ ...draft, slots: idea.slots, layout: undefined, focus: 'top', shuffle: (draft.shuffle ?? 0) + 1 });
+    if (!idea) return st.toast('Surprise me needs a top, bottom and shoes that go together, or a dress and shoes.');
+    setDraft({ ...draft, slots: idea.slots, layout: undefined, focus: 'top', shuffle: (draft.shuffle ?? 0) + 1 });
   };
   const put = (id: string, at?: { x: number; y: number }) => {
     const w = st.wearableById(id);
@@ -104,7 +107,7 @@ export default function Builder() {
             <Btn kind="ghost" size="sm" label="Clear" onPress={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })} />
           )}
         </View>
-        {(wx || idea) && (
+        {ahead && (
           <View style={styles.dayRow}>
             {wx ? (
               <View style={styles.verdict}>
@@ -113,10 +116,25 @@ export default function Builder() {
                   {wx.temp}° and {wx.word}: {wx.temp >= 66 ? 'warm enough to skip a layer.' : 'a layer will help.'}
                 </T>
               </View>
+            ) : !st.settings.city ? (
+              <Pressable style={styles.verdict} onPress={() => router.push('/settings')} accessibilityRole="link">
+                <Icon name="cloud" size={15} color={C.ink2} />
+                <T v="small" style={{ flex: 1 }} numberOfLines={2}>
+                  <T v="small" style={{ color: C.ink, textDecorationLine: 'underline', fontFamily: F.medium }}>
+                    Add your city
+                  </T>{' '}
+                  for the forecast
+                </T>
+              </Pressable>
             ) : (
-              <View style={{ flex: 1 }} />
+              <View style={styles.verdict}>
+                <Icon name="cloud" size={15} color={C.ink3} />
+                <T v="small" style={{ flex: 1 }} numberOfLines={2}>
+                  No forecast this far ahead yet.
+                </T>
+              </View>
             )}
-            {idea && <Btn size="sm" icon="shuffle" label="Surprise me" onPress={surpriseMe} />}
+            <Btn size="sm" icon="shuffle" label="Surprise me" onPress={surpriseMe} />
           </View>
         )}
 
