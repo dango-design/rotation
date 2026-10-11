@@ -5,15 +5,15 @@ import { OutfitPanel } from '@/components/OutfitPanel';
 import { useUI } from '@/components/Shell';
 import { DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { CATS } from '@/lib/catalog-meta';
-import { cpw, fitsBoard, slotOf } from '@/lib/engine';
+import { cpw, slotOf } from '@/lib/engine';
 import { heightOf, resolveLayout, trueWidth } from '@/lib/layout';
 import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { Cat, Item, Slot } from '@/lib/types';
 
-type SortKey = 'recent' | 'worn' | 'least' | 'cpw' | 'fits';
+type SortKey = 'recent' | 'worn' | 'least' | 'cpw';
 
-const SORTS: Record<Exclude<SortKey, 'fits'>, [string, (a: Item, b: Item) => number]> = {
+const SORTS: Record<SortKey, [string, (a: Item, b: Item) => number]> = {
   recent: ['Recently added', (a, b) => b.createdAt.localeCompare(a.createdAt)],
   worn: ['Most worn', (a, b) => b.wears - a.wears],
   least: ['Least worn', (a, b) => a.wears - b.wears],
@@ -36,16 +36,13 @@ export default function Closet() {
   const ui = useUI();
   const [view, setView] = useState<'pieces' | 'outfits'>('pieces');
   const [cat, setCat] = useState<Cat | 'all'>('all');
-  const [sortPick, setSortPick] = useState<SortKey>(st.building ? 'fits' : 'recent');
-  // "Works with the outfit" only makes sense while the board is open.
-  const sort: SortKey = sortPick === 'fits' && !st.building ? 'recent' : sortPick;
+  const [sort, setSort] = useState<SortKey>('recent');
   const { draft, setDraft } = st;
-  const fits = (i: Item) => !st.building || fitsBoard(i, draft.slots, st.wearableById);
   const onBoard = new Set(Object.values(draft.slots));
 
   const items = st.items
     .filter((i) => cat === 'all' || i.cat === cat)
-    .sort(sort === 'fits' ? (a, b) => Number(fits(b)) - Number(fits(a)) || a.wears - b.wears : SORTS[sort][1]);
+    .sort(SORTS[sort][1]);
   const stores = new Set(st.items.map((i) => i.store ?? i.brand).filter(Boolean));
 
   const put = (id: string, at?: { x: number; y: number }) => {
@@ -69,12 +66,11 @@ export default function Closet() {
     if (!st.building) setDraft({ name: 'New outfit', slots: {}, focus: 'top' });
     st.setBuilding(true);
     setView('pieces');
-    setSortPick('fits');
   };
 
   /** The one number a card shows: whatever the closet is sorted by. */
   const metric = (it: Item) => {
-    if (sort === 'worn' || sort === 'least' || sort === 'fits') return `${plural(it.wears, 'wear')}`;
+    if (sort === 'worn' || sort === 'least') return `${plural(it.wears, 'wear')}`;
     if (sort === 'cpw') {
       const c = cpw(it);
       return c ? `${money(c)}/wear` : 'No price';
@@ -151,8 +147,7 @@ export default function Closet() {
                   ) : null;
                 })}
                 <span className="spacer" />
-                <select className="select" value={sort} onChange={(e) => setSortPick(e.target.value as SortKey)} aria-label="Sort">
-                  {st.building && <option value="fits">Works with this outfit</option>}
+                <select className="select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort">
                   {Object.entries(SORTS).map(([k, [label]]) => (
                     <option key={k} value={k}>
                       {label}
@@ -164,7 +159,7 @@ export default function Closet() {
                 {items.map((it) => {
                   const [ic, label] = BADGE[it.source] ?? BADGE.manual;
                   const m = metric(it);
-                  const state = st.building ? `${onBoard.has(it.id) ? 'on-board' : ''} ${fits(it) ? '' : 'faded'}` : '';
+                  const state = st.building && onBoard.has(it.id) ? 'on-board' : '';
                   return (
                     <button
                       key={it.id}
@@ -206,7 +201,7 @@ export default function Closet() {
                 <article key={o.id} className="card saved-card">
                   <button
                     className="saved-open"
-                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, focus: 'top' }), setView('pieces'), setSortPick('fits'))}
+                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, focus: 'top' }), setView('pieces'))}
                     aria-label={`Open ${o.name} on the board`}
                   >
                     <Flatlay slots={o.slots} layout={o.layout} />

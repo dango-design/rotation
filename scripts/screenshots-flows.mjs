@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Capture screens that only appear after interaction (the empty-day card, the planner, the canvas) for the process log.
+// Capture screens that only appear after interaction (the empty-day card, planning a day on the board, the canvas) for the process log.
 // Drives headless Chrome over the DevTools protocol, so nothing needs installing.
 // Usage: node scripts/screenshots-flows.mjs <milestone-folder-name>
 // Expects a production server: (cd web && npm run build && npx next start -p 3100)
@@ -73,16 +73,16 @@ try {
   await sleep(3200); // let the toast fade
   await shoot('today-empty.png', '.week-strip');
 
-  // Planning a day piece by piece, with a piece selected on the canvas.
+  // Planning a day on the outfit board beside the closet, with a piece selected on the canvas.
   await open('/?demo');
   await click('Next week');
   await sleep(300);
   await click('plan an outfit');
-  await sleep(300);
+  await sleep(2500); // the closet opens with the board
   await click('Surprise me');
   await sleep(300);
-  await press('.day-planner .canvas-piece');
-  await shoot('planner.png', '.day-planner');
+  await press('.outfit-panel .canvas-piece');
+  await shoot('planner.png', '.closet-layout');
 } finally {
   ws.close();
   chrome.kill();

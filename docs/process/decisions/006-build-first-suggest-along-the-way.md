@@ -1,6 +1,6 @@
 # 006 — Build the outfit first, suggest along the way
 
-**Date:** Oct 7, 2026 · **Status:** Accepted · **Milestone:** `v4-plan-and-canvas`
+**Date:** Oct 7, 2026 · **Status:** Accepted; planning piece by piece replaced by [021](021-plan-in-the-builder.md) · **Milestone:** `v4-plan-and-canvas`
 
 ## Context
 

@@ -2,11 +2,12 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { expect, userEvent, within } from 'storybook/test';
 import Closet from '@/app/closet/page';
 import { pageModes } from '../../../.storybook/modes';
+import { router } from '../../../.storybook/router';
 import { inShell, signInFromPrompt } from '../decorators';
 import { demoCloset, demoId as id, emptyCloset, photoCloset, savedOutfits } from '../fixtures';
 
 /* What you own. Pieces and saved outfits, with the outfit board opening beside the grid. While the board is open,
-   clicking a piece puts it on the board, and pieces that don't go with the outfit fade and sort to the end. */
+   clicking a piece puts it on the board. Any pieces can go together; the board doesn't judge. */
 
 const meta = {
   title: 'Pages/Closet',
@@ -17,9 +18,8 @@ const meta = {
     nextjs: { navigation: { pathname: '/closet' } },
     store: demoCloset,
     chromatic: { modes: pageModes },
-    // Known issues while the board is open: faded pieces fall below 4.5:1 (color-contrast), cards are labelled
-    // "Put … on the board" instead of their visible text (label-content-name-mismatch), and board places are buttons
-    // holding a remove button (nested-interactive). Shown in the Accessibility panel without failing the tests.
+    // Known issues while the board is open: cards are labelled "Put … on the board" instead of their visible text
+    // (label-content-name-mismatch), and board places are buttons holding a remove button (nested-interactive). Shown in the Accessibility panel without failing the tests.
     a11y: { test: 'todo' },
   },
 } satisfies Meta<typeof Closet>;
@@ -39,7 +39,7 @@ export const FilteredAndSorted: Story = {
   },
 };
 
-/** Building an outfit: the board is open, pieces on it are marked, and pieces that clash are faded. */
+/** Building an outfit: the board is open and pieces on it are marked. */
 export const BuildingAnOutfit: Story = {
   parameters: {
     store: () => demoCloset({ building: true, draft: { name: 'Thursday', slots: { top: id('t4'), bottom: id('b3'), shoes: id('s2') }, focus: 'outer' } }),
@@ -53,6 +53,51 @@ export const PutAPieceOnTheBoard: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Put Loose Straight Jeans on the board' }));
     const board = canvas.getByRole('complementary', { name: 'Outfit board' });
     await expect(within(board).getByRole('button', { name: 'Loose Straight Jeans' })).toBeVisible();
+  },
+};
+
+/** Planning Saturday from Today: the same board, with the forecast, "Surprise me", and Plan for Saturday. Planning it
+    goes back to that day on Today. */
+export const PlanningADay: Story = {
+  parameters: {
+    store: () => demoCloset({ building: true, draft: { name: "Saturday's outfit", slots: { top: id('t4') }, focus: 'bottom', date: '2026-10-10' } }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Planning Saturday')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Plan for Saturday' }));
+    await expect(router().push).toHaveBeenCalledWith('/?day=2026-10-10');
+  },
+};
+
+/** Planning a day with no city set and no top, bottom and shoes that go together: the board asks for a city, and
+    Surprise me says what it needs instead of hiding. */
+export const PlanningWithoutACity: Story = {
+  parameters: {
+    store: () =>
+      demoCloset({
+        items: demoCloset().items!.filter((i) => i.cat !== 'shoes'),
+        weather: null,
+        settings: { ...demoCloset().settings, city: '' },
+        building: true,
+        draft: { name: "Saturday's outfit", slots: {}, focus: 'top', date: '2026-10-10' },
+      }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('link', { name: 'Add your city' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Surprise me' }));
+    await expect(canvas.getByRole('status')).toHaveTextContent(/Surprise me needs a top, bottom and shoes/);
+  },
+};
+
+/** A past day with nothing logged: the board logs what was worn. */
+export const LoggingAPastDay: Story = {
+  parameters: {
+    store: () => demoCloset({ building: true, draft: { name: "Tuesday's outfit", slots: { top: id('t4'), bottom: id('b3') }, focus: 'shoes', date: '2026-10-06' } }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Logging Tuesday')).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Log as worn' })).toBeEnabled();
+    await expect(canvas.queryByRole('button', { name: 'Surprise me' })).toBeNull();
   },
 };
 
