@@ -224,13 +224,21 @@ export async function findInPhoto(file: Blob): Promise<Found> {
   return { sure, pieces, guess: sure ? pieces[0].id : undefined };
 }
 
+/** Loads one of a product page's photos. The web app goes through its image route; the phone app downloads it itself. */
+export type PhotoLoader = (url: string) => Promise<Blob | null>;
+
 /**
  * The product in a product page's photos. Checks the photos in gallery order, stopping early at a clean product
  * shot, and cuts the product out of the best one. `hint` is what the product's name says it is.
  */
-export async function findInProduct(urls: string[], hint: Hint | undefined, onProgress?: (done: number, total: number) => void): Promise<Found | null> {
+export async function findInProduct(
+  urls: string[],
+  hint: Hint | undefined,
+  onProgress?: (done: number, total: number) => void,
+  loadPhoto: PhotoLoader = fetchPhoto,
+): Promise<Found | null> {
   const list = urls.slice(0, MAX_PHOTOS);
-  const blobs = list.map(fetchPhoto);
+  const blobs = list.map(loadPhoto);
   const checked: { photo: Photo; score: number }[] = [];
   for (let i = 0; i < list.length; i++) {
     onProgress?.(i + 1, list.length);
@@ -269,8 +277,8 @@ const fetchPhoto = (url: string) =>
     .catch(() => null);
 
 /** The product cut out of one photo the person picked from the page, best guess first, then the photo as it is. */
-export async function findInProductPhoto(url: string, index: number, hint: Hint | undefined): Promise<Piece[]> {
-  const blob = await fetchPhoto(url);
+export async function findInProductPhoto(url: string, index: number, hint: Hint | undefined, loadPhoto: PhotoLoader = fetchPhoto): Promise<Piece[]> {
+  const blob = await loadPhoto(url);
   if (!blob) throw new Error("Couldn't load that photo.");
   const photo = await load(blob, `p${index}`, hint, index);
   return [...(await cutAll(photo, photo.verdict.regions.slice(0, 3))), await asIs(photo)];

@@ -21,7 +21,47 @@ It shares the web app's engine. Everything in `web/src/lib` that decides what to
 
 For a quick look in a browser at phone size, run `npx expo start --web`, or use the `mobile-web` launch config. The browser preview is for checking screens; gestures and haptics feel right only on a phone.
 
+**Which version is this?** While testing, a small grey line at the top of each sheet and on Today shows what the copy is running, such as `feature/phone-product-links · 49fa0f9 · port 8082`: the branch, the commit (`+ changes` when there are uncommitted edits), and the dev server's port. 8081 is the usual copy; a test copy runs on another port. **Settings › This version** has the details. It comes from `app.config.js` when the dev server starts. The browser preview doesn't show it.
+
 Checks: `npm run typecheck` and `npm run lint`.
+
+## Cut out backgrounds
+
+Pieces are cut out of photos on the phone, in Expo Go too, by the web app's own piece finder running in a hidden web view ([decision 018](../docs/process/decisions/018-piece-finder-on-the-phone.md)). The first time Add pieces opens, it downloads about 23 MB (the models and ONNX Runtime) and caches them. After changing `web/src/lib/vision` or `finder/entry.ts`, run `npm run build:finder` and commit `src/lib/finder-bundle.ts`.
+
+### Apple's cutout (development build)
+
+Rotation's own development build adds Apple's subject lifting, the same cutout Photos makes ([decision 017](../docs/process/decisions/017-cut-out-pieces-on-the-phone.md)). It's near-instant with cleaner edges, and the finder still splits pieces that touch. It's made in the cloud with EAS Build, so no Xcode is needed. It needs an iPhone on iOS 17 or later and an [Apple Developer Program](https://developer.apple.com/programs/) membership. Run these in `mobile/`:
+
+1. Link the app to your Expo account (once). This gives the project an ID to keep in `app.json`, under `extra.eas.projectId`. Since the config also has `app.config.js`, EAS may ask you to add it there yourself; then commit the change:
+
+   ```bash
+   npx eas-cli@latest init
+   ```
+
+2. Register your iPhone (once per phone). Choose **Website**, open the link on the iPhone, and install the profile from Settings:
+
+   ```bash
+   npx eas-cli@latest device:create
+   ```
+
+3. Build. The first build asks you to sign in to your Apple account and creates the certificates for you. It takes about 15 minutes in the cloud:
+
+   ```bash
+   npx eas-cli@latest build --profile development --platform ios
+   ```
+
+4. When it's done, scan the QR code on the build page with the iPhone and install it. iOS asks you to turn on **Developer Mode** (Settings › Privacy & Security) the first time.
+5. Run `npx expo start` as usual and open the project in the **Rotation** app instead of Expo Go.
+
+Screens and logic still reload live. Build again only when native code changes, such as `modules/cutout` or a new package with native code.
+
+To try the cutout on a Mac without a build:
+
+```bash
+swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cutout/try/main.swift -o /tmp/cutout
+/tmp/cutout photo.jpg /tmp/cutouts
+```
 
 ## What's in it
 
@@ -41,8 +81,10 @@ Checks: `npm run typecheck` and `npm run lint`.
   - Bring forward, send back, reset to true size or remove it from the bar under the canvas.
   - Arrangements use the same layout model as the web canvas.
 - **Adding pieces:**
-  - Take a photo, or choose one from Photos.
-  - Paste a cutout: in Photos, touch and hold the piece until it lifts out, tap Copy, then paste it in Rotation.
+  - Take a photo, choose one from Photos, or paste one.
+  - Each piece is cut out of the photo on the phone: by the web app's piece finder everywhere, and with Apple's subject lifting too in the development build. A photo with several pieces asks which to add, and each gets its own details, starting from the type and color the finder saw. A pair, like shoes, can stay one piece.
+  - Paste a product link from any online store. The phone reads the page itself, with the web app's own reader, and the piece finder picks the product out of the page's photos. If it isn't sure, **Which one is it?** shows the cutouts and the page's photos to choose from. The details start filled in with the name, brand, store, price, type and color ([decision 019](../docs/process/decisions/019-product-links-on-the-phone.md)).
+  - A screenshot of a product page, chosen from Photos or pasted, fills in the name, brand, store and price from the text on it. Apple's text recognition reads it in the development build, and Tesseract in the finder's web view elsewhere ([decision 020](../docs/process/decisions/020-read-screenshots.md)).
   - Describe it, and Rotation draws it.
 - **More screens:** piece details, store comparison, the shopping list, and Settings (city, shopping suggestions, favorite stores).
 - **Your data:**
@@ -51,8 +93,10 @@ Checks: `npm run typecheck` and `npm run lint`.
 
 ## Not yet
 
-- **Dragging pieces in from other apps, and automatic background removal.** Both need a small Swift add-on and a development build, which Expo Go can't run. Build one with Xcode (`npx expo run:ios`) or in the cloud (`npx eas-cli@latest build --profile development`).
-- **Product links and Claude photo tagging.** They use the web app's server routes, which aren't hosted yet.
+- **Dragging pieces in from other apps.** It needs another small Swift add-on in the development build.
+- **Apple's cutout on Android.** Android uses the piece finder only; ML Kit's subject segmentation would be the counterpart.
+- **Claude photo tagging.** It uses the web app's server route, with its API key, which isn't hosted yet.
+- **Share to Rotation** from Safari's share sheet, so a product link doesn't need copying. It needs the development build.
 - **The Closet report and How it works pages.**
 - **Accounts and sync,** so one closet shows up everywhere. Until then, back up on one device and restore on the other.
 
@@ -65,4 +109,11 @@ Checks: `npm run typecheck` and `npm run lint`.
 | `src/components/Carry.tsx` | Touch-and-hold dragging from a tray onto the canvas |
 | `src/lib/store.tsx` | App state, mirroring the web store's actions |
 | `src/lib/files.ts` | Photos and backup files on the phone (`files.web.ts` for the browser preview) |
+| `src/lib/cutout.ts` | Cutting pieces out of photos: Apple's cutout when it's there, the piece finder for the rest |
+| `src/components/PieceFinder.tsx` | The hidden web view that runs the web app's piece finder, and downloads product photos for it |
+| `src/lib/product-link.ts` | Reading a product page on the phone with the web app's reader |
+| `finder/` | The finder page's script (`entry.ts`) and its messages (`protocol.ts`) |
+| `scripts/build-finder.mjs` | Bundles `finder/entry.ts` and `web/src/lib/vision` into `src/lib/finder-bundle.ts` |
+| `modules/cutout/` | The cutout's native module: `ios/Cutter.swift` does the cutting and `ios/TextReader.swift` reads text, both with Vision; `ios/CutoutModule.swift` connects them to the app |
+| `eas.json` | EAS Build profiles; `development` is the build with the cutout |
 | `metro.config.js` | Lets Metro load the shared code from `web/src/lib` |

@@ -33,7 +33,7 @@ npm install
 npx expo start
 ```
 
-Scan the QR code with the phone's camera. See [`mobile/README.md`](mobile/README.md) for what's in it and what's next.
+Scan the QR code with the phone's camera. See [`mobile/README.md`](mobile/README.md) for what's in it and what's next. Pieces are cut out of photos on the phone in Expo Go too; Apple's cutout needs Rotation's own development build, and the steps are in the same file.
 
 ## Storybook
 
