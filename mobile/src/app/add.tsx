@@ -20,7 +20,7 @@ import { ModalScreen } from '@/components/ModalScreen';
 import { usePieceFinder } from '@/components/PieceFinder';
 import { Btn, T, tap } from '@/components/ui';
 import { canCutOut, couldntStart, findPieces, fromFinder, keptAsIs, looksLikePair, nothingFound, type Cut, type FinderCut, type Pieces } from '@/lib/cutout';
-import { linkIn, readLink, type Product } from '@/lib/product-link';
+import { blockedNote, linkIn, readLink, type Product } from '@/lib/product-link';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/theme';
 
@@ -70,6 +70,8 @@ export default function AddScreen() {
   const [step, setStep] = useState<Step>({ kind: 'choose' });
   const [error, setError] = useState('');
   const [linkText, setLinkText] = useState('');
+  /** A page that was read, but none of its photos shows a piece: its details can still be used. */
+  const [detailsOnly, setDetailsOnly] = useState<Product | null>(null);
   // Mounted with the screen, so the finder's models are downloading while you choose a photo.
   const finder = usePieceFinder();
   const canFind = canCutOut || finder.available;
@@ -130,6 +132,7 @@ export default function AddScreen() {
 
   const importLink = async () => {
     setError('');
+    setDetailsOnly(null);
     const mine = ++run.current;
     setStep({ kind: 'reading', label: 'Reading the product page…' });
     let product: Product;
@@ -148,10 +151,12 @@ export default function AddScreen() {
         }))
       : null;
     if (mine !== run.current) return;
-    if (!found || !found.pieces.length) {
-      // No usable photo: keep the details and draw the piece instead.
-      const note = product.images.length ? "Couldn't load the product's photos, so it's drawn from its type and color instead." : undefined;
-      return setStep({ ...one(undefined, note), product });
+    if (!found || !found.pieces.some((p) => p.cutout)) {
+      // No photo shows a piece (often only the store's logo, when a store won't show its page to apps). Say so, and
+      // offer the page's details on their own when it looks like a real product.
+      setError(`None of the photos Rotation could read on that page shows the piece. ${new URL(product.url).hostname.replace(/^www\./, '')} may not show its page to apps. Take a screenshot of the product page and add it with Choose from Photos.`);
+      if (product.price || product.hint) setDetailsOnly(product);
+      return setStep({ kind: 'link' });
     }
     const pick: LinkPick = { kind: 'linkPick', product, pieces: fromFinder(found.pieces), shown: found.guess ?? 0, sure: found.sure, busy: null };
     setStep(found.sure ? { ...one(pick.pieces[pick.shown]), product, pick } : pick);
@@ -239,7 +244,15 @@ export default function AddScreen() {
               <Btn size="sm" label="Paste" onPress={pasteLink} />
             </View>
           </View>
-          {error ? <T style={{ color: C.warn }}>{error} You can still add it by photo or description.</T> : null}
+          {error ? <T style={{ color: C.warn }}>{error}{error.endsWith(blockedNote) || detailsOnly ? '' : ' You can still add it by photo or description.'}</T> : null}
+          {detailsOnly ? (
+            <Btn
+              size="sm"
+              label="Use the page's details without a photo"
+              style={{ alignSelf: 'flex-start' }}
+              onPress={() => setStep({ ...one(undefined, 'Drawn from its type and color, since the page had no photo of it.'), product: detailsOnly })}
+            />
+          ) : null}
           <View style={styles.actions}>
             <Btn kind="ghost" label="Back" onPress={restart} />
             <Btn kind="primary" label="Read the page" disabled={!linkText.trim()} onPress={importLink} />

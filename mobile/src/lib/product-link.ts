@@ -3,13 +3,19 @@
    reader (@core/product-page). No server is needed. The piece finder then finds the product in the page's photos. */
 
 import { hintFrom, pathWords, type Hint } from '@core/garment-hints';
-import { readProductPage, type ProductPage } from '@core/product-page';
+import { isChallengePage, readProductPage, type ProductPage } from '@core/product-page';
 
 export type Product = ProductPage & { url: string; hint?: Hint };
 
 /** The same reader name the web app's server uses. */
 export const READER_HEADERS = { 'user-agent': 'Mozilla/5.0 (compatible; RotationLinkReader/1.0)', 'accept-language': 'en-US,en;q=0.9' };
 const TIMEOUT_MS = 10_000;
+
+const siteName = (u: URL) => u.hostname.replace(/^www\./, '');
+
+/** What to do when a store won't show its page to an app. */
+export const blockedNote =
+  "checks for a full web browser before showing its pages, so Rotation can't read them. Take a screenshot of the product page and add it with Choose from Photos; the piece is cut out of the screenshot.";
 
 /** The first web link in some pasted text, such as a store's share text: "Look at this! https://…". */
 export function linkIn(text: string | null | undefined): string | null {
@@ -39,10 +45,11 @@ export async function readLink(text: string): Promise<Product> {
     clearTimeout(timer);
   }
   if (!res.ok)
-    throw new Error(res.status === 403 || res.status === 429 ? "That store didn't let Rotation read the page. Try adding the piece by photo." : `The store's page answered with an error (${res.status}).`);
+    throw new Error(res.status === 403 || res.status === 429 ? `${siteName(url)} ${blockedNote}` : `The store's page answered with an error (${res.status}).`);
 
   const final = new URL(res.url || url.toString());
   const page = readProductPage(await res.text(), final);
+  if (isChallengePage(page)) throw new Error(`${siteName(final)} ${blockedNote}`);
   if (!page.title && !page.images.length) throw new Error("That page doesn't describe a product we can read.");
   return { ...page, url: final.toString(), hint: hintFrom(page.title, page.category, pathWords(final.toString())) };
 }

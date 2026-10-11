@@ -29,7 +29,11 @@ A phone app isn't held to the browser's cross-site rules. The two pieces that ma
 - **When it isn't sure,** **Which one is it?** shows the cutout large, the other cutouts, and the page's photos. Picking a photo the finder hadn't checked cuts the product out of it.
 - **The details form starts filled in** with the name, brand, store, price, type and color, and keeps the link.
 
-**When a page can't be read,** Rotation says why: the link isn't a web link, the store blocked the request, the store took too long, or the page doesn't describe a product. It then suggests adding the piece by photo or description. When the photos can't be loaded, the piece is drawn from its type and color, as on the web.
+**When a page can't be read,** Rotation says why: the link isn't a web link, the store blocked the request, the store took too long, or the page doesn't describe a product.
+
+**Some stores check for a full web browser before showing a page.** Abercrombie & Fitch sends a "Client Challenge" page instead of the product, and other stores send "Access Denied" or "Just a moment…". The shared reader recognizes these pages (`isChallengePage`), in both apps, and Rotation doesn't try to get past them. It names the store and suggests a screenshot of the product page, added with **Choose from Photos**; the piece finder cuts the piece out of the screenshot.
+
+**A logo is never offered as the product.** When none of the page's photos shows a piece, Rotation says so instead of showing a picker. When the page still looks like a real product, with a price or a garment named, it offers **Use the page's details without a photo**, and the piece is drawn from its type and color.
 
 ## Why
 
