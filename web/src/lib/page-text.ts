@@ -47,16 +47,26 @@ function storeFor(domain: string): string {
   return main.charAt(0).toUpperCase() + main.slice(1);
 }
 
-/** Lines of the same size that follow each other closely, joined: product names often wrap onto a second line. */
+/**
+ * Lines of about the same size, stacked closely and lined up on the left or the center, joined: product names often
+ * wrap onto a second line. Text readers measure lines with tall letters or descenders ("Striped") taller than ones
+ * without, so the sizes only need to be close.
+ */
 function paragraphs(lines: TextLine[]) {
   const out: { text: string; h: number; y: number }[] = [];
   let cur: (TextLine & { parts: string[] }) | null = null;
   for (const l of lines) {
+    const size = cur ? Math.max(l.h, cur.h) : 0;
     const follows =
-      cur && Math.abs(l.h - cur.h) / Math.max(l.h, cur.h) <= 0.2 && l.y - (cur.y + cur.h) <= 0.9 * cur.h && l.y >= cur.y && Math.abs(l.x - cur.x) <= 2 * cur.h;
+      cur &&
+      Math.min(l.h, cur.h) / size >= 0.6 &&
+      l.y >= cur.y &&
+      l.y - (cur.y + cur.h) <= 0.9 * size &&
+      (Math.abs(l.x - cur.x) <= 0.5 * size || Math.abs(l.x + l.w / 2 - (cur.x + cur.w / 2)) <= 0.5 * size);
     if (cur && follows) {
       cur.parts.push(l.text);
       cur.y = l.y;
+      cur.h = Math.max(cur.h, l.h);
     } else {
       if (cur) out.push({ text: cur.parts.join(' '), h: cur.h, y: cur.y });
       cur = { ...l, parts: [l.text] };

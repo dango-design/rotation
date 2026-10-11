@@ -47,6 +47,36 @@ describe('readPageText', () => {
     expect(text).toEqual({});
   });
 
+  it("joins a name's two lines even when the reader measures them at different heights", () => {
+    // Tesseract's lines from a real A&F screenshot (Oct 10, 2026): text, y, h and x.
+    const read: [string, number, number, number][] = [
+      ['9:15 pod 8:43PM', 0.053, 0.046, 0.089],
+      ['abercrombie.com M', 0.182, 0.049, 0.349],
+      ['© e Free Standard Shipping and Handling On All Orders Over $994 ¢ Lin', 0.439, 0.017, 0.115],
+      ['= Abercrombie & Fitch Qa ® 5]', 0.486, 0.049, 0.15],
+      ["Women's > Clearance > Tops > Sweaters", 0.576, 0.017, 0.147],
+      ['Model: 5\'8" in size XS', 1.424, 0.014, 0.148],
+      ['The A&F Madeline Merino Wool-Blend', 1.472, 0.025, 0.147],
+      ['Striped Crew Sweater', 1.511, 0.034, 0.148],
+      ['Color: Brown Stripe', 1.592, 0.02, 0.147],
+      ['© Almost Gone!', 1.735, 0.02, 0.148],
+      ['& 116 people are currently viewing', 1.774, 0.025, 0.15],
+      ['$75 $44.99', 1.844, 0.02, 0.146],
+      ['garance', 1.884, 0.012, 0.17],
+      ['& + coe', 2.002, 0.047, 0.053],
+    ];
+    const text = readPageText(read.map(([t, y, h, x]) => ({ text: t, y, h, x, w: 0.6 })));
+    expect(text).toEqual({ name: 'The A&F Madeline Merino Wool-Blend Striped Crew Sweater', price: 44.99, store: 'Abercrombie & Fitch', brand: 'Abercrombie & Fitch' });
+  });
+
+  it('joins a centered name that wraps', () => {
+    const text = readPageText([
+      { text: 'Relaxed Linen-Blend', x: 0.25, y: 1.2, w: 0.5, h: 0.04 },
+      { text: 'Camp Shirt', x: 0.35, y: 1.25, w: 0.3, h: 0.045 },
+    ]);
+    expect(text.name).toBe('Relaxed Linen-Blend Camp Shirt');
+  });
+
   it('reads nothing from a photo with no text', () => {
     expect(readPageText([])).toEqual({});
   });
