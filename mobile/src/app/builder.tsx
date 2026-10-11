@@ -1,6 +1,6 @@
 /* The outfit builder, phone first: the canvas fills the top of the screen and your closet is the tray below it.
-   Tap a piece to put it on, or touch and hold it and drag it onto the canvas. Pieces that don't go with the outfit
-   fade and sort to the end, and Shop the gap offers pieces you could try on the canvas before buying them. */
+   Tap a piece to put it on and again to take it off, or touch and hold it and drag it onto the canvas. Pieces that
+   don't go with the outfit fade and sort to the end, and Shop the gap offers pieces you could try on the canvas before buying them. */
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -59,6 +59,12 @@ export default function Builder() {
     setDraft({ ...draft, ...next, focus: slotOf(w) });
   };
   const remove = (s: Slot) => setDraft({ ...draft, ...removeSlot(slots, draft.layout, s), focus: s });
+  /** A tap takes a piece that's already on the canvas back off, and puts any other piece on. */
+  const tap = (id: string) => {
+    const w = st.wearableById(id);
+    if (w && slots[slotOf(w)] === id) remove(slotOf(w));
+    else put(id);
+  };
   const name = draft.name.trim() || 'Untitled outfit';
 
   const planDays = Array.from({ length: 14 }, (_, i) => addDays(today, i));
@@ -131,7 +137,7 @@ export default function Builder() {
               </ScrollView>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tray}>
                 {closet.map((it) => (
-                  <CarryTile key={it.id} w={it} onTap={() => put(it.id)} faded={!fits(it)} style={styles.trayPiece} accessibilityLabel={`Put ${it.name} on the canvas`}>
+                  <CarryTile key={it.id} w={it} onTap={() => tap(it.id)} faded={!fits(it)} style={styles.trayPiece} accessibilityLabel={onBoard.has(it.id) ? `Take ${it.name} off the canvas` : `Put ${it.name} on the canvas`}>
                     <View>
                       <Tile w={it} style={onBoard.has(it.id) ? styles.on : undefined} />
                       {onBoard.has(it.id) && (
@@ -164,7 +170,7 @@ export default function Builder() {
               ) : shop.length ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tray}>
                   {shop.map(({ piece, unlock }) => (
-                    <CarryTile key={piece.id} w={piece} onTap={() => put(piece.id)} style={[styles.trayPiece, { width: 120 }]} accessibilityLabel={`Try the ${piece.name} on the canvas`}>
+                    <CarryTile key={piece.id} w={piece} onTap={() => tap(piece.id)} style={[styles.trayPiece, { width: 120 }]} accessibilityLabel={onBoard.has(piece.id) ? `Take the ${piece.name} off the canvas` : `Try the ${piece.name} on the canvas`}>
                       <Tile w={piece} bg={C.gapTint} style={onBoard.has(piece.id) ? styles.on : undefined} />
                       <T v="label" style={{ fontSize: 12.5 }} numberOfLines={1}>
                         {piece.name}
