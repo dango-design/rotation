@@ -57,7 +57,7 @@ export default function Builder() {
   const idea = ahead ? suggestFor(day, draft.shuffle ?? 0) : null;
 
   // The canvas takes what's left once the header, the day's row, the tray and the buttons have their room.
-  const reserved = insets.top + insets.bottom + (ahead ? 470 : 430);
+  const reserved = insets.top + insets.bottom + (ahead ? 460 : 430);
   const canvasW = Math.max(220, Math.min(width - GUTTER * 2, (height - reserved) / ASPECT));
 
   const close = () => (router.canGoBack() ? router.back() : router.replace(day ? '/' : '/closet'));
@@ -134,7 +134,6 @@ export default function Builder() {
                 </T>
               </View>
             )}
-            <Btn size="sm" icon="shuffle" label="Surprise me" onPress={surpriseMe} />
           </View>
         )}
 
@@ -173,6 +172,8 @@ export default function Builder() {
               {trial.length} to shop
             </T>
           )}
+          {/* Under the canvas, with the rest of the actions in reach. */}
+          {ahead && <Btn size="sm" icon="shuffle" label="Surprise me" onPress={surpriseMe} />}
         </View>
 
         <View style={{ flex: 1, gap: 8 }}>
@@ -316,7 +317,7 @@ export default function Builder() {
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: GUTTER, paddingBottom: 10 },
   name: { fontFamily: F.serif, fontSize: 26, lineHeight: 30, color: C.ink, padding: 0, marginTop: 2 },
-  dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, paddingBottom: 10 },
+  dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, paddingBottom: 8 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: GUTTER, minHeight: 26 },
   verdict: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   trayBar: { paddingHorizontal: GUTTER, paddingTop: 2 },
