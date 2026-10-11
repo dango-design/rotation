@@ -7,7 +7,7 @@ import type * as Ort from 'onnxruntime-web';
 import { LABEL_GROUP, PARTS } from './analyze';
 import type { ParserPart } from '../garment-hints';
 
-const ORT_VERSION = '1.30.0';
+export const ORT_VERSION = '1.30.0';
 const MEAN = [0.485, 0.456, 0.406];
 const STD = [0.229, 0.224, 0.225];
 
@@ -36,11 +36,16 @@ function session(path: string) {
   return s;
 }
 
-const U2NET = '/models/u2netp.onnx';
-const PARSER = '/models/segformer_b0_clothes_quantized.onnx';
+let modelBase = '/models/';
+/** Where the model files are served from. The phone app's piece finder loads them from a CDN. */
+export const setModelBase = (base: string) => void (modelBase = base);
 
-/** Start downloading both models early, e.g. when the add dialog opens. */
-export const warmUp = () => void Promise.all([session(U2NET), session(PARSER)]).catch(() => {});
+const U2NET = () => `${modelBase}u2netp.onnx`;
+const PARSER = () => `${modelBase}segformer_b0_clothes_quantized.onnx`;
+
+/** Start downloading both models early, e.g. when the add dialog opens. Resolves once both are ready. */
+export const ready = () => Promise.all([session(U2NET()), session(PARSER())]).then(() => {});
+export const warmUp = () => void ready().catch(() => {});
 
 function pixels(img: CanvasImageSource, size: number) {
   const c = document.createElement('canvas');
@@ -63,7 +68,7 @@ export const SALIENT_SIZE = 320;
 
 /** Salient-object mask at 320×320, scaled to 0..1. */
 export async function salient(img: CanvasImageSource): Promise<Float32Array> {
-  const [o, sess] = await Promise.all([ort(), session(U2NET)]);
+  const [o, sess] = await Promise.all([ort(), session(U2NET())]);
   const px = pixels(img, SALIENT_SIZE);
   let max = 1e-6;
   for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i], px[i + 1], px[i + 2]);
@@ -88,7 +93,7 @@ export interface Parsed {
 
 /** Clothing labels and per-part probabilities on the parser's 128×128 output grid. */
 export async function parse(img: CanvasImageSource): Promise<Parsed> {
-  const [o, sess] = await Promise.all([ort(), session(PARSER)]);
+  const [o, sess] = await Promise.all([ort(), session(PARSER())]);
   const px = pixels(img, PARSER_INPUT);
   const out = await sess.run({ [sess.inputNames[0]]: tensor(o, px, PARSER_INPUT, 255) });
   const logits = out[sess.outputNames[0]];
