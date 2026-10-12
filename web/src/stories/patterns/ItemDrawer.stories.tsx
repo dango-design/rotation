@@ -55,7 +55,7 @@ export const Editing: Story = {
     await settled();
     await userEvent.click(canvas.getByRole('button', { name: 'Edit' }));
     await expect(canvas.getByRole('heading', { name: 'Edit piece' })).toBeVisible();
-    await expect(canvas.getByLabelText('Name')).toHaveValue('Classic Oxford Shirt');
+    await expect(canvas.getByLabelText('Name')).toHaveValue('1983 Oxford Shirt');
   },
 };
 

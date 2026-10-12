@@ -151,7 +151,17 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
             )}
             <div className="provenance">
               <Icon name={it.source === 'link' ? 'link' : it.source === 'photo' ? 'camera' : 'info'} />
-              <span>{SOURCE[it.source]}</span>
+              <span>
+                {SOURCE[it.source]}
+                {it.link && (
+                  <>
+                    {' '}
+                    <a className="link" href={it.link} target="_blank" rel="noopener noreferrer">
+                      See it at {it.store ?? it.brand}
+                    </a>
+                  </>
+                )}
+              </span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn sm" onClick={() => st.requireAccount('edit your closet', () => setEditing(true))}>
