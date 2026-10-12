@@ -85,8 +85,6 @@ export interface Verdict {
 
 /** Smallest share of the photo each part needs to count. */
 const MIN_AREA: Record<ParserPart, number> = { top: 0.02, bottom: 0.02, dress: 0.03, shoes: 0.004, bag: 0.006, hat: 0.004, scarf: 0.006, belt: 0.003, sunglasses: 0.002 };
-/** Share of skin and hair that means someone is in the photo. */
-export const WORN = 0.025;
 /** A piece dominates when every other piece is smaller than this share of it. */
 const DOMINANT = 0.15;
 /** Most pieces offered from one photo. */
@@ -203,25 +201,63 @@ export function personShare(m: Pick<Maps, 'labels'>) {
   return n / m.labels.length;
 }
 
-/** A little skin or hair (a face, or hands at the edge of a close-up) with an outfit around it is someone too. */
+/** Parser labels (ATR) for hair and face. */
+const HAIR = 2;
+const FACE = 11;
+/** Less skin and hair than this share of the photo, and nobody is in it. */
 const SOME_PERSON = 0.002;
+/** This much skin and hair is a close-up of someone, whatever else shows. */
+const CLOSE_UP = 0.12;
+/** Someone cropped at the shoulders or the waist runs off the top of the photo along this share of its width. */
+const CROPPED = 0.08;
+/** A head: a blob of hair and face at least this big at the top of the figure, with at least this much face. */
+const HEAD = 0.004;
+const HEAD_FACE = 0.002;
+/** Skin besides the head, a neck or a hand. A collar or waistband the parser takes for a face has none. */
+const MORE_SKIN = 0.001;
+/** Or a head that is largely hair, for someone buttoned up to the chin. A collar taken for a face has little. */
+const HAIRY = 0.35;
 
 /**
- * Whether someone is wearing the pieces. Mostly that's how much skin and hair shows, but someone dressed head to toe
- * in a full-length shot shows only a face and hands, and a waist-down close-up only hands; with two or more garments
- * in the photo, that little is enough.
+ * Whether someone is wearing the pieces. The parser learned from photos of people, so on a product shot it can call
+ * cream fabric skin, a dark collar hair, or a waistband a face, as much as a real person shows. So skin alone only
+ * counts in a close-up; otherwise it takes the shape of a person: a figure cut off by the top of the photo (a crop
+ * at the shoulders or waist), or a head at the top of the figure, with skin elsewhere too (a neck, hands) or plenty of
+ * hair. A garment lying on its own has neither.
  */
-export function isWorn(m: Pick<Maps, 'labels'>) {
+export function isWorn(m: Pick<Maps, 'labels' | 'w' | 'h'>) {
+  const { labels, w, h } = m;
+  const n = labels.length;
   const person = personShare(m);
-  if (person >= WORN) return true;
+  if (person >= CLOSE_UP) return true;
   if (person < SOME_PERSON) return false;
-  const n = m.labels.length;
-  const parts = new Map<ParserPart, number>();
+
+  // The figure: everything the parser doesn't call background.
+  let y0 = h;
+  let y1 = -1;
+  let top = 0;
   for (let i = 0; i < n; i++) {
-    const g = LABEL_GROUP[m.labels[i]];
-    if (g !== 'skin' && g !== 'hair' && g !== 'bg') parts.set(g, (parts.get(g) ?? 0) + 1);
+    if (!labels[i]) continue;
+    const y = (i - (i % w)) / w;
+    if (y < y0) y0 = y;
+    y1 = y;
+    if (y === 0) top++;
   }
-  return [...parts].filter(([g, c]) => c / n >= MIN_AREA[g]).length >= 2;
+  if (y1 < 0) return false;
+  if (top / w >= CROPPED) return true;
+
+  // The largest blob of hair and face in the figure's top quarter.
+  const band = Math.min(h, y0 + Math.max(1, Math.round((y1 - y0 + 1) / 4)));
+  const on = new Uint8Array(n);
+  for (let i = y0 * w; i < band * w; i++) if (labels[i] === HAIR || labels[i] === FACE) on[i] = 1;
+  const c = components(on, w, h);
+  let head = 0;
+  for (let k = 1; k < c.sizes.length; k++) if (c.sizes[k] > c.sizes[head]) head = k;
+  if (!head || c.sizes[head] / n < HEAD) return false;
+  let face = 0;
+  for (let i = 0; i < n; i++) if (c.labels[i] === head && labels[i] === FACE) face++;
+  const size = c.sizes[head];
+  return face / n >= HEAD_FACE && (person - size / n >= MORE_SKIN || (size - face) / size >= HAIRY);
 }
 
 const dominant = (rs: Region[]) => rs.length > 0 && rs.slice(1).every((r) => r.area < DOMINANT * rs[0].area);

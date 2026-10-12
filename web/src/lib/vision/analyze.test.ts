@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import real from './fixtures/parser-maps.json';
 import { decide, isWorn, LABEL_GROUP, PARTS, photoScore, type Maps, type Verdict } from './analyze';
 
 // Parser labels (ATR).
@@ -64,7 +65,7 @@ describe('decide: photos of someone wearing the pieces', () => {
   });
 
   it('finds a dress the parser labeled as a dress', () => {
-    const v = decide(maps((x, y) => (box(16, 2, 24, 8)(x, y) ? FACE : box(12, 8, 28, 36)(x, y) ? DRESS : BG)));
+    const v = decide(maps((x, y) => (box(16, 2, 24, 5)(x, y) ? HAIR : box(16, 5, 24, 8)(x, y) ? FACE : box(12, 8, 28, 36)(x, y) ? DRESS : BG)));
     expect(v).toMatchObject({ kind: 'worn', sure: true });
     expect(ids(v)).toEqual(['dress']);
   });
@@ -87,6 +88,12 @@ describe('decide: full-length shots and close-ups', () => {
 
   it("doesn't mistake a lone garment for someone wearing it", () => {
     expect(isWorn(maps((x, y) => (box(8, 8, 32, 32)(x, y) ? TOP : BG)))).toBe(false);
+  });
+
+  it("doesn't take a collar or waistband the parser calls a face for a head", () => {
+    // Trousers lying flat, their waistband labeled face: a head-sized blob at the top, but no other skin or hair.
+    const flat = (x: number, y: number) => (box(12, 6, 28, 9)(x, y) ? FACE : box(12, 9, 28, 36)(x, y) ? PANTS : BG);
+    expect(isWorn(maps(flat))).toBe(false);
   });
 
   it('treats a waist-down close-up as someone wearing the pieces, from the hands alone', () => {
@@ -188,4 +195,21 @@ describe('photoScore', () => {
     expect(photoScore(decide(maps(() => BG)), 0)).toBe(-Infinity);
     expect(modelWearingOther.matchesHint).toBe(true);
   });
+});
+
+/** Run-length decoding of a label map: value, run, value, run… */
+function unrle(s: string, n: number) {
+  const v = s.split(',').map(Number);
+  const out = new Uint8Array(n);
+  for (let k = 0, i = 0; k < v.length; i += v[k + 1], k += 2) out.fill(v[k], i, i + v[k + 1]);
+  return out;
+}
+
+// The parser's own labels for real store photos, product shots and people, at its 128-cell grid.
+describe('isWorn on the parser output for real store photos', () => {
+  for (const r of real) {
+    it(`${r.worn ? 'finds someone' : 'finds no one'}: ${r.photo}`, () => {
+      expect(isWorn({ labels: unrle(r.labels, r.w * r.h), w: r.w, h: r.h })).toBe(r.worn);
+    });
+  }
 });
