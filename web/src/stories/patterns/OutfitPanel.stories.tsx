@@ -64,10 +64,10 @@ export const Complete: Story = {
 export const RemovingAPiece: Story = {
   ...Complete,
   play: async ({ canvas, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Chelsea Boots' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Classics #585 Chelsea Boots' }));
     await expect(args.onFocus).toHaveBeenCalledWith('shoes');
     await userEvent.click(canvas.getByRole('button', { name: 'Remove from outfit' }));
-    await expect(canvas.queryByRole('button', { name: 'Chelsea Boots' })).toBeNull();
+    await expect(canvas.queryByRole('button', { name: 'Classics #585 Chelsea Boots' })).toBeNull();
     await expect(canvas.getByRole('button', { name: 'Save outfit' })).toBeEnabled();
   },
 };

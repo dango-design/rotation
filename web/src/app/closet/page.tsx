@@ -190,7 +190,7 @@ export default function Closet() {
                       ) : (
                         <span className="src">
                           <Icon name={ic} />
-                          {it.source === 'email' ? (it.store ?? it.brand) : label}
+                          {it.source === 'email' || it.source === 'link' ? (it.store ?? it.brand) : label}
                         </span>
                       )}
                       <Tile w={it} />

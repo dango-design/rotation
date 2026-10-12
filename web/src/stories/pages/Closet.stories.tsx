@@ -51,11 +51,11 @@ export const BuildingAnOutfit: Story = {
 export const PutAPieceOnTheBoard: Story = {
   parameters: { store: () => demoCloset({ building: true, draft: { name: 'New outfit', slots: { top: id('t1') }, focus: 'bottom' } }) },
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Put Loose Straight Jeans on the board' }));
+    await userEvent.click(canvas.getByRole('button', { name: "Put '90s Loose Jeans on the board" }));
     const board = canvas.getByRole('complementary', { name: 'Outfit board' });
-    await expect(within(board).getByRole('button', { name: 'Loose Straight Jeans' })).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Take Loose Straight Jeans off the board' }));
-    await expect(within(board).queryByRole('button', { name: 'Loose Straight Jeans' })).toBeNull();
+    await expect(within(board).getByRole('button', { name: "'90s Loose Jeans" })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: "Take '90s Loose Jeans off the board" }));
+    await expect(within(board).queryByRole('button', { name: "'90s Loose Jeans" })).toBeNull();
   },
 };
 

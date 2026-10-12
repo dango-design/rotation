@@ -167,13 +167,30 @@ function useStoreValue(fixture?: Fixture) {
     if (fixed) return;
     const demo = new URLSearchParams(window.location.search).has('demo');
     if (demo) {
+      let gone = false;
       // Deferred so the first render matches the server; demo mode is chosen once per page load.
       queueMicrotask(() => {
         const d = demoData();
         setS({ ...EMPTY, ready: true, demo: true, items: d.items, plans: d.plans, wears: d.wears, settings: d.settings });
         setDraft({ name: 'Client presentation', slots: d.plans[0].slots, focus: 'bottom' });
+        // The pieces start drawn and switch to the store's photo as each cutout is ready, this week's plans first.
+        const planned = new Set(d.plans.flatMap((p) => Object.values(p.slots)));
+        const order = [...d.items].sort((a, b) => Number(planned.has(b.id)) - Number(planned.has(a.id)));
+        const onPhoto = (id: string, cutout: Blob) =>
+          setS((p) =>
+            p.demo && p.items.some((i) => i.id === id)
+              ? {
+                  ...p,
+                  items: p.items.map((i) => (i.id === id ? { ...i, imageId: id, cutout: true } : i)),
+                  images: { ...p.images, [id]: URL.createObjectURL(cutout) },
+                }
+              : p,
+          );
+        void import('./demo-photos').then((m) => m.loadDemoPhotos(order, onPhoto, () => gone));
       });
-      return;
+      return () => {
+        gone = true;
+      };
     }
     fromDevice()
       .then(setS)
