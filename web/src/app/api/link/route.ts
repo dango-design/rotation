@@ -13,8 +13,9 @@ export async function POST(request: Request) {
 
   try {
     const page = await safeFetch(body.url, 'text/html,application/xhtml+xml', MAX_HTML);
-    const product = readProductPage(page.bytes.toString('utf8'), page.url);
-    if (isChallengePage(product))
+    const html = page.bytes.toString('utf8');
+    const product = readProductPage(html, page.url);
+    if (isChallengePage(product, html))
       return Response.json(
         { error: `${page.url.hostname.replace(/^www\./, '')} checks for a full web browser before showing its pages, so Rotation can't read them. Save the product photo, or take a screenshot of the page, and add it by photo instead.` },
         { status: 422 },

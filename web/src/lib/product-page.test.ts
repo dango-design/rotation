@@ -8,15 +8,23 @@ const url = new URL('https://shop.example.com/products/relaxed-linen-shirt');
 describe('isChallengePage', () => {
   it('spots the bot checks stores send instead of the product', () => {
     for (const title of ['Client Challenge', 'Access Denied', 'Just a moment...', 'Attention Required! | Cloudflare', 'Pardon Our Interruption', 'Robot or human?'])
-      expect(isChallengePage({ title })).toBe(true);
+      expect(isChallengePage({ title, images: [] }, page(`<title>${title}</title>`))).toBe(true);
   });
   it('leaves product names alone', () => {
     for (const title of ['The A&F Madeline Merino Wool-Blend Crew Sweater', 'Mid Rise Barrel Khakis', 'Access Denim Jacket'])
-      expect(isChallengePage({ title })).toBe(false);
+      expect(isChallengePage({ title, images: [] }, page(`<title>${title}</title>`))).toBe(false);
   });
   it('reads a challenge page as one', () => {
     const html = '<html><head><title>Client Challenge</title></head><body><noscript>Please enable JavaScript</noscript></body></html>';
-    expect(isChallengePage(readProductPage(html, new URL('https://www.abercrombie.com/shop/us/p/sweater-63566835')))).toBe(true);
+    expect(isChallengePage(readProductPage(html, new URL('https://www.abercrombie.com/shop/us/p/sweater-63566835')), html)).toBe(true);
+  });
+  it('reads an empty page that only runs a script as one', () => {
+    const html = page('<title></title><style>html, body { margin: 0 }</style>', "<script>window['istlWasHere'] = true; (function(){})();</script>");
+    expect(isChallengePage(readProductPage(html, new URL('https://www.nordstrom.com/s/leggings/5460106')), html)).toBe(true);
+  });
+  it('leaves untitled pages with something to read alone', () => {
+    const html = page('<title></title>', '<script>app()</script><p>Sorry, this item is no longer available.</p>');
+    expect(isChallengePage(readProductPage(html, url), html)).toBe(false);
   });
 });
 

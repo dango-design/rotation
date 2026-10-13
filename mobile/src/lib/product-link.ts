@@ -48,8 +48,9 @@ export async function readLink(text: string): Promise<Product> {
     throw new Error(res.status === 403 || res.status === 429 ? `${siteName(url)} ${blockedNote}` : `The store's page answered with an error (${res.status}).`);
 
   const final = new URL(res.url || url.toString());
-  const page = readProductPage(await res.text(), final);
-  if (isChallengePage(page)) throw new Error(`${siteName(final)} ${blockedNote}`);
+  const html = await res.text();
+  const page = readProductPage(html, final);
+  if (isChallengePage(page, html)) throw new Error(`${siteName(final)} ${blockedNote}`);
   if (!page.title && !page.images.length) throw new Error("That page doesn't describe a product we can read.");
   return { ...page, url: final.toString(), hint: hintFrom(page.title, page.category, pathWords(final.toString())) };
 }
