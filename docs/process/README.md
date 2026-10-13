@@ -42,6 +42,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | [022](decisions/022-no-outfit-judging.md) | The builder doesn't judge whether pieces go together | Oct 10, 2026 |
 | [024](decisions/024-real-pieces-in-the-demo.md) | The demo closet is real pieces with the stores' photos | Oct 12, 2026 |
 | [026](decisions/026-keep-the-quiet-editorial-look.md) | Keep the quiet editorial look, after exploring four other directions | Oct 12, 2026 |
+| [027](decisions/027-public-site-and-tagging-limits.md) | Put Rotation on Vercel, and limit photo tagging for everyone but approved accounts | Oct 12, 2026 |
 
 ## Capturing a milestone
 

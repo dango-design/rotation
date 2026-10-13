@@ -18,10 +18,14 @@ Then open http://localhost:3000. Open http://localhost:3000/?demo to explore Jor
 
 Optional settings go in `web/.env.local` (copy [`web/.env.example`](web/.env.example)):
 
-- `ANTHROPIC_API_KEY` has Claude suggest the type, color and name of each photo.
+- `ANTHROPIC_API_KEY` has Claude suggest the type, color and name of each photo. With accounts on, it needs a sign-in and has a daily limit, except for approved accounts ([decision 027](docs/process/decisions/027-public-site-and-tagging-limits.md)).
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` turn on accounts. With them, building a closet and saving need a sign-in, and the closet syncs across devices. Without them (for local development), the closet stays in the browser with no sign-in. See [`supabase/README.md`](supabase/README.md).
 
 Run the tests with `npm test` inside `web/`.
+
+## The live site
+
+Rotation is on Vercel at https://rotation-mu.vercel.app (project `rotation`, built from `web/`). Every merge to `main` deploys, and every pull request gets a preview link. The settings above go in Vercel → Project → Settings → Environment Variables.
 
 ## Run the phone app
 

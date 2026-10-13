@@ -53,6 +53,22 @@ export async function signOut() {
   await supabase()?.auth.signOut({ scope: 'local' });
 }
 
+export interface TagStatus {
+  approved: boolean;
+  used: number;
+  /** Tags a day; null for approved accounts, which have no daily limit. */
+  limit: number | null;
+}
+
+/** How much Claude photo tagging the signed-in person has left today (decision 027). Null when signed out or unknown. */
+export async function tagStatus(): Promise<TagStatus | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data, error } = await sb.schema('rotation').rpc('tag_status');
+  if (error || !data?.signed_in) return null;
+  return { approved: !!data.approved, used: data.used ?? 0, limit: data.limit ?? null };
+}
+
 const BUCKET = 'rotation-photos';
 const COLUMNS = 'kind,id,data,deleted,updated_at,synced_at';
 
