@@ -1,11 +1,11 @@
 'use client';
 
-/* The outfit board, shown beside the closet grid. The grid is the tray: clicking or dragging a piece
+/* The outfit board, shown beside your pieces. The pieces are the tray: clicking or dragging one
    puts it on the board, so this panel only holds the board, its actions, and pieces to shop.
-   Started from a day on Today, the same board plans that day (or logs it, for a past day). */
+   Beside the closet it builds any outfit; on Today, beside the same pieces, it plans a day (or logs one, for a past day). */
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { addDays, fmt, shortDate } from '@/lib/dates';
 import { useDays } from '@/lib/days';
@@ -20,6 +20,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   const st = useStore();
   const ui = useUI();
   const router = useRouter();
+  const pathname = usePathname();
   const { today, wxFor, suggestFor } = useDays();
   const { draft, setDraft } = st;
   const day = draft.date;
@@ -57,11 +58,11 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
     if (!idea) return st.toast('Surprise me needs a top, bottom and shoes that go together, or a dress and shoes.');
     setDraft({ ...draft, slots: idea.slots, layout: undefined, focus: 'top', shuffle: (draft.shuffle ?? 0) + 1 });
   };
-  /** Leaves the day: closes the board and goes back to that day on Today. */
+  /** Leaves the day: closes the board, showing that day on Today. */
   const backToDay = () => {
     setDraft({ ...draft, date: undefined, shuffle: undefined });
     st.setBuilding(false);
-    router.push(st.href(`/?day=${day}`));
+    if (pathname !== '/') router.push(st.href(`/?day=${day}`));
   };
   const finishDay = () => {
     if (!day) return;
@@ -80,12 +81,12 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
     <aside className="card outfit-panel" aria-label="Outfit board">
       <div className="panel-head">
         <div className={`eyebrow ${day ? 'for-day' : ''}`}>{!day ? 'Building an outfit' : day < today ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}</div>
-        <button className="icon-btn" onClick={() => (day ? backToDay() : st.setBuilding(false))} aria-label={day ? 'Cancel and go back to Today' : 'Close outfit board'}>
+        <button className="icon-btn" onClick={() => (day ? backToDay() : st.setBuilding(false))} aria-label={day ? `Stop ${day < today ? 'logging' : 'planning'} ${dayLabel}` : 'Close outfit board'}>
           <Icon name="x" />
         </button>
       </div>
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
-      <p className="panel-hint">Click or drag pieces from your closet onto the board, and click one again to take it off.</p>
+      <p className="panel-hint">Click or drag your pieces onto the board, and click one again to take it off.</p>
       {ahead && (
         <div className="panel-day">
           {wx ? (

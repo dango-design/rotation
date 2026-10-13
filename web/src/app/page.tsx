@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { OutfitPanel } from '@/components/OutfitPanel';
+import { PieceTray, SLOT_CAT, useBoardActions } from '@/components/PieceTray';
 import { useUI } from '@/components/Shell';
 import { boardProps, DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { backgroundOf } from '@/lib/backgrounds';
@@ -13,7 +15,7 @@ import { plural } from '@/lib/format';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
-import type { Background, Layout, OutfitSlots } from '@/lib/types';
+import type { Background, Cat, Layout, OutfitSlots } from '@/lib/types';
 
 function greeting() {
   const h = new Date().getHours();
@@ -21,7 +23,7 @@ function greeting() {
 }
 
 /* Today is the day view and the week planner in one. The strip picks a day; a day with nothing planned
-   asks for an outfit, which is built on the outfit board beside the closet, the same way as any other outfit. */
+   asks for an outfit, which is built right here, on the outfit board beside your pieces, the same way as in the closet. */
 export default function Today() {
   const st = useStore();
   const ui = useUI();
@@ -29,6 +31,8 @@ export default function Today() {
   const { today, wxFor, suggestFor, startPlanning } = useDays();
   const [day, setDay] = useState(today);
   const [picking, setPicking] = useState(false);
+  const [cat, setCat] = useState<Cat | 'all'>('all');
+  const { put } = useBoardActions();
   // Coming back from planning a day on the board shows that day. Deferred so the first render matches the server.
   useEffect(() => {
     const d = new URLSearchParams(window.location.search).get('day');
@@ -79,14 +83,20 @@ export default function Today() {
   // A full outfit Rotation could suggest, for "Surprise me". Planning itself only needs one piece.
   const idea = suggestFor(day, 0);
 
-  // A day left half-planned on the outfit board, so it isn't forgotten there while you look around.
+  // The day on the outfit board. Showing it plans it here; looking at another day keeps it waiting, with a way back.
   const onBoard = st.building ? st.draft.date : undefined;
+  const planningHere = !!onBoard && onBoard === day;
   const boardCount = SLOTS.filter((s) => st.draft.slots[s]).length;
   const boardDay = onBoard === today ? 'today' : onBoard ? fmt(onBoard, { weekday: 'long' }) : '';
   const discardBoard = () => (st.setDraft({ name: 'New outfit', slots: {}, focus: 'top' }), st.setBuilding(false));
+  const planDay = (d: string, opts?: Parameters<typeof startPlanning>[1]) => {
+    setDay(d);
+    setCat('all');
+    startPlanning(d, opts);
+  };
 
   const surpriseMe = () => {
-    if (idea) startPlanning(day, { slots: idea.slots, shuffle: 1 });
+    if (idea) planDay(day, { slots: idea.slots, shuffle: 1 });
   };
   const pickDay = (d: string) => {
     setDay(d);
@@ -129,15 +139,15 @@ export default function Today() {
         </div>
       </header>
 
-      {onBoard && (
-        <div className="card resume-bar" role="status">
+      {onBoard && !planningHere && (
+        <div className="card resume-bar" role="region" aria-label="Day in progress">
           {boardCount > 0 && <Flatlay slots={st.draft.slots} layout={st.draft.layout} bg={st.draft.bg} />}
           <div className="resume-text">
             <b>{onBoard < today ? `Logging ${boardDay}` : `Planning ${boardDay}`}</b>
-            {boardCount ? `${plural(boardCount, 'piece')} on the outfit board, not ${onBoard < today ? 'logged' : 'planned'} yet.` : 'The outfit board is still open in Closet.'}
+            {boardCount ? `${plural(boardCount, 'piece')} on the outfit board, not ${onBoard < today ? 'logged' : 'planned'} yet.` : 'The outfit board is still open.'}
           </div>
           <div className="resume-actions">
-            <button className="btn sm primary" onClick={() => router.push(st.href('/closet'))}>
+            <button className="btn sm primary" onClick={() => setDay(onBoard)}>
               Back to the board
               <Icon name="arrow" />
             </button>
@@ -185,7 +195,7 @@ export default function Today() {
                 key={d}
                 className={`strip-day ${d === day ? 'selected' : ''} ${d === today ? 'is-today' : ''} ${open ? 'open' : ''}`}
                 // An open day goes straight to planning; any other day is shown below.
-                onClick={() => (open ? startPlanning(d) : pickDay(d))}
+                onClick={() => (open ? planDay(d) : pickDay(d))}
                 aria-pressed={d === day}
                 aria-label={`${fmt(d, { weekday: 'long', month: 'long', day: 'numeric' })}${w ? ', worn' : p ? `, ${p.name}` : open ? (onBoard === d ? ', on the outfit board' : ', plan an outfit') : ''}`}
               >
@@ -208,125 +218,132 @@ export default function Today() {
                     {open ? <Icon name="plus" /> : '–'}
                   </span>
                 )}
-                <span className="strip-label">{w ? <span className="worn-dot">Worn</span> : (p?.name ?? (open ? (onBoard === d ? 'On the board' : 'Plan it') : ''))}</span>
+                <span className="strip-label">{w ? <span className="worn-dot">Worn</span> : (p?.name ?? (open ? (onBoard === d ? (d < today ? 'Logging' : 'Planning') : 'Plan it') : ''))}</span>
               </button>
             );
           })}
         </div>
       </section>
 
-      <section className={`today-grid ${lead ? '' : 'solo'}`}>
-        {slots ? (
-          <article className="card hero">
-            <div className="hero-visual" {...boardProps(heroBg)}>
-              <Flatlay slots={slots} layout={worn ? worn.layout : plan?.layout} bg={heroBg} />
-            </div>
-            <div className="hero-body">
-              <div>
-                <div className="eyebrow">{worn ? `Worn ${isToday ? 'today' : `on ${dayName}`}` : `Planned for ${dayName}`}</div>
-                <h2>{worn ? (plan?.name ?? 'Nice choice') : plan!.name}</h2>
+      {planningHere ? (
+        <section className="closet-layout building day-planner" aria-label={`${past ? 'Log' : 'Plan'} ${dayName}`}>
+          <PieceTray cat={cat} onCat={setCat} />
+          <OutfitPanel onPut={put} onFocus={(s) => setCat(SLOT_CAT[s])} />
+        </section>
+      ) : (
+        <section className={`today-grid ${lead ? '' : 'solo'}`}>
+          {slots ? (
+            <article className="card hero">
+              <div className="hero-visual" {...boardProps(heroBg)}>
+                <Flatlay slots={slots} layout={worn ? worn.layout : plan?.layout} bg={heroBg} />
               </div>
-              <div className="piece-list">
-                {pieces.map((it) => (
-                  <button key={it!.id} className="piece-row" style={{ border: 0, borderBottom: '1px solid var(--line)', background: 'none', textAlign: 'left', width: '100%' }} onClick={() => ui.open({ type: 'item', id: it!.id })}>
-                    <Tile w={it} />
-                    <span className="name">{it!.name}</span>
-                    <span className="chip">{it!.brand || TYPES[it!.type].label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="hero-actions">
-                {worn ? (
-                  <span className="chip good">
-                    <Icon name="check" />
-                    Logged
-                  </span>
-                ) : (
-                  <>
-                    {day <= today && (
-                      <button
-                        className="btn primary"
-                        onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, day, plan?.layout, plan?.bg), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn')))}
-                      >
-                        <Icon name="check" />
-                        {isToday ? 'Wear this' : 'Wore it'}
-                      </button>
-                    )}
-                    {!past && (
-                      <button className="btn" onClick={() => startPlanning(day, { slots: plan!.slots, layout: plan!.layout, bg: plan!.bg, name: plan!.name })}>
-                        <Icon name="pencil" />
-                        Change
-                      </button>
-                    )}
-                    <button className="btn ghost" onClick={() => st.requireAccount('change your plans', () => (st.setPlan(day, null), st.toast('Plan cleared')))}>
-                      Clear plan
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </article>
-        ) : (
-          <article className={`card plan-callout ${past ? 'is-past' : ''}`}>
-            <div className="callout-body">
-              <div className="eyebrow">{past ? `Nothing logged · ${dayName}` : `Nothing planned · ${dayName}`}</div>
-              <h2>{past ? `What did you wear on ${weekday}?` : isToday ? "Today's a blank canvas." : `${weekday}'s a blank canvas.`}</h2>
-              <p>
-                {past
-                  ? 'Put what you wore on the board so Rotation knows what you reach for.'
-                  : 'Start with any piece you feel like wearing and build around it.'}
-              </p>
-              {!past && wx && (
-                <p className="callout-wx">
-                  <Icon name={wx.sky} />
-                  {wx.temp}° and {wx.word}
-                  {wx.temp < 66 ? ', so bring a layer' : ''}
-                </p>
-              )}
-              <div className="callout-actions">
-                <button className="btn primary" onClick={() => startPlanning(day)}>
-                  <Icon name="plus" />
-                  {past ? 'Log an outfit' : `Plan ${isToday ? "today's" : `${weekday}'s`} outfit`}
-                </button>
-                {st.outfits.length > 0 && (
-                  <button className="btn" onClick={() => setPicking(true)}>
-                    Use a saved outfit
-                  </button>
-                )}
-                {!past && idea && (
-                  <button className="btn ghost" onClick={surpriseMe}>
-                    <Icon name="shuffle" />
-                    Surprise me
-                  </button>
-                )}
-              </div>
-            </div>
-          </article>
-        )}
-
-        {lead && (
-          <aside className="today-side">
-            <article className="card unlock-card">
-              <div className="eyebrow">Fill the gap</div>
-              <div className="row">
-                <Tile w={lead.piece} />
+              <div className="hero-body">
                 <div>
-                  <div className="big-num">{lead.unlock}</div>
-                  <div>new outfits from {onePhrase(lead.piece.type)}</div>
+                  <div className="eyebrow">{worn ? `Worn ${isToday ? 'today' : `on ${dayName}`}` : `Planned for ${dayName}`}</div>
+                  <h2>{worn ? (plan?.name ?? 'Nice choice') : plan!.name}</h2>
+                </div>
+                <div className="piece-list">
+                  {pieces.map((it) => (
+                    <button key={it!.id} className="piece-row" style={{ border: 0, borderBottom: '1px solid var(--line)', background: 'none', textAlign: 'left', width: '100%' }} onClick={() => ui.open({ type: 'item', id: it!.id })}>
+                      <Tile w={it} />
+                      <span className="name">{it!.name}</span>
+                      <span className="chip">{it!.brand || TYPES[it!.type].label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="hero-actions">
+                  {worn ? (
+                    <span className="chip good">
+                      <Icon name="check" />
+                      Logged
+                    </span>
+                  ) : (
+                    <>
+                      {day <= today && (
+                        <button
+                          className="btn primary"
+                          onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, day, plan?.layout, plan?.bg), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn')))}
+                        >
+                          <Icon name="check" />
+                          {isToday ? 'Wear this' : 'Wore it'}
+                        </button>
+                      )}
+                      {!past && (
+                        <button className="btn" onClick={() => planDay(day, { slots: plan!.slots, layout: plan!.layout, bg: plan!.bg, name: plan!.name })}>
+                          <Icon name="pencil" />
+                          Change
+                        </button>
+                      )}
+                      <button className="btn ghost" onClick={() => st.requireAccount('change your plans', () => (st.setPlan(day, null), st.toast('Plan cleared')))}>
+                        Clear plan
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-              <p>
-                {whyLine(lead.piece, st.items)} From {money(Math.min(...lead.piece.options.map((o) => o.price)))} at {lead.piece.options.length} stores.
-              </p>
-              <Link className="btn" href={st.href('/fill')}>
-                See the outfits <Icon name="arrow" />
-              </Link>
             </article>
-          </aside>
-        )}
-      </section>
+          ) : (
+            <article className={`card plan-callout ${past ? 'is-past' : ''}`}>
+              <div className="callout-body">
+                <div className="eyebrow">{past ? `Nothing logged · ${dayName}` : `Nothing planned · ${dayName}`}</div>
+                <h2>{past ? `What did you wear on ${weekday}?` : isToday ? "Today's a blank canvas." : `${weekday}'s a blank canvas.`}</h2>
+                <p>
+                  {past
+                    ? 'Put what you wore on the board so Rotation knows what you reach for.'
+                    : 'Start with any piece you feel like wearing and build around it.'}
+                </p>
+                {!past && wx && (
+                  <p className="callout-wx">
+                    <Icon name={wx.sky} />
+                    {wx.temp}° and {wx.word}
+                    {wx.temp < 66 ? ', so bring a layer' : ''}
+                  </p>
+                )}
+                <div className="callout-actions">
+                  <button className="btn primary" onClick={() => planDay(day)}>
+                    <Icon name="plus" />
+                    {past ? 'Log an outfit' : `Plan ${isToday ? "today's" : `${weekday}'s`} outfit`}
+                  </button>
+                  {st.outfits.length > 0 && (
+                    <button className="btn" onClick={() => setPicking(true)}>
+                      Use a saved outfit
+                    </button>
+                  )}
+                  {!past && idea && (
+                    <button className="btn ghost" onClick={surpriseMe}>
+                      <Icon name="shuffle" />
+                      Surprise me
+                    </button>
+                  )}
+                </div>
+              </div>
+            </article>
+          )}
 
-      {redis.length > 0 && (
+          {lead && (
+            <aside className="today-side">
+              <article className="card unlock-card">
+                <div className="eyebrow">Fill the gap</div>
+                <div className="row">
+                  <Tile w={lead.piece} />
+                  <div>
+                    <div className="big-num">{lead.unlock}</div>
+                    <div>new outfits from {onePhrase(lead.piece.type)}</div>
+                  </div>
+                </div>
+                <p>
+                  {whyLine(lead.piece, st.items)} From {money(Math.min(...lead.piece.options.map((o) => o.price)))} at {lead.piece.options.length} stores.
+                </p>
+                <Link className="btn" href={st.href('/fill')}>
+                  See the outfits <Icon name="arrow" />
+                </Link>
+              </article>
+            </aside>
+          )}
+        </section>
+      )}
+
+      {!planningHere && redis.length > 0 && (
         <section className="section">
           <div className="section-head">
             <div>

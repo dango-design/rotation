@@ -1,6 +1,8 @@
 # 028 — The outfit board stays open, and says so
 
-**Date:** Oct 13, 2026 · **Status:** Accepted · **Builds on:** [021](021-plan-in-the-builder.md) · **Milestone:** next
+**Date:** Oct 13, 2026 · **Status:** Partly replaced by [029](029-plan-a-day-on-today.md), the same day · **Builds on:** [021](021-plan-in-the-builder.md) · **Milestone:** next
+
+> Same day, [029](029-plan-a-day-on-today.md) moved day planning onto Today, so the closet no longer shows a day's board. The pencil, "Put on the board", resuming a day, the bar for a day left half planned and the tab dot all carry over; the bar's button now goes back to that day on Today, and the dot moves to the Today tab for a day being planned.
 
 ## Context
 
