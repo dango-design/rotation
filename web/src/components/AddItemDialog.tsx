@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { nearestSwatch, swatchByName, TYPES } from '@/lib/catalog-meta';
 import { hintFrom, PART_TYPE, pathWords, type Hint } from '@/lib/garment-hints';
+import { supabase } from '@/lib/account';
 import { useStore } from '@/lib/store';
 import type { GarmentType } from '@/lib/types';
 import { findInPhoto, findInProduct, findInProductPhoto, photoUrl, toJpegBase64, type Found, type Piece } from '@/lib/vision/find';
@@ -15,7 +16,7 @@ type Step =
   | { kind: 'working'; label: string; original?: string }
   | { kind: 'pick' }
   | { kind: 'link' }
-  | { kind: 'form'; initial: Partial<ItemFields>; blob?: Blob; url?: string; ai?: boolean };
+  | { kind: 'form'; initial: Partial<ItemFields>; blob?: Blob; url?: string; ai?: boolean; tagNote?: string };
 
 interface Tags {
   name?: string;
@@ -51,15 +52,22 @@ interface Session {
   hint?: Hint;
 }
 
-/** Ask the server to tag a photo with Claude; returns null when tagging is off or fails. */
-async function tagPhoto(blob: Blob): Promise<Tags | null> {
+/** Ask the server to tag a photo with Claude. `tags` is null when tagging is off or fails; `note` says why when the
+    person has used their tags for the day (decision 027). */
+async function tagPhoto(blob: Blob): Promise<{ tags: Tags | null; note?: string }> {
   try {
     const image = await toJpegBase64(blob);
-    const res = await fetch('/api/tag', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image }) });
-    if (!res.ok) return null;
-    return (await res.json()) as Tags;
+    const token = (await supabase()?.auth.getSession())?.data.session?.access_token;
+    const res = await fetch('/api/tag', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ image }),
+    });
+    if (res.status === 429) return { tags: null, note: (await res.json().catch(() => null))?.error };
+    if (!res.ok) return { tags: null };
+    return { tags: (await res.json()) as Tags };
   } catch {
-    return null;
+    return { tags: null };
   }
 }
 
@@ -118,8 +126,8 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
     const next = { ...f, queue, index: f.index + 1 };
     setFound(next);
     setStep({ kind: 'working', label: 'Reading the photo…', original: piece.url });
-    const tags = await tagPhoto(piece.blob);
-    setStep({ kind: 'form', initial: fieldsFor(piece, tags, next), blob: piece.blob, url: piece.url, ai: !!tags });
+    const { tags, note } = await tagPhoto(piece.blob);
+    setStep({ kind: 'form', initial: fieldsFor(piece, tags, next), blob: piece.blob, url: piece.url, ai: !!tags, tagNote: note });
   };
 
   const add = (f: Session, ids: string[]) => openNext({ ...f, selected: ids, queue: ids, index: 0, total: ids.length });
@@ -140,8 +148,8 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
       const f: Session = { from: 'photo', sure: false, pieces: [], selected: [], queue: [], index: 0, total: 1 };
       setFound(f);
       setStep({ kind: 'working', label: 'Reading the photo…', original });
-      const tags = await tagPhoto(file);
-      setStep({ kind: 'form', initial: fieldsFor({ rgb: [200, 200, 200], cutout: false }, tags, f), blob: file, url: original, ai: !!tags });
+      const { tags, note } = await tagPhoto(file);
+      setStep({ kind: 'form', initial: fieldsFor({ rgb: [200, 200, 200], cutout: false }, tags, f), blob: file, url: original, ai: !!tags, tagNote: note });
     }
   };
 
@@ -413,6 +421,7 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
               <h2>Check the details</h2>
               <p className="lede">Type and color decide what it pairs with. Price makes cost per wear work.</p>
               {error && <p className="error-note">{error}</p>}
+              {step.tagNote && <p className="tag-note">{step.tagNote}</p>}
               <ItemForm
                 key={`${found?.index ?? 0}-${step.url ?? ''}`}
                 initial={step.initial}

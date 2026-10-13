@@ -633,6 +633,7 @@ a.nav-item { text-decoration: none; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--ink); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-note { color: var(--warn); font-size: 13px; }
+.tag-note { color: var(--ink-2); font-size: 13px; }
 .piece-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; margin-top: 18px; }
 .piece-pick { display: flex; flex-direction: column; gap: 8px; padding: 8px 8px 10px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); font-weight: 600; font-size: 13px; text-align: left; transition: border-color 0.15s, box-shadow 0.15s; }
 .piece-pick:hover { border-color: var(--ink-3); }

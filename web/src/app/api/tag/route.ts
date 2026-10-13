@@ -3,6 +3,8 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { SWATCHES, TYPES } from '@/lib/catalog-meta';
+import { fromAnotherSite, rateLimited } from '@/lib/server/safe-fetch';
+import { allowanceOn, claimTag } from '@/lib/server/tag-allowance';
 
 const enabled = () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
@@ -26,16 +28,24 @@ Set brand only if a brand name is clearly legible on the item; otherwise use an 
 If the photo does not show clothing, shoes or a bag, set is_clothing to false.`;
 
 export async function GET() {
-  return Response.json({ enabled: enabled() });
+  return Response.json({ enabled: enabled(), limited: enabled() && allowanceOn });
 }
 
 export async function POST(request: Request) {
   if (!enabled()) return Response.json({ error: 'Photo tagging is not configured on this server.' }, { status: 501 });
+  // Each call is billed to the server's Anthropic account, so only Rotation's own pages may use it, a few a minute.
+  if (fromAnotherSite(request)) return Response.json({ error: 'Not available to other sites.' }, { status: 403 });
+  if (rateLimited(request, 'tag', 10)) return Response.json({ error: 'Too many photos at once; try again in a minute.' }, { status: 429 });
 
   const body = await request.json().catch(() => null);
   const image = body?.image;
   if (typeof image !== 'string' || !image || image.length > 3_000_000)
     return Response.json({ error: 'Send one JPEG image as base64.' }, { status: 400 });
+
+  if (allowanceOn) {
+    const claim = await claimTag(request);
+    if (!claim.allowed) return Response.json({ error: claim.error }, { status: claim.status });
+  }
 
   const client = new Anthropic();
   try {
