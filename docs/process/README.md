@@ -40,6 +40,8 @@ How this project got from idea to app, kept so every step can be referenced late
 | [020](decisions/020-read-screenshots.md) | Fill in a piece's details from a screenshot of its product page | Oct 10, 2026 |
 | [021](decisions/021-plan-in-the-builder.md) | Plan a day in the outfit builder | Oct 10, 2026 |
 | [022](decisions/022-no-outfit-judging.md) | The builder doesn't judge whether pieces go together | Oct 10, 2026 |
+| [024](decisions/024-real-pieces-in-the-demo.md) | The demo closet is real pieces with the stores' photos | Oct 12, 2026 |
+| [026](decisions/026-keep-the-quiet-editorial-look.md) | Keep the quiet editorial look, after exploring four other directions | Oct 12, 2026 |
 
 ## Capturing a milestone
 
