@@ -26,8 +26,10 @@ export function useDays() {
     return suggest(st.items, { occasion, today: date, shuffle: n, temp: wx?.temp, sky: wx?.sky, skyWord: wx?.word });
   };
 
-  /** Opens the outfit board beside the closet for a day: logging for a past day, planning for today or later. */
+  /** Opens the outfit board beside the closet for a day: logging for a past day, planning for today or later.
+      A day already on the board picks up where it was left, unless Surprise me asks for a fresh outfit. */
   const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; shuffle?: number; name?: string } = {}) => {
+    if (st.building && st.draft.date === day && opts.shuffle === undefined) return router.push(st.href('/closet'));
     const slots = opts.slots ?? {};
     const name = opts.name ?? (day === today ? "Today's outfit" : `${fmt(day, { weekday: 'long' })}'s outfit`);
     st.build({ name, slots, layout: opts.layout, bg: opts.bg, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle });

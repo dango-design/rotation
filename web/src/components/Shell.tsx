@@ -127,12 +127,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
   /** Adding pieces builds a closet, so signed out it asks to sign in first. */
   const addPieces = () => st.requireAccount('start your closet', () => open({ type: 'add' }));
 
+  /** The outfit board stays open on Closet while you look at other pages; its tab says so. */
+  const boardAway = (path: string) => path === '/closet' && st.building && pathname !== '/closet';
+  const boardNote = st.draft.date ? 'outfit board open, planning a day' : 'outfit board open';
+
   const navLink = (n: { path: string; label: string; icon: string }, count?: number) => {
     const active = pathname === n.path;
     return (
       <Link key={n.path} href={st.href(n.path)} className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
         <Icon name={n.icon} />
         <span>{n.label}</span>
+        {boardAway(n.path) && <span className="board-dot" role="img" aria-label={boardNote} title="Outfit board open" />}
         {count ? <span className="count">{count}</span> : null}
       </Link>
     );
@@ -195,6 +200,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Link key={n.path} href={st.href(n.path)} className={`tab ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
                 <Icon name={n.icon} />
                 <span>{n.label}</span>
+                {boardAway(n.path) && <span className="board-dot" role="img" aria-label={boardNote} />}
               </Link>
             );
           })}

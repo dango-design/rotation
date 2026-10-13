@@ -9,6 +9,7 @@ import { backgroundOf } from '@/lib/backgrounds';
 import { isAccessory, onePhrase, TYPES } from '@/lib/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, weekStart } from '@/lib/dates';
 import { useDays } from '@/lib/days';
+import { plural } from '@/lib/format';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
@@ -78,6 +79,12 @@ export default function Today() {
   // A full outfit Rotation could suggest, for "Surprise me". Planning itself only needs one piece.
   const idea = suggestFor(day, 0);
 
+  // A day left half-planned on the outfit board, so it isn't forgotten there while you look around.
+  const onBoard = st.building ? st.draft.date : undefined;
+  const boardCount = SLOTS.filter((s) => st.draft.slots[s]).length;
+  const boardDay = onBoard === today ? 'today' : onBoard ? fmt(onBoard, { weekday: 'long' }) : '';
+  const discardBoard = () => (st.setDraft({ name: 'New outfit', slots: {}, focus: 'top' }), st.setBuilding(false));
+
   const surpriseMe = () => {
     if (idea) startPlanning(day, { slots: idea.slots, shuffle: 1 });
   };
@@ -122,6 +129,25 @@ export default function Today() {
         </div>
       </header>
 
+      {onBoard && (
+        <div className="card resume-bar" role="status">
+          {boardCount > 0 && <Flatlay slots={st.draft.slots} layout={st.draft.layout} bg={st.draft.bg} />}
+          <div className="resume-text">
+            <b>{onBoard < today ? `Logging ${boardDay}` : `Planning ${boardDay}`}</b>
+            {boardCount ? `${plural(boardCount, 'piece')} on the outfit board, not ${onBoard < today ? 'logged' : 'planned'} yet.` : 'The outfit board is still open in Closet.'}
+          </div>
+          <div className="resume-actions">
+            <button className="btn sm primary" onClick={() => router.push(st.href('/closet'))}>
+              Back to the board
+              <Icon name="arrow" />
+            </button>
+            <button className="btn sm ghost" onClick={discardBoard}>
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
       <section className="week-strip" aria-label="Week">
         <div className="strip-bar">
           <div>
@@ -161,7 +187,7 @@ export default function Today() {
                 // An open day goes straight to planning; any other day is shown below.
                 onClick={() => (open ? startPlanning(d) : pickDay(d))}
                 aria-pressed={d === day}
-                aria-label={`${fmt(d, { weekday: 'long', month: 'long', day: 'numeric' })}${w ? ', worn' : p ? `, ${p.name}` : open ? ', plan an outfit' : ''}`}
+                aria-label={`${fmt(d, { weekday: 'long', month: 'long', day: 'numeric' })}${w ? ', worn' : p ? `, ${p.name}` : open ? (onBoard === d ? ', on the outfit board' : ', plan an outfit') : ''}`}
               >
                 <span className="strip-head">
                   <span>
@@ -182,7 +208,7 @@ export default function Today() {
                     {open ? <Icon name="plus" /> : '–'}
                   </span>
                 )}
-                <span className="strip-label">{w ? <span className="worn-dot">Worn</span> : (p?.name ?? (open ? 'Plan it' : ''))}</span>
+                <span className="strip-label">{w ? <span className="worn-dot">Worn</span> : (p?.name ?? (open ? (onBoard === d ? 'On the board' : 'Plan it') : ''))}</span>
               </button>
             );
           })}

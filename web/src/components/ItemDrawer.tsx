@@ -40,6 +40,14 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
     onClose();
     router.push(st.href('/closet'));
   };
+  // With the outfit board open (say, halfway through planning a day), the piece joins that outfit instead of starting over.
+  const onBoard = st.building && st.draft.slots[slotOf(it)] === it.id;
+  const putOnBoard = () => {
+    const slots = { ...st.draft.slots, [slotOf(it)]: it.id };
+    if (it.cat === 'dress') delete slots.bottom;
+    st.setDraft({ ...st.draft, slots, focus: slotOf(it) });
+    onClose();
+  };
 
   return (
     <>
@@ -91,10 +99,17 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn primary" onClick={styleIt}>
-                <Icon name="builder" />
-                Style it
-              </button>
+              {st.building ? (
+                <button className="btn primary" onClick={putOnBoard} disabled={onBoard}>
+                  <Icon name={onBoard ? 'check' : 'plus'} />
+                  {onBoard ? 'On the board' : 'Put on the board'}
+                </button>
+              ) : (
+                <button className="btn primary" onClick={styleIt}>
+                  <Icon name="builder" />
+                  Style it
+                </button>
+              )}
               <button
                 className="btn"
                 onClick={() =>

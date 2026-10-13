@@ -5,6 +5,7 @@ import { OutfitPanel } from '@/components/OutfitPanel';
 import { useUI } from '@/components/Shell';
 import { DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { CATS } from '@/lib/catalog-meta';
+import { fmt, todayISO } from '@/lib/dates';
 import { cpw, slotOf } from '@/lib/engine';
 import { dropAt, resolveLayout } from '@/lib/layout';
 import { plural } from '@/lib/format';
@@ -99,7 +100,7 @@ export default function Closet() {
             {view === 'outfits'
               ? 'Outfits you built and saved. Open one to change it or plan it for a day.'
               : st.building
-                ? 'Click a piece to put it on the board.'
+                ? `${draft.date ? `Planning ${draft.date === todayISO() ? 'today' : fmt(draft.date, { weekday: 'long' })}. ` : ''}Click a piece to put it on the board, or its pencil to edit it.`
                 : `${stores.size ? `From ${plural(stores.size, 'brand and store', 'brands and stores')}. ` : ''}Tap any piece to see what it pairs with.`}
           </p>
         </div>
@@ -172,36 +173,43 @@ export default function Closet() {
                   const m = metric(it);
                   const state = st.building && onBoard.has(it.id) ? 'on-board' : '';
                   return (
-                    <button
-                      key={it.id}
-                      className={`item-card ${state}`}
-                      draggable={st.building}
-                      onDragStart={(e) => e.dataTransfer.setData('text/plain', it.id)}
-                      onClick={() => (st.building ? toggle(it.id) : ui.open({ type: 'item', id: it.id }))}
-                      aria-label={st.building ? (onBoard.has(it.id) ? `Take ${it.name} off the board` : `Put ${it.name} on the board`) : undefined}
-                    >
-                      {st.building ? (
-                        onBoard.has(it.id) && (
-                          <span className="src good">
-                            <Icon name="check" />
-                            On board
+                    <div key={it.id} className="item-cell">
+                      <button
+                        className={`item-card ${state}`}
+                        draggable={st.building}
+                        onDragStart={(e) => e.dataTransfer.setData('text/plain', it.id)}
+                        onClick={() => (st.building ? toggle(it.id) : ui.open({ type: 'item', id: it.id }))}
+                        aria-label={st.building ? (onBoard.has(it.id) ? `Take ${it.name} off the board` : `Put ${it.name} on the board`) : undefined}
+                      >
+                        {st.building ? (
+                          onBoard.has(it.id) && (
+                            <span className="src good">
+                              <Icon name="check" />
+                              On board
+                            </span>
+                          )
+                        ) : (
+                          <span className="src">
+                            <Icon name={ic} />
+                            {it.source === 'email' || it.source === 'link' ? (it.store ?? it.brand) : label}
                           </span>
-                        )
-                      ) : (
-                        <span className="src">
-                          <Icon name={ic} />
-                          {it.source === 'email' || it.source === 'link' ? (it.store ?? it.brand) : label}
-                        </span>
-                      )}
-                      <Tile w={it} />
-                      <div>
-                        <div className="item-name">{it.name}</div>
-                        <div className="item-sub">
-                          <span>{it.brand}</span>
-                          {m ? <span className="cpw">{m}</span> : null}
+                        )}
+                        <Tile w={it} />
+                        <div>
+                          <div className="item-name">{it.name}</div>
+                          <div className="item-sub">
+                            <span>{it.brand}</span>
+                            {m ? <span className="cpw">{m}</span> : null}
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                      {/* With the board open a click puts a piece on it, so editing a piece gets its own button. */}
+                      {st.building && (
+                        <button className="icon-btn card-edit" onClick={() => ui.open({ type: 'item', id: it.id })} aria-label={`Edit ${it.name}`} title="Edit piece">
+                          <Icon name="pencil" />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
