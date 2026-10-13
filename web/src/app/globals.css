@@ -737,13 +737,17 @@ a.nav-item { text-decoration: none; }
 .saved-open { border: 0; background: none; padding: 0; display: block; width: 100%; }
 .saved-meta { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 
+/* Narrower windows (a laptop half-screen) keep the board beside the closet, in a slimmer column; phones get it as a
+   sheet along the bottom. */
 @media (max-width: 1180px) {
-  .closet-layout.building { grid-template-columns: minmax(0, 1fr); padding-bottom: 60vh; }
-  .outfit-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 58vh; border-radius: 20px 20px 0 0; box-shadow: var(--shadow-lg); }
-  .outfit-panel .board { height: min(40vh, 400px); }
+  .closet-layout.building { grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; }
+  .closet-layout.building .closet-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .outfit-panel { padding: 16px; }
+  .outfit-panel .board { height: min(52vh, 480px); }
 }
 @media (max-width: 900px) {
-  .outfit-panel { max-height: 52vh; padding: 14px 16px; gap: 10px; }
+  .closet-layout.building { grid-template-columns: minmax(0, 1fr); padding-bottom: 60vh; }
+  .outfit-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 52vh; border-radius: 20px 20px 0 0; box-shadow: var(--shadow-lg); padding: 14px 16px; gap: 10px; }
   .outfit-panel .board { height: min(34vh, 300px); }
   .outfit-panel .outfit-name { font-size: 24px; }
   .panel-hint { display: none; }
@@ -788,20 +792,29 @@ a.nav-item { text-decoration: none; }
 .canvas-piece .garment, .canvas-piece img.photo { width: 100%; height: 100%; display: block; pointer-events: none; filter: drop-shadow(0 10px 10px rgba(28, 27, 25, 0.15)); }
 .canvas-piece::after { content: ''; position: absolute; inset: 0; border-radius: 3px; pointer-events: none; }
 .canvas-piece:hover::after { box-shadow: 0 0 0 1px rgba(30, 58, 110, 0.35); }
-.canvas-piece.selected::after { box-shadow: 0 0 0 1.5px var(--gap); }
 .canvas-piece.trial::after { box-shadow: 0 0 0 1.5px var(--gap); background: rgba(234, 239, 247, 0.35); }
+/* The selected piece's frame and corner handles, drawn over the part of it on the board and kept inside the edge,
+   so a piece hanging off the board can still be resized. */
+.canvas-select { position: absolute; z-index: 999; box-shadow: 0 0 0 1.5px var(--gap); border-radius: 3px; pointer-events: none; }
+.canvas-select .handle { pointer-events: auto; }
 .handle { position: absolute; z-index: 2; width: 11px; height: 11px; background: var(--panel); border: 1.5px solid var(--gap); border-radius: 2px; touch-action: none; }
 .handle::before { content: ''; position: absolute; inset: -9px; }
 .handle.nw { left: -6px; top: -6px; cursor: nwse-resize; }
 .handle.ne { right: -6px; top: -6px; cursor: nesw-resize; }
 .handle.sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
 .handle.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
-.canvas-tools { position: absolute; z-index: 1000; transform: translate(-50%, calc(-100% - 10px)); display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: var(--ink); box-shadow: var(--shadow-lg); animation: fade 0.12s ease; }
+/* --half: half the toolbar's width, so it can be kept inside the board (see OutfitBoard). */
+.canvas-tools { --half: 75px; position: absolute; z-index: 1000; transform: translate(-50%, calc(-100% - 10px)); display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: var(--ink); box-shadow: var(--shadow-lg); animation: fade 0.12s ease; }
 .canvas-tools.below { transform: translate(-50%, 10px); }
 .canvas-tools button { width: 32px; height: 32px; border: 0; border-radius: 7px; background: none; color: var(--on-ink); display: grid; place-items: center; }
 .canvas-tools button:hover:not(:disabled) { background: color-mix(in srgb, var(--on-ink) 14%, transparent); }
 .canvas-tools button:disabled { opacity: 0.35; cursor: default; }
 .canvas-tools svg { width: 17px; height: 17px; }
+@media (max-width: 900px) {
+  .canvas-tools { --half: 61px; gap: 0; }
+  .canvas-tools button { width: 28px; height: 28px; }
+  .canvas-tools svg { width: 15px; height: 15px; }
+}
 /* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot. */
 .canvas-corner { position: absolute; right: 10px; bottom: 10px; z-index: 1000; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.15s; }
 .canvas-tidy { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); }
