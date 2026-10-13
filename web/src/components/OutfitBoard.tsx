@@ -158,7 +158,6 @@ export function OutfitBoard({
             onPointerDown={(e) => start(e, s, 'move')}
           >
             <Art w={it} />
-            {selected === s && CORNERS.map((c) => <span key={c} className={`handle ${c}`} onPointerDown={(e) => start(e, s, c)} aria-hidden="true" />)}
             {trial && (
               <div className="trial-tag" onPointerDown={(e) => e.stopPropagation()}>
                 Not in your closet · from {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
@@ -171,10 +170,30 @@ export function OutfitBoard({
         );
       })}
 
+      {selected && sel && (
+        <div
+          className="canvas-select"
+          style={{
+            left: `max(6px, ${sel.x}%)`,
+            right: `max(6px, ${100 - sel.x - sel.w}%)`,
+            top: `max(6px, ${sel.y}%)`,
+            bottom: `max(6px, ${100 - sel.y - heightOf(sel.w)}%)`,
+          }}
+        >
+          {CORNERS.map((c) => (
+            <span key={c} className={`handle ${c}`} onPointerDown={(e) => start(e, selected, c)} aria-hidden="true" />
+          ))}
+        </div>
+      )}
+
       {selected && sel && !live && (
         <div
           className={`canvas-tools ${sel.y < 12 ? 'below' : ''}`}
-          style={{ left: `${Math.min(Math.max(sel.x + sel.w / 2, 18), 82)}%`, top: sel.y < 12 ? `${sel.y + heightOf(sel.w)}%` : `${sel.y}%` }}
+          style={{
+            // Over the piece (under it near the top), centred, but never past the board's edge, which cuts it off.
+            left: `clamp(var(--half), ${sel.x + sel.w / 2}%, calc(100% - var(--half)))`,
+            top: sel.y < 12 ? `min(calc(100% - 52px), ${sel.y + heightOf(sel.w)}%)` : `max(52px, ${sel.y}%)`,
+          }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <button onClick={() => onLayout(restack(placed, selected, 'forward'))} disabled={selected === top} title="Bring forward  ]" aria-label="Bring forward">
