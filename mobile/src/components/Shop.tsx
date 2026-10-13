@@ -3,6 +3,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { findUrl } from '@core/catalog';
+import { similarNote } from '@core/engine';
 import type { Item, Piece, StoreOption } from '@core/types';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/theme';
@@ -68,7 +69,8 @@ export function OptionRows({ p }: { p: Piece }) {
                 label="Add to list"
                 onPress={() => {
                   addToList(key);
-                  toast(`Added to your list · ${o.product} from ${o.store}`);
+                  const note = similarNote(p, items);
+                  toast(note ? `Added to your list. ${note}` : `Added to your list · ${o.product} from ${o.store}`);
                 }}
               />
             )}

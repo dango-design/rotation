@@ -22,7 +22,6 @@ export default function Fill() {
   const more = picks.slice(3, 6);
   const total = top3.reduce((a, p) => a + p.unlock, 0);
   const spend = top3.reduce((a, p) => a + lowestPrice(p.piece), 0);
-  const skipped = ranked.filter((p) => p.dup.level === 1 || (p.unlock === 0 && p.piece.cat === 'outer')).slice(0, 4);
 
   const tryIt = (p: Piece) => {
     st.build({ name: `Trying the ${p.name.toLowerCase()}`, slots: bestOutfitWith(p, st.items), focus: slotOf(p) });
@@ -154,7 +153,7 @@ export default function Fill() {
             </div>
           </div>
           <div className="more-picks">
-            {more.map(({ piece: p, unlock, dup }) => (
+            {more.map(({ piece: p, unlock }) => (
               <article className="card mini-pick" key={p.id}>
                 <Tile w={p} />
                 <div>
@@ -163,7 +162,7 @@ export default function Fill() {
                     <Icon name="unlock" />
                     Unlocks {unlock} outfits · from {money(lowestPrice(p))}
                   </div>
-                  <p>{dup.level > 0 && dup.item ? `Close to your ${dup.item.name.toLowerCase()}, so it ranks lower.` : whyLine(p, st.items)}</p>
+                  <p>{whyLine(p, st.items)}</p>
                   <button className="link" style={{ marginTop: 6, fontSize: 12.5 }} onClick={() => ui.open({ type: 'compare', id: p.id })}>
                     Compare {p.options.length} stores
                   </button>
@@ -174,39 +173,6 @@ export default function Fill() {
         </section>
       )}
 
-      {skipped.length > 0 && (
-        <section className="section">
-          <div className="section-head">
-            <div>
-              <h3>What we didn&apos;t recommend, and why</h3>
-              <p>Fewer, better picks mean fewer returns and more trust.</p>
-            </div>
-          </div>
-          <div className="card skipped">
-            {skipped.map(({ piece: p, dup }) => (
-              <div className="skip-row" key={p.id}>
-                <Tile w={p} />
-                <div>
-                  <h4>{p.name}</h4>
-                  <p>
-                    {dup.level === 1 && dup.item
-                      ? `You already own one in ${dup.item.colorName.toLowerCase()} and have worn it ${dup.item.wears} times.`
-                      : 'The layers you own already work with every outfit you can make.'}
-                  </p>
-                </div>
-                {dup.level === 1 ? (
-                  <span className="chip warn">
-                    <Icon name="alert" />
-                    You own this
-                  </span>
-                ) : (
-                  <span className="chip">0 new outfits</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
       <div className="section">
         <Disclosure />
       </div>

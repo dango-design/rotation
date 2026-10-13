@@ -55,7 +55,7 @@ export const Notes: Story = {
     <div style={stack}>
       <p className="empty-note">Add more pieces to see what this goes with.</p>
       <div className="warn-box">
-        <b>You already own this:</b> Court Sneakers, worn 64 times.
+        <b>You already have a similar one:</b> Court Vision Low Next Nature in white, worn 64 times.
       </div>
       <p className="error-note">That page could not be read. You can still add it by photo or description.</p>
       <div className="provenance">

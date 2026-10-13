@@ -200,7 +200,8 @@ function useStoreValue(fixture?: Fixture) {
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
     clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(null), 2800);
+    // Longer messages stay up longer, so there's time to read them.
+    toastTimer.current = setTimeout(() => setToastMsg(null), Math.max(2800, msg.length * 55));
   }, []);
 
   /* The account. `remote` is set while someone is signed in and this device's closet is theirs. A fixture never

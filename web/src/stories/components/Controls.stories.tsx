@@ -24,7 +24,7 @@ export const Chips: Story = {
         ['gap', 'Unlocks 26 outfits', 'Shopping'],
         ['new', 'New', 'Something just added'],
         ['good', 'Logged', 'Done, on your list'],
-        ['warn', 'You own this', 'Why something was left out'],
+        ['warn', 'Similar to one you own', 'A heads-up before buying'],
         ['ai-chip', 'Suggested from the photo; check it', 'Filled in by Claude; needs a look'],
       ].map(([cls, text, use]) => (
         <div key={cls} style={{ display: 'grid', gridTemplateColumns: '260px 1fr', alignItems: 'center' }}>

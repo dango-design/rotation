@@ -109,7 +109,8 @@ function useStoreValue() {
   const toast = useCallback((text: string) => {
     setToastMsg((t) => ({ text, n: (t?.n ?? 0) + 1 }));
     clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(null), 2600);
+    // Longer messages stay up longer, so there's time to read them.
+    toastTimer.current = setTimeout(() => setToastMsg(null), Math.max(2600, text.length * 55));
   }, []);
 
   const itemById = useCallback((id?: string) => (id ? s.items.find((i) => i.id === id) : undefined), [s.items]);

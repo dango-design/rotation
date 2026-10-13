@@ -50,7 +50,7 @@ const GROUPS: { title: string; note: string; tokens: Token[] }[] = [
     tokens: [
       { name: '--good', use: 'Worn, switches on' },
       { name: '--good-tint', use: 'Background for good chips' },
-      { name: '--warn', use: 'Clashes, "You own this", destructive confirmation' },
+      { name: '--warn', use: 'Clashes, "similar to one you own" notes, destructive confirmation' },
       { name: '--warn-tint', use: 'Background for warnings' },
       { name: '--clay', use: 'The logo dot, favorite-store star, the plan button on an open day' },
       { name: '--clay-ink', use: 'Text on clay tint' },
@@ -148,7 +148,7 @@ const PAIRS: { fg: string; bg: string; where: string }[] = [
   { fg: '--gap-ink', bg: '--gap-tint', where: 'Gap chips, banners, sync status' },
   { fg: '--gap', bg: '--panel', where: 'Text links' },
   { fg: '--good', bg: '--good-tint', where: 'Good chips' },
-  { fg: '--warn', bg: '--warn-tint', where: '"You own this"' },
+  { fg: '--warn', bg: '--warn-tint', where: 'Warning chips and boxes' },
   { fg: '--warn', bg: '--panel', where: 'Error notes, "Remove permanently"' },
   { fg: '--note-ink', bg: '--note-tint', where: 'Demo banner, Claude-suggested chip' },
 ];
