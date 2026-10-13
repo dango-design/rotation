@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const product = readProductPage(html, page.url);
     if (isChallengePage(product, html))
       return Response.json(
-        { error: `${page.url.hostname.replace(/^www\./, '')} checks for a full web browser before showing its pages, so Rotation can't read them. Save the product photo, or take a screenshot of the page, and add it by photo instead.` },
+        { error: `${page.url.hostname.replace(/^www\./, '')} checks for a full web browser before showing its pages, so Rotation can't read them. Save the product photo, or take a screenshot of the page, and add it by photo instead.`, blocked: true },
         { status: 422 },
       );
     if (!product.title && !product.images.length) return Response.json({ error: "That page doesn't describe a product we can read." }, { status: 422 });
