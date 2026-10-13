@@ -1,4 +1,4 @@
-/* Fill the gap: the pieces that would add the most new outfits, with store options and what wasn't recommended. */
+/* Fill the gap: the pieces that would add the most new outfits, with store options. */
 
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
@@ -12,7 +12,7 @@ import { Flatlay, Tile } from '@/components/Art';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
 import { Disclosure, OptionRows } from '@/components/Shop';
-import { Btn, Card, Chip, IconBtn, money, SectionHead, SwitchRow, T } from '@/components/ui';
+import { Btn, Card, IconBtn, money, SectionHead, SwitchRow, T } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/theme';
 
@@ -25,7 +25,6 @@ export default function Fill() {
   const more = picks.slice(3, 6);
   const total = top3.reduce((a, p) => a + p.unlock, 0);
   const spend = top3.reduce((a, p) => a + lowestPrice(p.piece), 0);
-  const skipped = ranked.filter((p) => p.dup.level === 1 || (p.unlock === 0 && p.piece.cat === 'outer')).slice(0, 4);
 
   const tryIt = (p: Piece) => {
     st.setDraft({ name: `Trying the ${p.name.toLowerCase()}`, slots: bestOutfitWith(p, st.items), focus: slotOf(p) });
@@ -156,7 +155,7 @@ export default function Fill() {
         <View>
           <SectionHead title="Also worth a look" sub="Fewer new outfits, still a good fit with your closet." />
           <View style={{ gap: 10 }}>
-            {more.map(({ piece: p, unlock, dup }) => (
+            {more.map(({ piece: p, unlock }) => (
               <Card key={p.id} pad={12} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
                 <Tile w={p} size={72} />
                 <View style={{ flex: 1, gap: 2 }}>
@@ -168,7 +167,7 @@ export default function Fill() {
                     </T>
                   </View>
                   <T v="small" numberOfLines={3}>
-                    {dup.level > 0 && dup.item ? `Close to your ${dup.item.name.toLowerCase()}, so it ranks lower.` : whyLine(p, st.items)}
+                    {whyLine(p, st.items)}
                   </T>
                   <Btn size="xs" kind="ghost" label={`Compare ${p.options.length} stores`} style={{ alignSelf: 'flex-start', marginLeft: -10 }} onPress={() => router.push({ pathname: '/compare/[id]', params: { id: p.id } })} />
                 </View>
@@ -178,29 +177,6 @@ export default function Fill() {
         </View>
       )}
 
-      {skipped.length > 0 && (
-        <View>
-          <SectionHead title="What we didn't recommend, and why" sub="Fewer, better picks mean fewer returns and more trust." />
-          <Card pad={12} style={{ gap: 4 }}>
-            {skipped.map(({ piece: p, dup }, i) => (
-              <View key={p.id} style={[styles.skip, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line }]}>
-                <Tile w={p} size={48} />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <T v="label" style={{ fontSize: 13.5 }}>
-                    {p.name}
-                  </T>
-                  <T v="small">
-                    {dup.level === 1 && dup.item
-                      ? `You already own one in ${dup.item.colorName.toLowerCase()} and have worn it ${dup.item.wears} times.`
-                      : 'The layers you own already work with every outfit you can make.'}
-                  </T>
-                  {dup.level === 1 ? <Chip tone="warn" icon="alert" label="You own this" /> : <Chip label="0 new outfits" />}
-                </View>
-              </View>
-            ))}
-          </Card>
-        </View>
-      )}
       <Disclosure />
     </Screen>
   );
@@ -212,5 +188,4 @@ const styles = StyleSheet.create({
   rank: { position: 'absolute', top: 6, left: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' },
   rankText: { color: C.white, fontFamily: F.bold, fontSize: 12 },
   unlock: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  skip: { flexDirection: 'row', gap: 12, paddingVertical: 10 },
 });

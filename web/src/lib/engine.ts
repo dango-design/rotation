@@ -105,6 +105,13 @@ export function unlock(c: Wearable, closet: Wearable[]): number {
 export const totalOutfits = (closet: Wearable[]) => bases(closet).length;
 export const allBases = (closet: Wearable[]) => bases(closet);
 
+/** The note for a piece going on the shopping list when the closet already has one like it (the same kind of piece:
+    the same color, or else the most worn), so it's mentioned where people decide to buy. */
+export function similarNote(p: Wearable, closet: Item[]): string | null {
+  const { item } = duplicate(p, closet);
+  return item ? `You already have a similar one: ${item.name} in ${item.colorName.toLowerCase()}, worn ${plural(item.wears, 'time')}.` : null;
+}
+
 /** How close a suggested piece is to something already owned: 1 blocks it, 0.35 lowers it. */
 export function duplicate(p: Wearable, closet: Item[]): { level: number; item?: Item } {
   const same = closet.filter((i) => i.type === p.type);

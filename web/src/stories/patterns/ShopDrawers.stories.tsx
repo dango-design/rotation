@@ -36,12 +36,13 @@ export const AddToList: Story = {
   },
 };
 
-/** A piece close to one you already own is flagged, with how often you wear yours. */
-export const AlreadyOwned: Story = {
-  args: { id: 'p-sneaker-white' },
+/** A piece on the list like one you already have says so, with how often you wear yours. */
+export const SimilarOnList: Story = {
+  parameters: { store: () => demoCloset({ list: [{ key: 'p-sneaker-white|Nike', addedAt: '2026-10-01T12:00:00.000Z' }] }) },
+  render: (args) => <ListDrawer onClose={args.onClose} />,
   play: async ({ canvas }) => {
     await settled();
-    await expect(canvas.getByText(/You already own this:/)).toBeVisible();
+    await expect(canvas.getByText(/You already have a similar one: Court Vision Low Next Nature in white, worn 64 times/)).toBeVisible();
   },
 };
 

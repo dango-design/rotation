@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
 import { TYPES } from './catalog-meta';
-import { check, duplicate, fitsBoard, isComplete, rankPieces, slotOf, totalOutfits, unlock, whyLine } from './engine';
+import { check, duplicate, fitsBoard, isComplete, rankPieces, similarNote, slotOf, totalOutfits, unlock, whyLine } from './engine';
 import { garmentSvg } from './garments';
 import type { GarmentType, Item } from './types';
 
@@ -54,6 +54,11 @@ describe('Outfit Unlock on the demo closet', () => {
   it('flags exact duplicates and close cousins', () => {
     expect(duplicate(pieceById('p-hoodie-grey')!, items).level).toBe(1);
     expect(duplicate(pieceById('p-oxford-white')!, items).level).toBe(0.35);
+  });
+  it('notes a similar piece you own when one goes on the shopping list', () => {
+    expect(similarNote(pieceById('p-sneaker-white')!, items)).toBe('You already have a similar one: Court Vision Low Next Nature in white, worn 64 times.');
+    expect(similarNote(pieceById('p-oxford-white')!, items)).toBe('You already have a similar one: 1983 Oxford Shirt in light blue, worn 19 times.');
+    expect(similarNote(pieceById('p-chino-khaki')!, items)).toBeNull();
   });
   it('explains a pick in plain words', () => {
     expect(whyLine(pieceById('p-chino-khaki')!, items)).toBe("Pairs with 10 of your 10 tops and 4 of your 4 pairs of shoes. You don't own chinos yet.");

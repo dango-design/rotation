@@ -2,7 +2,7 @@
 
 import { Pressable, StyleSheet, View } from 'react-native';
 import { pieceById } from '@core/catalog';
-import { unlock } from '@core/engine';
+import { similarNote, unlock } from '@core/engine';
 import type { Piece, StoreOption } from '@core/types';
 import { Tile } from '@/components/Art';
 import { Icon } from '@/components/Icon';
@@ -34,35 +34,46 @@ export default function ListScreen() {
           {[...byStore.entries()].map(([store, es]) => (
             <Card key={store} pad={14} style={{ gap: 10 }}>
               <T v="label">{store}</T>
-              {es.map(({ key, piece, option }) => (
-                <View key={key} style={styles.row}>
-                  <Tile w={piece} size={54} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <T v="label" style={{ fontSize: 13.5 }}>
-                      {option.product}
-                    </T>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Icon name="unlock" size={12} color={C.gapInk} />
-                      <T v="tiny" style={{ color: C.gapInk, fontFamily: F.semibold }}>
-                        +{unlock(piece, items)} outfits with your closet
+              {es.map(({ key, piece, option }) => {
+                const note = similarNote(piece, items);
+                return (
+                  <View key={key} style={styles.row}>
+                    <Tile w={piece} size={54} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <T v="label" style={{ fontSize: 13.5 }}>
+                        {option.product}
                       </T>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Icon name="unlock" size={12} color={C.gapInk} />
+                        <T v="tiny" style={{ color: C.gapInk, fontFamily: F.semibold }}>
+                          +{unlock(piece, items)} outfits with your closet
+                        </T>
+                      </View>
+                      <Pressable onPress={() => openFind(option.store, option.product)} accessibilityRole="link">
+                        <T v="tiny">
+                          {money(option.price)} · <T v="tiny" style={{ textDecorationLine: 'underline' }}>find it at {store}</T>
+                        </T>
+                      </Pressable>
+                      {note ? (
+                        <View style={{ flexDirection: 'row', gap: 4, marginTop: 2 }}>
+                          <Icon name="alert" size={12} color={C.warn} />
+                          <T v="tiny" style={{ flex: 1, color: C.warn }}>
+                            {note}
+                          </T>
+                        </View>
+                      ) : null}
                     </View>
-                    <Pressable onPress={() => openFind(option.store, option.product)} accessibilityRole="link">
-                      <T v="tiny">
-                        {money(option.price)} · <T v="tiny" style={{ textDecorationLine: 'underline' }}>find it at {store}</T>
-                      </T>
-                    </Pressable>
+                    <Btn
+                      size="xs"
+                      label="Remove"
+                      onPress={() => {
+                        removeFromList(key);
+                        toast('Removed from your list');
+                      }}
+                    />
                   </View>
-                  <Btn
-                    size="xs"
-                    label="Remove"
-                    onPress={() => {
-                      removeFromList(key);
-                      toast('Removed from your list');
-                    }}
-                  />
-                </View>
-              ))}
+                );
+              })}
             </Card>
           ))}
           <Disclosure />

@@ -1,7 +1,7 @@
 'use client';
 
 import { findUrl, pieceById } from '@/lib/catalog';
-import { duplicate, unlock, whyLine } from '@/lib/engine';
+import { similarNote, unlock, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Item, Piece, StoreOption } from '@/lib/types';
 import { Disclosure, Icon, money, Tile } from './ui';
@@ -64,7 +64,8 @@ export function OptionRows({ p }: { p: Piece }) {
                 onClick={() =>
                   requireAccount('save your shopping list', () => {
                     addToList(key);
-                    toast(`Added to your list · ${o.product} from ${o.store}`);
+                    const note = similarNote(p, items);
+                    toast(note ? `Added to your list. ${note}` : `Added to your list · ${o.product} from ${o.store}`);
                   })
                 }
               >
@@ -82,7 +83,6 @@ export function CompareDrawer({ id, onClose }: { id: string; onClose: () => void
   const { items } = useStore();
   const p = pieceById(id);
   if (!p) return null;
-  const dup = duplicate(p, items);
   return (
     <>
       <div className="backdrop" onClick={onClose} />
@@ -102,11 +102,6 @@ export function CompareDrawer({ id, onClose }: { id: string; onClose: () => void
           </div>
         </div>
         <p className="why">{whyLine(p, items)}</p>
-        {dup.level === 1 && dup.item && (
-          <div className="warn-box">
-            <b>You already own this:</b> {dup.item.name}, worn {dup.item.wears} times.
-          </div>
-        )}
         <OptionRows p={p} />
         <Disclosure />
       </aside>
@@ -145,31 +140,40 @@ export function ListDrawer({ onClose }: { onClose: () => void }) {
                 <div className="list-store-head">
                   <b>{store}</b>
                 </div>
-                {es.map(({ key, piece, option }) => (
-                  <div className="sugg" key={key}>
-                    <Tile w={piece} />
-                    <div>
-                      <div className="sugg-name">{option.product}</div>
-                      <div className="unlock-line">
-                        <Icon name="unlock" />+{unlock(piece, items)} outfits with your closet
+                {es.map(({ key, piece, option }) => {
+                  const note = similarNote(piece, items);
+                  return (
+                    <div className="sugg" key={key}>
+                      <Tile w={piece} />
+                      <div>
+                        <div className="sugg-name">{option.product}</div>
+                        <div className="unlock-line">
+                          <Icon name="unlock" />+{unlock(piece, items)} outfits with your closet
+                        </div>
+                        <div className="sugg-sub">
+                          {money(option.price)} · <a href={findUrl(option.store, option.product)} target="_blank" rel="noreferrer">find it at {store}</a>
+                        </div>
+                        {note && (
+                          <div className="sugg-note">
+                            <Icon name="alert" />
+                            {note}
+                          </div>
+                        )}
                       </div>
-                      <div className="sugg-sub">
-                        {money(option.price)} · <a href={findUrl(option.store, option.product)} target="_blank" rel="noreferrer">find it at {store}</a>
-                      </div>
+                      <button
+                        className="btn xs"
+                        onClick={() =>
+                          requireAccount('save your shopping list', () => {
+                            removeFromList(key);
+                            toast('Removed from your list');
+                          })
+                        }
+                      >
+                        Remove
+                      </button>
                     </div>
-                    <button
-                      className="btn xs"
-                      onClick={() =>
-                        requireAccount('save your shopping list', () => {
-                          removeFromList(key);
-                          toast('Removed from your list');
-                        })
-                      }
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ))}
             <Disclosure />
