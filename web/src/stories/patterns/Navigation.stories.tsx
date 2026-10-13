@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { expect, userEvent } from 'storybook/test';
 import { Shell } from '@/components/Shell';
-import { pageModes } from '../../../.storybook/modes';
+import { modes, pageModes } from '../../../.storybook/modes';
 import { settled } from '../decorators';
 import { demoCloset, shoppingList } from '../fixtures';
 
 /* The app frame around every page: three tabs (Today, Closet, Fill the gap), the "You" section, storage status,
-   the add button, and the shopping bag. On phones the sidebar becomes a scrolling bar of tabs at the top. */
+   the add button, and the shopping bag. On phones the three tabs sit along the bottom of the screen, and the "You"
+   pages and storage status open from a button in the top bar beside the bag. */
 
 const Page = () => (
   <header className="page-head">
@@ -36,6 +37,22 @@ export const Today: Story = {
 /** The active tab follows the page. */
 export const OnCloset: Story = {
   parameters: { nextjs: { navigation: { pathname: '/closet' } } },
+};
+
+/** On a phone: tabs along the bottom, and the "You" button opens the rest. */
+export const YouMenuOnPhone: Story = {
+  globals: { viewport: { value: 'phone' } },
+  parameters: { chromatic: { modes: { phone: modes.phone } } },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('navigation', { name: 'Tabs' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'You' }));
+    await settled();
+    const you = canvas.getByRole('navigation', { name: 'You' });
+    await expect(you).toBeVisible();
+    await expect(canvas.getByRole('link', { name: 'Settings' })).toBeVisible();
+    await userEvent.keyboard('{Escape}');
+    await expect(canvas.queryByRole('navigation', { name: 'You' })).toBeNull();
+  },
 };
 
 /** In the "You" section. */
