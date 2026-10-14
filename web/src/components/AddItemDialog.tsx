@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { nearestSwatch, swatchByName, TYPES } from '@/lib/catalog-meta';
 import { hintFrom, PART_TYPE, pathWords, type Hint } from '@/lib/garment-hints';
 import { supabase } from '@/lib/account';
+import { mayHoldPhoto, photoIn } from '@/lib/dropped-photo';
 import { useStore } from '@/lib/store';
 import type { GarmentType } from '@/lib/types';
 import { findInPhoto, findInProduct, findInProductPhoto, photoUrl, toJpegBase64, type Found, type Piece } from '@/lib/vision/find';
@@ -97,6 +98,8 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
   const [linkUrl, setLinkUrl] = useState('');
   /** The page photo being searched after the person picked it. */
   const [busyPhoto, setBusyPhoto] = useState<number | null>(null);
+  /** A photo is being dragged over the window. */
+  const [dropping, setDropping] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const urls = useRef<string[]>([]);
   const track = (u: string) => (urls.current.push(u), u);
@@ -152,6 +155,69 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
       setStep({ kind: 'form', initial: fieldsFor({ rgb: [200, 200, 200], cutout: false }, tags, f), blob: file, url: original, ai: !!tags, tagNote: note });
     }
   };
+
+  // While choosing how to add, a photo dropped anywhere on the window, or pasted, is added like an uploaded one.
+  const choosing = step.kind === 'choose';
+  const onDropped = useEffectEvent((file: File) => onFile(file));
+  useEffect(() => {
+    if (!choosing) return;
+    let depth = 0;
+    const take = async (data: DataTransfer | null) => {
+      if (!data) return false;
+      try {
+        const file = await photoIn(data);
+        if (file) onDropped(file);
+        return !!file;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Couldn't read that photo.");
+        return true;
+      }
+    };
+    const enter = (e: DragEvent) => {
+      if (!e.dataTransfer || !mayHoldPhoto(e.dataTransfer.types)) return;
+      depth++;
+      setDropping(true);
+    };
+    const over = (e: DragEvent) => {
+      if (!e.dataTransfer || !mayHoldPhoto(e.dataTransfer.types)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    };
+    const leave = () => {
+      depth = Math.max(0, depth - 1);
+      if (!depth) setDropping(false);
+    };
+    const drop = (e: DragEvent) => {
+      if (!e.dataTransfer || !mayHoldPhoto(e.dataTransfer.types)) return;
+      e.preventDefault();
+      depth = 0;
+      setDropping(false);
+      setError('');
+      take(e.dataTransfer);
+    };
+    const paste = (e: ClipboardEvent) => {
+      // Leave a paste into a text field alone.
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, [contenteditable]')) return;
+      if (e.clipboardData && [...e.clipboardData.types].some((t) => t === 'Files' || t === 'text/uri-list')) {
+        e.preventDefault();
+        setError('');
+        take(e.clipboardData);
+      }
+    };
+    window.addEventListener('dragenter', enter);
+    window.addEventListener('dragover', over);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('drop', drop);
+    window.addEventListener('paste', paste);
+    return () => {
+      setDropping(false);
+      window.removeEventListener('dragenter', enter);
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('drop', drop);
+      window.removeEventListener('paste', paste);
+    };
+  }, [choosing]);
 
   const importLink = async () => {
     setError('');
@@ -250,7 +316,7 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
     <>
       <div className="backdrop" onClick={onClose} />
       <div className="modal-wrap">
-        <div className="modal" role="dialog" aria-label="Add pieces">
+        <div className={`modal ${dropping ? 'dropping' : ''}`} role="dialog" aria-label="Add pieces">
           <button className="icon-btn close" onClick={onClose} aria-label="Close">
             <Icon name="x" />
           </button>
@@ -274,7 +340,7 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
                 <button className="add-opt rec" onClick={() => fileRef.current?.click()}>
                   <Icon name="camera" />
                   <b>Photo</b>
-                  <small>Take or upload one; we find each piece and remove the background on your device</small>
+                  <small>Take, upload, drop or paste one; we find each piece and remove the background on your device</small>
                 </button>
                 <button className="add-opt" onClick={() => setStep({ kind: 'link' })}>
                   <Icon name="link" />
@@ -292,7 +358,17 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
                   <small>Coming soon: build your closet from receipts automatically</small>
                 </div>
               </div>
+              <p className="meta-line drop-hint">
+                <Icon name="upload" />
+                Or drop a photo anywhere here, or paste one you copied.
+              </p>
               {error && <p className="error-note" style={{ marginTop: 12 }}>{error}</p>}
+              {dropping && (
+                <div className="drop-cover" aria-hidden="true">
+                  <Icon name="upload" />
+                  <b>Drop the photo to add it</b>
+                </div>
+              )}
             </>
           )}
 
