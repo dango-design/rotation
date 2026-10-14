@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { TYPES } from '@/lib/catalog-meta';
 import { ago, shortDate } from '@/lib/dates';
@@ -23,6 +23,7 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
   const st = useStore();
   const ui = useUI();
   const router = useRouter();
+  const pathname = usePathname();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const it = st.itemById(id);
@@ -39,6 +40,16 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
     st.build({ name: `Styling the ${it.name}`, slots: bestOutfitWith(it, st.items), focus: slotOf(it) });
     onClose();
     router.push(st.href('/closet'));
+  };
+  // With the outfit board open (say, halfway through planning a day), the piece joins that outfit instead of starting over.
+  const onBoard = st.building && st.draft.slots[slotOf(it)] === it.id;
+  const putOnBoard = () => {
+    const slots = { ...st.draft.slots, [slotOf(it)]: it.id };
+    if (it.cat === 'dress') delete slots.bottom;
+    st.setDraft({ ...st.draft, slots, focus: slotOf(it) });
+    // A day's board is on Today, so from anywhere else say where the piece went.
+    if (st.draft.date && pathname !== '/') st.toast(`Added to ${st.draft.name}`);
+    onClose();
   };
 
   return (
@@ -91,10 +102,17 @@ export function ItemDrawer({ id, onClose }: { id: string; onClose: () => void })
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn primary" onClick={styleIt}>
-                <Icon name="builder" />
-                Style it
-              </button>
+              {st.building ? (
+                <button className="btn primary" onClick={putOnBoard} disabled={onBoard}>
+                  <Icon name={onBoard ? 'check' : 'plus'} />
+                  {onBoard ? 'On the board' : 'Put on the board'}
+                </button>
+              ) : (
+                <button className="btn primary" onClick={styleIt}>
+                  <Icon name="builder" />
+                  Style it
+                </button>
+              )}
               <button
                 className="btn"
                 onClick={() =>

@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { expect, userEvent, within } from 'storybook/test';
 import Closet from '@/app/closet/page';
 import { pageModes } from '../../../.storybook/modes';
-import { router } from '../../../.storybook/router';
 import { inShell, signInFromPrompt } from '../decorators';
 import { demoCloset, demoId as id, emptyCloset, photoCloset, savedOutfits } from '../fixtures';
 
@@ -59,48 +58,17 @@ export const PutAPieceOnTheBoard: Story = {
   },
 };
 
-/** Planning Saturday from Today: the same board, with the forecast, "Surprise me", and Plan for Saturday. Planning it
-    goes back to that day on Today. */
-export const PlanningADay: Story = {
+/** Saturday is being planned on Today. The closet stays a closet: a bar points back to Today, and a click opens a piece
+    instead of putting it on the board. */
+export const DayOnTheBoard: Story = {
   parameters: {
     store: () => demoCloset({ building: true, draft: { name: "Saturday's outfit", slots: { top: id('t4') }, focus: 'bottom', date: '2026-10-10' } }),
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Planning Saturday')).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Plan for Saturday' }));
-    await expect(router().push).toHaveBeenCalledWith('/?day=2026-10-10');
-  },
-};
-
-/** Planning a day with no city set and no top, bottom and shoes that go together: the board asks for a city, and
-    Surprise me says what it needs instead of hiding. */
-export const PlanningWithoutACity: Story = {
-  parameters: {
-    store: () =>
-      demoCloset({
-        items: demoCloset().items!.filter((i) => i.cat !== 'shoes'),
-        weather: null,
-        settings: { ...demoCloset().settings, city: '' },
-        building: true,
-        draft: { name: "Saturday's outfit", slots: {}, focus: 'top', date: '2026-10-10' },
-      }),
-  },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('link', { name: 'Add your city' })).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Surprise me' }));
-    await expect(canvas.getByRole('status')).toHaveTextContent(/Surprise me needs a top, bottom and shoes/);
-  },
-};
-
-/** A past day with nothing logged: the board logs what was worn. */
-export const LoggingAPastDay: Story = {
-  parameters: {
-    store: () => demoCloset({ building: true, draft: { name: "Tuesday's outfit", slots: { top: id('t4'), bottom: id('b3') }, focus: 'shoes', date: '2026-10-06' } }),
-  },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('Logging Tuesday')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Log as worn' })).toBeEnabled();
-    await expect(canvas.queryByRole('button', { name: 'Surprise me' })).toBeNull();
+    await expect(canvas.getByRole('link', { name: 'Back to Today' })).toHaveAttribute('href', '/?day=2026-10-10');
+    await expect(canvas.queryByRole('complementary', { name: 'Outfit board' })).toBeNull();
+    await expect(canvas.queryByRole('button', { name: "Put '90s Loose Jeans on the board" })).toBeNull();
   },
 };
 

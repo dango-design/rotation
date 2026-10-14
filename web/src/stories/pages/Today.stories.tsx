@@ -4,11 +4,11 @@ import Today from '@/app/page';
 import { pageModes } from '../../../.storybook/modes';
 import { router } from '../../../.storybook/router';
 import { inShell, settled, signInFromPrompt } from '../decorators';
-import { demoCloset, emptyCloset, oneTee, openToday, savedOutfits } from '../fixtures';
+import { demoCloset, demoId as id, emptyCloset, oneTee, openToday, savedOutfits } from '../fixtures';
 
 /* Getting dressed. The week strip picks a day; a planned day shows its outfit, and a day with nothing planned asks for
-   one, built on the outfit board beside the closet like any other outfit. Stories run on Thursday, October 8, 2026 at
-   9am, so the strip has worn, empty and planned days. */
+   one, built right on Today: your pieces on one side, the outfit board on the other, as in the closet. Stories run on
+   Thursday, October 8, 2026 at 9am, so the strip has worn, empty and planned days. */
 
 const meta = {
   title: 'Pages/Today',
@@ -36,21 +36,77 @@ export const BlankDay: Story = {
   parameters: { store: () => openToday({ outfits: savedOutfits() }) },
 };
 
-/** Planning today opens the outfit board in the closet, set to plan today. A behavior test only. */
+/** Planning today stays on Today: your pieces beside the outfit board, set to plan today. */
 export const PlanningToday: Story = {
-  parameters: { store: openToday, chromatic: { disableSnapshot: true } },
+  parameters: { store: openToday },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: "Plan today's outfit" }));
-    await expect(router().push).toHaveBeenCalledWith('/closet');
+    await expect(canvas.getByText('Planning today')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: "Put '90s Loose Jeans on the board" }));
+    const board = canvas.getByRole('complementary', { name: 'Outfit board' });
+    await expect(within(board).getByRole('button', { name: "'90s Loose Jeans" })).toBeVisible();
+    await expect(router().push).not.toHaveBeenCalled();
   },
 };
 
-/** "Change" opens the planned outfit on the board in the closet. A behavior test only. */
+/** "Change" opens the planned outfit on the board, on Today. A behavior test only. */
 export const ChangingAPlan: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Change' }));
-    await expect(router().push).toHaveBeenCalledWith('/closet');
+    await expect(canvas.getByText('Planning today')).toBeVisible();
+    await expect(router().push).not.toHaveBeenCalled();
+  },
+};
+
+/** Saturday is half planned while Thursday is shown: a bar keeps it from being forgotten, and Back to the board picks it
+    up with the forecast, Surprise me, and Plan for Saturday. Planning it shows Saturday's outfit, still on Today. */
+export const PlanningADay: Story = {
+  parameters: {
+    store: () => demoCloset({ building: true, draft: { name: "Saturday's outfit", slots: { top: id('t4') }, focus: 'bottom', date: '2026-10-10' } }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('1 piece on the outfit board, not planned yet.')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Back to the board' }));
+    await expect(canvas.getByText('Planning Saturday')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Plan for Saturday' }));
+    await expect(canvas.getByText('Planned for Saturday, Oct 10')).toBeVisible();
+    await expect(router().push).not.toHaveBeenCalled();
+  },
+};
+
+/** Planning a day with no city set and no top, bottom and shoes that go together: the board asks for a city, and
+    Surprise me says what it needs instead of hiding. */
+export const PlanningWithoutACity: Story = {
+  parameters: {
+    store: () =>
+      demoCloset({
+        items: demoCloset().items!.filter((i) => i.cat !== 'shoes'),
+        weather: null,
+        settings: { ...demoCloset().settings, city: '' },
+        building: true,
+        draft: { name: "Saturday's outfit", slots: {}, focus: 'top', date: '2026-10-10' },
+      }),
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Back to the board' }));
+    const board = canvas.getByRole('complementary', { name: 'Outfit board' });
+    await expect(within(board).getByRole('link', { name: 'Add your city' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Surprise me' }));
+    await expect(canvas.getByRole('status')).toHaveTextContent(/Surprise me needs a top, bottom and shoes/);
+  },
+};
+
+/** A past day on the board: it logs what was worn. */
+export const LoggingAPastDay: Story = {
+  parameters: {
+    store: () => demoCloset({ building: true, draft: { name: "Tuesday's outfit", slots: { top: id('t4'), bottom: id('b3') }, focus: 'shoes', date: '2026-10-06' } }),
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Back to the board' }));
+    await expect(canvas.getByText('Logging Tuesday')).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Log as worn' })).toBeEnabled();
+    await expect(canvas.queryByRole('button', { name: 'Surprise me' })).toBeNull();
   },
 };
 
@@ -71,13 +127,30 @@ export const NothingLogged: Story = {
   },
 };
 
-/** Picking one of your saved outfits for a day. */
-export const UseASavedOutfit: Story = {
+/** Repeat an outfit: planning opens on the outfits worn before, newest first, with how often each was worn. Picking one
+    puts it on the board to adjust or plan as it is. */
+export const RepeatAnOutfit: Story = {
   parameters: { store: () => openToday({ outfits: savedOutfits() }) },
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Use a saved outfit' }));
-    await settled();
-    await expect(canvas.getByRole('dialog', { name: 'Plan a saved outfit' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Repeat an outfit' }));
+    await expect(canvas.getByRole('button', { name: 'Worn before' })).toHaveClass('active');
+    await expect(canvas.getByText('2 times in all')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Put Worn yesterday on the board' }));
+    await expect(canvas.getByRole('button', { name: 'Worn yesterday, on the board' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Plan for today' })).toBeEnabled();
+  },
+};
+
+/** A saved outfit, planned from the Saved tab: it keeps its name. A behavior test only. */
+export const PlanASavedOutfit: Story = {
+  parameters: { store: () => openToday({ outfits: savedOutfits() }), chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Repeat an outfit' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Saved' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Put Weekend errands on the board' }));
+    await expect(canvas.getByRole('textbox', { name: 'Outfit name' })).toHaveValue('Weekend errands');
+    await userEvent.click(canvas.getByRole('button', { name: 'Plan for today' }));
+    await expect(canvas.getByRole('heading', { name: 'Weekend errands' })).toBeVisible();
   },
 };
 
