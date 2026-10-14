@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Capture screens that only appear after interaction (the empty-day card, planning a day on the board, the canvas) for the process log.
+// Capture the app's screens for the process log, in the demo closet: each page, the screens that only appear after
+// interaction (the empty-day card, planning a day on the board, the canvas, repeating an outfit), the phone layout and
+// dark mode. One browser runs throughout, so the demo's photos are cut out once, up front, and every shot has them.
 // Drives headless Chrome over the DevTools protocol, so nothing needs installing.
 // Usage: node scripts/screenshots-flows.mjs <milestone-folder-name>
 // Expects a production server: (cd web && npm run build && npx next start -p 3100)
@@ -63,8 +65,42 @@ async function open(path) {
   await sleep(3500);
 }
 
+/** Waits until the demo's photos are cut out and cached, so no shot shows the stand-in drawings. */
+async function warmUp() {
+  await open('/closet?demo');
+  let last = -1;
+  let still = 0;
+  for (let t = 0; t < 240 && still < 12; t++) {
+    await sleep(1000);
+    const n = await js(`caches.open('rotation-demo-photos-v1').then((c) => c.keys()).then((k) => k.length).catch(() => 0)`);
+    still = n === last ? still + 1 : 0;
+    last = n;
+  }
+  console.log(`warm ${last} demo photos cut out`);
+}
+/** A whole page at desktop width, `height` CSS pixels tall. */
+async function page(file, path, height) {
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height, deviceScaleFactor: 2, mobile: false });
+  await open(`${path}?demo`);
+  await shoot(file);
+}
+
 try {
   await send('Page.enable');
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 2, mobile: false });
+  await warmUp();
+
+  for (const [file, path, height] of [
+    ['today.png', '/', 1700],
+    ['closet.png', '/closet', 1500],
+    ['closet-board.png', '/builder', 1500],
+    ['fill.png', '/fill', 2700],
+    ['report.png', '/insights', 1000],
+    ['settings.png', '/settings', 1300],
+    ['about.png', '/about', 1100],
+  ])
+    await page(file, path, height);
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 2, mobile: false });
 
   // A day with nothing planned asks for an outfit.
@@ -73,16 +109,44 @@ try {
   await sleep(3200); // let the toast fade
   await shoot('today-empty.png', '.week-strip');
 
-  // Planning a day on the outfit board beside the closet, with a piece selected on the canvas.
+  // Planning a day on Today: your pieces beside the outfit board, with a piece selected on the canvas.
   await open('/?demo');
   await click('Next week');
   await sleep(300);
   await click('plan an outfit');
-  await sleep(2500); // the closet opens with the board
+  await sleep(1000);
   await click('Surprise me');
   await sleep(300);
   await press('.outfit-panel .canvas-piece');
   await shoot('planner.png', '.closet-layout');
+
+  // Repeating an outfit: the planner opens on outfits worn before, and one goes on the board.
+  await open('/?demo');
+  await click('Clear plan');
+  await sleep(300);
+  await click('Repeat an outfit');
+  await sleep(800);
+  await js(`document.querySelector('.piece-tray .saved-card')?.click()`);
+  await sleep(3200); // let the toast fade
+  await shoot('planner-repeat.png', '.closet-layout');
+
+  // Today in dark mode.
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+  await open('/?demo');
+  await shoot('today-dark.png');
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+
+  // Phones: the tabs along the bottom, and planning with the board as a sheet over your pieces.
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+  await open('/?demo');
+  await shoot('phone-today.png');
+  await click('Next week');
+  await sleep(300);
+  await click('plan an outfit');
+  await sleep(1000);
+  await click('Surprise me');
+  await sleep(300);
+  await shoot('phone-planner.png', '.piece-tray');
 } finally {
   ws.close();
   chrome.kill();

@@ -1,6 +1,6 @@
 # 019 — Read product links on the phone itself, with no server
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [012](012-find-the-right-piece.md), [018](018-piece-finder-on-the-phone.md) · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [012](012-find-the-right-piece.md), [018](018-piece-finder-on-the-phone.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

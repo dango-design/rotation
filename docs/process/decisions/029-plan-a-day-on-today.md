@@ -1,6 +1,6 @@
 # 029 — Plan a day on Today
 
-**Date:** Oct 13, 2026 · **Status:** Accepted · **Replaces:** where planning happens in [021](021-plan-in-the-builder.md), and the closet parts of [028](028-board-stays-open-and-says-so.md) · **Milestone:** next
+**Date:** Oct 13, 2026 · **Status:** Accepted · **Replaces:** where planning happens in [021](021-plan-in-the-builder.md), and the closet parts of [028](028-board-stays-open-and-says-so.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

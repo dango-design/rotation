@@ -1,6 +1,6 @@
 # 010 — Light and dark mode, with garments kept on a light backdrop
 
-**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** `v5-live-app`
 
 ## Context
 

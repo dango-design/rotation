@@ -1,6 +1,6 @@
 # 015 — The outfit canvas is phone-shaped, and an outfit exports as a phone-sized image
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Changes:** the canvas shape in [008](008-outfit-canvas.md) · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Changes:** the canvas shape in [008](008-outfit-canvas.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

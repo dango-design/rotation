@@ -1,6 +1,6 @@
 # 027 — A public site on Vercel, with limits on photo tagging
 
-**Date:** Oct 12, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 12, 2026 · **Status:** Accepted · **Milestone:** `v5-live-app`
 
 ## Context
 
