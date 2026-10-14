@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccountSection } from '@/components/AccountSection';
 import { BoardSwatches, Icon, ShopSwitch } from '@/components/ui';
+import { tagStatus, type TagStatus } from '@/lib/account';
 import { KNOWN_STORES } from '@/lib/catalog-meta';
 import { todayISO } from '@/lib/dates';
 import { useStore } from '@/lib/store';
@@ -20,15 +21,26 @@ export default function SettingsPage() {
   const [city, setCity] = useState(st.settings.city);
   const [cityError, setCityError] = useState('');
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
+  const [aiLimited, setAiLimited] = useState(false);
+  const [tagAllowance, setTagAllowance] = useState<{ for: string; status: TagStatus | null } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/tag')
       .then((r) => r.json())
-      .then((d) => setAiEnabled(!!d.enabled))
+      .then((d) => {
+        setAiEnabled(!!d.enabled);
+        setAiLimited(!!d.limited);
+      })
       .catch(() => setAiEnabled(false));
   }, []);
+
+  const accountId = st.account?.id;
+  useEffect(() => {
+    if (aiLimited && accountId) tagStatus().then((status) => setTagAllowance({ for: accountId, status }));
+  }, [aiLimited, accountId]);
+  const allowance = tagAllowance && tagAllowance.for === accountId ? tagAllowance.status : null;
 
   const toggleStore = (s: string) =>
     st.requireAccount('save your settings', () => {
@@ -96,7 +108,10 @@ export default function SettingsPage() {
 
       <section className="card settings-section">
         <h3>Outfit boards</h3>
-        <p>The background behind your outfits. Each one is a quiet neutral, so it won&apos;t change how a color reads. Stone helps white pieces stand out.</p>
+        <p>
+          The background for outfits that don&apos;t have their own. Each one is a quiet neutral, so it won&apos;t change how a color reads. Stone helps white pieces stand out. To give one outfit
+          any color, use the dot in the corner of its canvas.
+        </p>
         <BoardSwatches labels />
       </section>
 
@@ -122,6 +137,17 @@ export default function SettingsPage() {
             ? 'On. When you add a photo, Claude suggests the type, color and a name, and you confirm them. The background is still removed on your device.'
             : "Off on this server. Photos are still tagged with their color automatically; set ANTHROPIC_API_KEY on the server to have Claude suggest the type and name too."}
         </p>
+        {aiEnabled && aiLimited && (
+          <p>
+            {!st.account
+              ? 'Sign in to use it. Each account gets a few tags a day.'
+              : !allowance
+              ? ''
+              : allowance.limit === null
+              ? 'Your account has no daily limit.'
+              : `${Math.max(0, allowance.limit - allowance.used)} of ${allowance.limit} tags left today. After that, you fill in the details yourself.`}
+          </p>
+        )}
       </section>
 
       <section className="card settings-section">

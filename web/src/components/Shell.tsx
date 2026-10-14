@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { useThemeSync } from '@/lib/theme';
 import { AddItemDialog } from './AddItemDialog';
@@ -35,6 +35,67 @@ const NAV = [
   { path: '/fill', label: 'Fill the gap', icon: 'unlock' },
 ];
 
+const YOU = [
+  { path: '/insights', label: 'Closet report', icon: 'insights' },
+  { path: '/settings', label: 'Settings', icon: 'settings' },
+  { path: '/about', label: 'How it works', icon: 'info' },
+];
+
+/** On phones, the "You" pages and where the closet is saved sit behind one button in the top bar, so the bar never
+    scrolls sideways; the three tabs move to the bottom of the screen. */
+function YouMenu({ saved }: { saved: ReturnType<typeof savedWhere> }) {
+  const st = useStore();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [prevPath, setPrevPath] = useState(pathname);
+  if (pathname !== prevPath) {
+    setPrevPath(pathname);
+    setOpen(false);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+
+  const here = YOU.some((y) => y.path === pathname);
+  return (
+    <div className="you" ref={ref}>
+      <button className={`icon-btn you-btn ${here ? 'here' : ''}`} aria-label="You" aria-expanded={open} aria-controls="you-menu" onClick={() => setOpen(!open)}>
+        <Icon name="you" />
+      </button>
+      {open && (
+        <div className="you-menu" id="you-menu">
+          <div className="sync-status">
+            <span className={`pulse ${saved.dot}`} />
+            <span>
+              <b>{saved.title}</b>
+              <br />
+              {saved.note}
+            </span>
+          </div>
+          <nav aria-label="You">
+            {YOU.map((y) => (
+              <Link key={y.path} href={st.href(y.path)} className={`nav-item ${pathname === y.path ? 'active' : ''}`} aria-current={pathname === y.path ? 'page' : undefined}>
+                <Icon name={y.icon} />
+                <span>{y.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const st = useStore();
   const saved = savedWhere(st);
@@ -66,12 +127,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
   /** Adding pieces builds a closet, so signed out it asks to sign in first. */
   const addPieces = () => st.requireAccount('start your closet', () => open({ type: 'add' }));
 
+  /** The outfit board stays open while you look at other pages, and the tab it's on says so: Today for a day being
+      planned, Closet for any other outfit. */
+  const boardHome = st.building ? (st.draft.date ? '/' : '/closet') : undefined;
+  const boardAway = (path: string) => path === boardHome && pathname !== path;
+  const boardNote = st.draft.date ? 'planning a day on the outfit board' : 'outfit board open';
+
   const navLink = (n: { path: string; label: string; icon: string }, count?: number) => {
     const active = pathname === n.path;
     return (
       <Link key={n.path} href={st.href(n.path)} className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
         <Icon name={n.icon} />
         <span>{n.label}</span>
+        {boardAway(n.path) && <span className="board-dot" role="img" aria-label={boardNote} title="Outfit board open" />}
         {count ? <span className="count">{count}</span> : null}
       </Link>
     );
@@ -88,10 +156,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <nav className="nav" aria-label="Main">
             {NAV.map((n) => navLink(n, n.path === '/closet' ? st.items.length : undefined))}
             <div className="nav-label">You</div>
-            {navLink({ path: '/insights', label: 'Closet report', icon: 'insights' })}
-            {navLink({ path: '/settings', label: 'Settings', icon: 'settings' })}
-            {navLink({ path: '/about', label: 'How it works', icon: 'info' })}
+            {YOU.map((y) => navLink(y))}
           </nav>
+          <YouMenu saved={saved} />
           <div className="side-foot">
             <div className="sync-status">
               <span className={`pulse ${saved.dot}`} />
@@ -127,6 +194,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {/* Pages read on-device data, so they render once it has loaded in the browser. */}
           {st.ready ? children : null}
         </main>
+        {/* Phones: the three tabs along the bottom, in thumb reach. Hidden on wider screens, where the sidebar has them. */}
+        <nav className="tabbar" aria-label="Tabs">
+          {NAV.map((n) => {
+            const active = pathname === n.path;
+            return (
+              <Link key={n.path} href={st.href(n.path)} className={`tab ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
+                <Icon name={n.icon} />
+                <span>{n.label}</span>
+                {boardAway(n.path) && <span className="board-dot" role="img" aria-label={boardNote} />}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
       {overlay?.type === 'add' && <AddItemDialog onClose={close} />}

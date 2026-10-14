@@ -6,11 +6,12 @@
    and down the stack (with ⌘ or Ctrl, all the way), Delete removes it, Escape deselects. */
 
 import { useRef, useState } from 'react';
+import { deliverImage, renderOutfitImage } from '@/lib/export-image';
 import { ASPECT, clampW, heightOf, keepVisible, resizeAround, resolveLayout, restack, stackOrder, trueWidth } from '@/lib/layout';
 import { useStore } from '@/lib/store';
-import type { Layout, OutfitSlots, Piece, PieceLayout, Slot } from '@/lib/types';
+import type { Background, Layout, OutfitSlots, Piece, PieceLayout, Slot } from '@/lib/types';
 import { useUI } from './Shell';
-import { Art, BoardSwatches, Icon, money } from './ui';
+import { Art, BackgroundPicker, boardProps, Icon, money, useBackground } from './ui';
 
 export const SLOT_LABEL: Record<Slot, string> = { outer: 'Layer', top: 'Top', bottom: 'Bottom', shoes: 'Shoes', bag: 'Bag', jewelry: 'Jewelry', acc: 'Accessory' };
 
@@ -20,14 +21,19 @@ const CORNERS: Exclude<Handle, 'move'>[] = ['nw', 'ne', 'sw', 'se'];
 export function OutfitBoard({
   slots,
   layout,
+  bg,
   onLayout,
+  onBg,
   onRemove,
   onSelect,
   onDrop,
 }: {
   slots: OutfitSlots;
   layout?: Layout;
+  /** This outfit's background; unset means the default from Settings. */
+  bg?: Background;
   onLayout: (layout: Layout | undefined) => void;
+  onBg: (bg: Background) => void;
   onRemove: (slot: Slot) => void;
   onSelect?: (slot: Slot) => void;
   /** A piece dragged in from the closet, with where it was dropped (in % of the canvas). */
@@ -40,6 +46,7 @@ export function OutfitBoard({
   const [live, setLive] = useState<Layout | null>(null);
   const [picked, setPicked] = useState<Slot | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const background = useBackground(bg);
 
   const placed = live ?? resolveLayout(slots, layout, st.wearableById);
   const order = stackOrder(placed);
@@ -113,6 +120,7 @@ export function OutfitBoard({
     <div
       ref={ref}
       className={`board canvas ${dragOver ? 'drag-over' : ''}`}
+      {...boardProps(background)}
       tabIndex={empty ? -1 : 0}
       aria-label="Outfit canvas. Select a piece, then use the arrow keys to move it."
       onKeyDown={onKey}
@@ -150,7 +158,6 @@ export function OutfitBoard({
             onPointerDown={(e) => start(e, s, 'move')}
           >
             <Art w={it} />
-            {selected === s && CORNERS.map((c) => <span key={c} className={`handle ${c}`} onPointerDown={(e) => start(e, s, c)} aria-hidden="true" />)}
             {trial && (
               <div className="trial-tag" onPointerDown={(e) => e.stopPropagation()}>
                 Not in your closet · from {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
@@ -163,10 +170,30 @@ export function OutfitBoard({
         );
       })}
 
+      {selected && sel && (
+        <div
+          className="canvas-select"
+          style={{
+            left: `max(6px, ${sel.x}%)`,
+            right: `max(6px, ${100 - sel.x - sel.w}%)`,
+            top: `max(6px, ${sel.y}%)`,
+            bottom: `max(6px, ${100 - sel.y - heightOf(sel.w)}%)`,
+          }}
+        >
+          {CORNERS.map((c) => (
+            <span key={c} className={`handle ${c}`} onPointerDown={(e) => start(e, selected, c)} aria-hidden="true" />
+          ))}
+        </div>
+      )}
+
       {selected && sel && !live && (
         <div
           className={`canvas-tools ${sel.y < 12 ? 'below' : ''}`}
-          style={{ left: `${Math.min(Math.max(sel.x + sel.w / 2, 18), 82)}%`, top: sel.y < 12 ? `${sel.y + heightOf(sel.w)}%` : `${sel.y}%` }}
+          style={{
+            // Over the piece (under it near the top), centred, but never past the board's edge, which cuts it off.
+            left: `clamp(var(--half), ${sel.x + sel.w / 2}%, calc(100% - var(--half)))`,
+            top: sel.y < 12 ? `min(calc(100% - 52px), ${sel.y + heightOf(sel.w)}%)` : `max(52px, ${sel.y}%)`,
+          }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <button onClick={() => onLayout(restack(placed, selected, 'forward'))} disabled={selected === top} title="Bring forward  ]" aria-label="Bring forward">
@@ -185,7 +212,7 @@ export function OutfitBoard({
       )}
 
       <div className="canvas-corner">
-        <BoardSwatches className="canvas-bg" />
+        <BackgroundPicker value={background} onChange={onBg} />
         {layout && !empty && (
           <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onLayout(undefined), setPicked(null))} title="Put every piece back at its true size and spot">
             Tidy up
@@ -193,5 +220,31 @@ export function OutfitBoard({
         )}
       </div>
     </div>
+  );
+}
+
+/** Saves the outfit as a phone-sized picture of the canvas, exactly as arranged. */
+export function ExportOutfit({ slots, layout, bg, name, className = 'btn' }: { slots: OutfitSlots; layout?: Layout; bg?: Background; name: string; className?: string }) {
+  const st = useStore();
+  const background = useBackground(bg);
+  const [busy, setBusy] = useState(false);
+  const empty = !Object.values(slots).some((id) => st.wearableById(id));
+  const go = async () => {
+    setBusy(true);
+    try {
+      const blob = await renderOutfitImage({ slots, layout, byId: st.wearableById, imageFor: st.imageFor, bg: background });
+      const how = await deliverImage(blob, name);
+      if (how === 'downloaded') st.toast('Image saved to your downloads');
+    } catch {
+      st.toast("Couldn't make the image. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button className={className} disabled={empty || busy} onClick={go} title="Save as an image sized for your phone">
+      <Icon name="upload" />
+      {busy ? 'Exporting…' : 'Export image'}
+    </button>
   );
 }

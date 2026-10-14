@@ -1,6 +1,6 @@
 # 020 — Fill in a piece's details from a screenshot of its product page
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [018](018-piece-finder-on-the-phone.md), [019](019-product-links-on-the-phone.md) · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [018](018-piece-finder-on-the-phone.md), [019](019-product-links-on-the-phone.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

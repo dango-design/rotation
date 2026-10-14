@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, waitFor } from 'storybook/test';
 import { OutfitBoard } from '@/components/OutfitBoard';
-import type { Layout, OutfitSlots, Slot } from '@/lib/types';
+import type { Background, Layout, OutfitSlots, Slot } from '@/lib/types';
 import { settled } from '../decorators';
 import { demoCloset, demoId as id } from '../fixtures';
 
@@ -14,12 +14,15 @@ import { demoCloset, demoId as id } from '../fixtures';
 function Canvas({ slots: initialSlots, layout: initialLayout, onLayout, onRemove }: { slots: OutfitSlots; layout?: Layout; onLayout: (l?: Layout) => void; onRemove: (s: Slot) => void }) {
   const [slots, setSlots] = useState(initialSlots);
   const [layout, setLayout] = useState(initialLayout);
+  const [bg, setBg] = useState<Background>();
   return (
     <div style={{ width: 380 }}>
       <OutfitBoard
         slots={slots}
         layout={layout}
+        bg={bg}
         onLayout={(l) => (setLayout(l), onLayout(l))}
+        onBg={setBg}
         onRemove={(s) => {
           const next = { ...slots };
           delete next[s];
@@ -81,9 +84,9 @@ export const HandArranged: Story = {
 /** Selecting a piece shows its corner handles and tools: bring forward, send backward, true size, remove. */
 export const Selected: Story = {
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Classic Oxford Shirt' }));
+    await userEvent.click(canvas.getByRole('button', { name: '1983 Oxford Shirt' }));
     await settled();
-    await expect(canvas.getByRole('button', { name: 'Classic Oxford Shirt' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas.getByRole('button', { name: '1983 Oxford Shirt' })).toHaveAttribute('aria-pressed', 'true');
     await expect(canvas.getByRole('button', { name: 'Bring forward' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Remove from outfit' })).toBeVisible();
   },
@@ -93,7 +96,7 @@ export const Selected: Story = {
 export const BringForward: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Classic Trench Coat' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Icon Trench Coat' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Bring forward' }));
     await expect(args.onLayout).toHaveBeenCalledWith(expect.objectContaining({ outer: expect.objectContaining({ z: 1 }), top: expect.objectContaining({ z: 0 }) }));
   },
@@ -103,10 +106,10 @@ export const BringForward: Story = {
 export const DeleteWithKeyboard: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Canvas Tote' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Medium Seaport Tote Bag in Canvas' }));
     await userEvent.keyboard('{Delete}');
     await expect(args.onRemove).toHaveBeenCalledWith('bag');
-    await expect(canvas.queryByRole('button', { name: 'Canvas Tote' })).toBeNull();
+    await expect(canvas.queryByRole('button', { name: 'Medium Seaport Tote Bag in Canvas' })).toBeNull();
   },
 };
 

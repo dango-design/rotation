@@ -7,7 +7,7 @@ import { CATALOG } from '@core/catalog';
 import { TYPES } from '@core/catalog-meta';
 import { todayISO } from '@core/dates';
 import { demoData } from '@core/demo';
-import type { Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from '@core/types';
+import type { Background, Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from '@core/types';
 import { wornOn } from '@core/wear';
 import { forecast, geocode, skyWord, type Forecast } from '@core/weather';
 import { clearImages, dropImage, imageAsDataUrl, keepImage, uriFor } from './files';
@@ -20,6 +20,7 @@ export interface Draft {
   name: string;
   slots: OutfitSlots;
   layout?: Layout;
+  bg?: Background;
   focus: Slot;
   /** The day to plan it for (or log it on, for a past day), when it was started from a day on Today. */
   date?: string;
@@ -160,9 +161,9 @@ function useStoreValue() {
   }, []);
 
   /** Logs an outfit as worn: adds a wear to every piece and records the day. */
-  const wear = useCallback((slots: OutfitSlots, date = todayISO(), layout?: Layout) => {
+  const wear = useCallback((slots: OutfitSlots, date = todayISO(), layout?: Layout, bg?: Background) => {
     const ids = Object.values(slots).filter(Boolean) as string[];
-    const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}) };
+    const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) };
     setS((p) => ({
       ...p,
       items: p.items.map((i) => (ids.includes(i.id) ? wornOn(i, date) : i)),
@@ -170,8 +171,8 @@ function useStoreValue() {
     }));
   }, []);
 
-  const saveOutfit = useCallback((name: string, slots: OutfitSlots, layout?: Layout) => {
-    const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), createdAt: new Date().toISOString() };
+  const saveOutfit = useCallback((name: string, slots: OutfitSlots, layout?: Layout, bg?: Background) => {
+    const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}), createdAt: new Date().toISOString() };
     setS((p) => ({ ...p, outfits: [...p.outfits, o] }));
     return o;
   }, []);

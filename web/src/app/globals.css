@@ -112,6 +112,28 @@ a { color: inherit; }
 .nav-item .pill-new { margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--gap); background: var(--gap-tint); padding: 2px 7px; border-radius: 99px; }
 .nav-item.active .pill-new { background: color-mix(in srgb, var(--on-ink) 16%, transparent); color: var(--on-ink); }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- Phones: tabs along the bottom, "You" behind a button in the top bar ---------- */
+.you, .tabbar { display: none; }
+@media (max-width: 900px) {
+  :root { --tabbar-h: calc(60px + env(safe-area-inset-bottom)); }
+  .you { display: block; position: relative; }
+  .you-btn.here { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+  .you-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; width: 248px; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow-lg); animation: pop 0.15s ease; transform-origin: top right; }
+  .you-menu nav { display: flex; flex-direction: column; gap: 2px; }
+  .tabbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--tabbar-h); padding: 6px 8px env(safe-area-inset-bottom); background: var(--panel-2); border-top: 1px solid var(--line); }
+  .tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 12px; color: var(--ink-3); font-size: 11.5px; font-weight: 600; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .tab svg { width: 22px; height: 22px; }
+  .tab.active { color: var(--ink); }
+  .tab.active svg { stroke-width: 2.1; }
+  body .toast { bottom: calc(var(--tabbar-h) + 14px); }
+  /* The shopping bag joins the You button in the top bar. */
+  .main > .topbar { position: fixed; top: 10px; right: 64px; z-index: 31; }
+  .main .page-head { padding-right: 0; }
+  /* Building an outfit takes the bottom of the screen for the board, so the tabs step aside until it's closed. */
+  body:has(.closet-layout.building) .tabbar { display: none; }
+  body:has(.closet-layout.building) .main { padding-bottom: 96px; }
+}
 .sync-status { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--ink-2); padding: 10px; border-radius: 10px; background: var(--gap-tint); }
 .sync-status b { color: var(--gap-ink); font-weight: 600; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); margin-top: 5px; flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 18%, transparent); }
@@ -195,7 +217,10 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .tile.ghost { background: repeating-linear-gradient(-45deg, light-dark(#eaeff7, #d0d8e6) 0 8px, light-dark(#f1f4fa, #d8deea) 8px 16px); outline: 1.5px dashed var(--gap-solid); outline-offset: -1.5px; }
 
 /* Flat-lay composition */
-.flatlay { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: var(--radius-sm); overflow: hidden; }
+.flatlay { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: var(--radius-sm); overflow: hidden; container-type: size; }
+/* A flat lay zooms to its pieces, so an outfit reads at any size. The frame is the whole phone-shaped canvas, scaled to
+   --f wide and shifted so the pieces (centred at --cx, --cy, in % of the canvas width) sit in the middle. */
+.flatlay-frame { position: absolute; width: var(--f); aspect-ratio: 1320 / 2868; left: calc(50% - var(--cx) * var(--f) / 100); top: calc(50% - var(--cy) * var(--f) / 100); }
 .flatlay .piece { position: absolute; }
 .flatlay .piece .garment { width: 100%; height: 100%; filter: drop-shadow(0 8px 9px rgba(28, 27, 25, 0.14)); display: block; }
 .flatlay .piece.ghost .garment { filter: drop-shadow(0 0 0 transparent); opacity: 0.92; }
@@ -244,6 +269,7 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .toolbar .spacer { flex: 1; }
 .select { height: 36px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--panel); padding: 0 14px; font: 500 13px var(--sans); color: var(--ink-2); }
 .closet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 18px; }
+.item-cell { position: relative; display: flex; flex-direction: column; }
 .item-card { border: 0; padding: 0; background: none; text-align: left; display: flex; flex-direction: column; gap: 10px; position: relative; }
 .item-card .tile { transition: transform 0.2s, box-shadow 0.2s; }
 .item-card:hover .tile { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(28, 27, 25, 0.1); }
@@ -306,6 +332,12 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .add-opt svg { width: 22px; height: 22px; margin-bottom: 6px; }
 .add-opt b { font-weight: 600; }
 .add-opt small { color: var(--ink-3); font-size: 12.5px; }
+.drop-hint { display: flex; align-items: center; gap: 6px; margin-top: 14px; }
+.drop-hint svg { width: 15px; height: 15px; flex: none; }
+.modal.dropping { box-shadow: var(--shadow-lg), inset 0 0 0 3px var(--gap-solid); }
+.drop-cover { position: absolute; inset: 0; border-radius: inherit; display: grid; place-content: center; justify-items: center; gap: 10px; background: color-mix(in srgb, var(--gap-tint) 92%, transparent); color: var(--gap-ink); font-size: 16px; pointer-events: none; animation: fade 0.15s ease; }
+.drop-cover svg { width: 30px; height: 30px; }
+@media (hover: none) { .drop-hint { display: none; } }
 .scan { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 12px; align-items: center; margin-top: 18px; }
 .scan .photo { aspect-ratio: 1; border-radius: 12px; background: linear-gradient(135deg, #8f7458, #6e5640); display: grid; place-items: center; overflow: hidden; position: relative; }
 .scan .photo::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 2px, transparent 2px 38px); }
@@ -315,10 +347,15 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 
 /* ---------- Builder ---------- */
-.board { position: relative; aspect-ratio: 1 / 1.02; background: var(--board); border-radius: 18px; overflow: hidden; transition: box-shadow 0.15s; }
+.board { position: relative; aspect-ratio: 1320 / 2868; /* EXPORT_W / EXPORT_H in layout.ts: an iPhone screen */ background: var(--board); border-radius: 18px; overflow: hidden; transition: box-shadow 0.15s; }
 /* A white board needs an edge to stand apart from the white cards around it. */
-[data-board='white'] :is(.board, .flatlay, .hero-visual) { box-shadow: inset 0 0 0 1px var(--line); }
-[data-board='white'] .hero-visual .flatlay { box-shadow: none; }
+:is(.board, .flatlay, .hero-visual)[data-bg='white'] { box-shadow: inset 0 0 0 1px var(--line); }
+.hero-visual .flatlay[data-bg] { box-shadow: none; }
+/* On a dark background, the board's own words and outlines turn light. */
+.board[data-tone='dark'] .board-empty { color: rgba(255, 255, 255, 0.72); }
+/* Product photos on white are multiplied into a neutral board. On a color that would tint the piece, so they keep
+   their white, on a rounded card. */
+[data-bg='color'] img.photo.on-white { mix-blend-mode: normal; border-radius: 6px; }
 .board.drag-over { box-shadow: inset 0 0 0 3px var(--gap-solid); }
 .board-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--ink-3); font-size: 13px; }
 .trial-tag { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 11px; border-radius: 99px; background: var(--gap); color: #fff; font-size: 11.5px; font-weight: 600; box-shadow: 0 4px 12px rgba(30, 58, 110, 0.3); }
@@ -531,15 +568,13 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 }
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; }
-  .side { position: sticky; top: 0; z-index: 30; height: auto; flex-direction: row; align-items: center; gap: 10px; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .side { position: sticky; top: 0; z-index: 30; height: auto; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
   .logo { font-size: 26px; padding: 0 4px; }
   .logo-sub, .nav-label, .side-foot, .nav-item .count, .nav-item .pill-new { display: none; }
   .presenter { display: block; }
   .notes-panel { bottom: 76px; }
-  .nav { flex-direction: row; }
-  .nav-item { white-space: nowrap; padding: 8px 10px; }
-  .nav-item svg { display: none; }
-  .main { padding: 22px 16px 96px; }
+  .side .nav { display: none; }
+  .main { padding: 22px 16px calc(96px + var(--tabbar-h)); }
   h1 { font-size: 36px; }
   .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .hero-body { padding: 20px 20px 18px; }
@@ -625,6 +660,7 @@ a.nav-item { text-decoration: none; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--ink); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-note { color: var(--warn); font-size: 13px; }
+.tag-note { color: var(--ink-2); font-size: 13px; }
 .piece-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; margin-top: 18px; }
 .piece-pick { display: flex; flex-direction: column; gap: 8px; padding: 8px 8px 10px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); font-weight: 600; font-size: 13px; text-align: left; transition: border-color 0.15s, box-shadow 0.15s; }
 .piece-pick:hover { border-color: var(--ink-3); }
@@ -665,6 +701,12 @@ a.nav-item { text-decoration: none; }
 .saved-card { padding: 10px; display: flex; flex-direction: column; gap: 8px; border: 0; text-align: left; cursor: pointer; }
 .saved-card .flatlay { aspect-ratio: 1; }
 .saved-card b { font-size: 13px; font-weight: 600; }
+.saved-card { position: relative; }
+.saved-card.on-board .flatlay { box-shadow: inset 0 0 0 2px var(--ink); border-radius: var(--radius-sm); }
+.saved-sub { font-size: 12px; color: var(--ink-3); margin-top: -4px; }
+/* Planning a day: pieces, outfits worn before, and saved outfits. */
+.tray-tabs { margin-bottom: 14px; }
+.piece-tray .outfit-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 .picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
 .picker button { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 8px; text-align: left; font-size: 12px; font-weight: 600; display: flex; flex-direction: column; gap: 6px; }
 .picker .flatlay { aspect-ratio: 1; }
@@ -706,6 +748,22 @@ a.nav-item { text-decoration: none; }
 .closet-layout.building .closet-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .item-card.on-board .tile { box-shadow: inset 0 0 0 2px var(--ink); }
 .src.good { background: var(--good-tint); color: var(--good); }
+/* With the board open, a piece's pencil opens it for editing, since a click puts it on the board. */
+.card-edit { position: absolute; top: 7px; right: 7px; z-index: 1; width: 28px; height: 28px; background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--ink-2); }
+.card-edit svg { width: 14px; height: 14px; }
+.card-edit:hover { background: var(--panel); color: var(--ink); border-color: var(--ink-3); }
+/* Left Closet in the middle of planning a day: Today offers the way back to the board. */
+.resume-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 14px 12px 18px; margin-bottom: 22px; border: 1.5px solid var(--clay-line); background: color-mix(in srgb, var(--clay-tint) 55%, var(--panel)); }
+.resume-bar .flatlay { width: 44px; aspect-ratio: 1; border-radius: 8px; flex: none; }
+.resume-text { flex: 1; min-width: 180px; font-size: 13.5px; color: var(--ink-2); }
+.resume-text b { display: block; color: var(--clay-ink); font-weight: 600; }
+.resume-actions { display: flex; gap: 8px; }
+.resume-bar .btn.primary { background: var(--clay); border-color: var(--clay); color: #fff; }
+/* The Closet tab, while the outfit board is open there and you're on another page. */
+.board-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--clay); flex: none; }
+.nav-item .board-dot + .count { margin-left: 8px; }
+.nav-item .board-dot { margin-left: auto; }
+.tab .board-dot { position: absolute; top: 8px; left: calc(50% + 9px); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .outfit-panel { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; }
@@ -718,7 +776,7 @@ a.nav-item { text-decoration: none; }
 /* Planning a day: the forecast and "Surprise me" under the hint. */
 .panel-day { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .panel-day .callout-wx { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
-.outfit-panel .board { flex: none; border-radius: 14px; }
+.outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); align-self: center; }
 .outfit-panel .board-status { font-size: 12.5px; }
 .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .panel-plan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); }
@@ -729,14 +787,18 @@ a.nav-item { text-decoration: none; }
 .saved-open { border: 0; background: none; padding: 0; display: block; width: 100%; }
 .saved-meta { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 
+/* Narrower windows (a laptop half-screen) keep the board beside the closet, in a slimmer column; phones get it as a
+   sheet along the bottom. */
 @media (max-width: 1180px) {
-  .closet-layout.building { grid-template-columns: minmax(0, 1fr); padding-bottom: 60vh; }
-  .outfit-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 58vh; border-radius: 20px 20px 0 0; box-shadow: var(--shadow-lg); }
-  .outfit-panel .board { width: min(300px, 100%); margin: 0 auto; }
+  .closet-layout.building { grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; }
+  .closet-layout.building .closet-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .outfit-panel { padding: 16px; }
+  .outfit-panel .board { height: min(52vh, 480px); }
 }
 @media (max-width: 900px) {
-  .outfit-panel { max-height: 52vh; padding: 14px 16px; gap: 10px; }
-  .outfit-panel .board { width: min(200px, 100%); }
+  .closet-layout.building { grid-template-columns: minmax(0, 1fr); padding-bottom: 60vh; }
+  .outfit-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 52vh; border-radius: 20px 20px 0 0; box-shadow: var(--shadow-lg); padding: 14px 16px; gap: 10px; }
+  .outfit-panel .board { height: min(34vh, 300px); }
   .outfit-panel .outfit-name { font-size: 24px; }
   .panel-hint { display: none; }
   .strip-days { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 104px; overflow-x: auto; padding: 3px 3px 8px; margin: 0 -3px; }
@@ -780,24 +842,44 @@ a.nav-item { text-decoration: none; }
 .canvas-piece .garment, .canvas-piece img.photo { width: 100%; height: 100%; display: block; pointer-events: none; filter: drop-shadow(0 10px 10px rgba(28, 27, 25, 0.15)); }
 .canvas-piece::after { content: ''; position: absolute; inset: 0; border-radius: 3px; pointer-events: none; }
 .canvas-piece:hover::after { box-shadow: 0 0 0 1px rgba(30, 58, 110, 0.35); }
-.canvas-piece.selected::after { box-shadow: 0 0 0 1.5px var(--gap); }
 .canvas-piece.trial::after { box-shadow: 0 0 0 1.5px var(--gap); background: rgba(234, 239, 247, 0.35); }
+/* The selected piece's frame and corner handles, drawn over the part of it on the board and kept inside the edge,
+   so a piece hanging off the board can still be resized. */
+.canvas-select { position: absolute; z-index: 999; box-shadow: 0 0 0 1.5px var(--gap); border-radius: 3px; pointer-events: none; }
+.canvas-select .handle { pointer-events: auto; }
 .handle { position: absolute; z-index: 2; width: 11px; height: 11px; background: var(--panel); border: 1.5px solid var(--gap); border-radius: 2px; touch-action: none; }
 .handle::before { content: ''; position: absolute; inset: -9px; }
 .handle.nw { left: -6px; top: -6px; cursor: nwse-resize; }
 .handle.ne { right: -6px; top: -6px; cursor: nesw-resize; }
 .handle.sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
 .handle.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
-.canvas-tools { position: absolute; z-index: 1000; transform: translate(-50%, calc(-100% - 10px)); display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: var(--ink); box-shadow: var(--shadow-lg); animation: fade 0.12s ease; }
+/* --half: half the toolbar's width, so it can be kept inside the board (see OutfitBoard). */
+.canvas-tools { --half: 75px; position: absolute; z-index: 1000; transform: translate(-50%, calc(-100% - 10px)); display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: var(--ink); box-shadow: var(--shadow-lg); animation: fade 0.12s ease; }
 .canvas-tools.below { transform: translate(-50%, 10px); }
 .canvas-tools button { width: 32px; height: 32px; border: 0; border-radius: 7px; background: none; color: var(--on-ink); display: grid; place-items: center; }
 .canvas-tools button:hover:not(:disabled) { background: color-mix(in srgb, var(--on-ink) 14%, transparent); }
 .canvas-tools button:disabled { opacity: 0.35; cursor: default; }
 .canvas-tools svg { width: 17px; height: 17px; }
+@media (max-width: 900px) {
+  .canvas-tools { --half: 61px; gap: 0; }
+  .canvas-tools button { width: 28px; height: 28px; }
+  .canvas-tools svg { width: 15px; height: 15px; }
+}
 /* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot. */
 .canvas-corner { position: absolute; right: 10px; bottom: 10px; z-index: 1000; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.15s; }
 .canvas-tidy { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); }
-.canvas-bg { height: 28px; padding: 0 2px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); }
+/* The outfit's background: a dot in the corner that opens the colors above it. */
+.bg-picker { position: relative; }
+.bg-current { width: 28px; height: 28px; padding: 0; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); display: grid; place-items: center; }
+.bg-current i, .bg-pop i { width: 16px; height: 16px; border-radius: 99px; box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18); }
+.bg-pop { position: absolute; right: 0; bottom: calc(100% + 8px); width: 190px; padding: 10px; border-radius: 12px; background: var(--panel); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 8px; animation: fade 0.12s ease; }
+.bg-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.bg-row button { aspect-ratio: 1; padding: 0; border: 0; border-radius: 99px; background: none; display: grid; place-items: center; }
+.bg-row i { width: 22px; height: 22px; }
+.bg-row button[aria-pressed='true'] i, .bg-any.on i { box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18), 0 0 0 2px var(--panel), 0 0 0 3.5px var(--ink); }
+.bg-any { position: relative; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px; border-top: 1px solid var(--line); padding-top: 8px; box-sizing: content-box; font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.bg-any i { background: conic-gradient(#e66, #ec6, #6c6, #6ce, #66e, #c6e, #e66); }
+.bg-any input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .canvas:hover .canvas-corner, .canvas:focus-within .canvas-corner { opacity: 1; }
 @media (hover: none) { .canvas-corner { opacity: 1; } }
 

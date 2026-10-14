@@ -1,6 +1,6 @@
 # 017 — Cut pieces out of photos on the iPhone with Apple's subject lifting
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Extended by:** [018](018-piece-finder-on-the-phone.md), which runs the web app's piece finder everywhere · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Extended by:** [018](018-piece-finder-on-the-phone.md), which runs the web app's piece finder everywhere · **Milestone:** `v5-live-app`
 
 ## Context
 

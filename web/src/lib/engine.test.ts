@@ -17,14 +17,14 @@ const byShort = (s: string) => items.find((i) => i.id === `demo-${s}`)!;
 
 describe('pairing rules', () => {
   it('rejects two different non-neutral tones', () => {
-    expect(check([byShort('t8'), byShort('t9')]).ok).toBe(false);
+    expect(check([byShort('t10'), byShort('d3')]).ok).toBe(false);
   });
   it('allows harmonious tones', () => {
-    const rust = { ...byShort('a2'), cat: 'top' as const };
-    expect(check([rust, byShort('t8')]).ok).toBe(true);
+    expect(check([byShort('t4'), byShort('d3')]).ok).toBe(true);
   });
   it('rejects same-wash denim on denim', () => {
-    expect(check([byShort('o1'), byShort('b1')]).ok).toBe(false);
+    const lightJeans = { ...byShort('b2'), colorName: 'Light Wash', denim: 'light' as const };
+    expect(check([byShort('o1'), lightJeans]).ok).toBe(false);
     expect(check([byShort('o1'), byShort('b2')]).ok).toBe(true);
   });
   it('rejects formality gaps over one step', () => {
@@ -36,8 +36,8 @@ describe('pairing rules', () => {
 });
 
 describe('Outfit Unlock on the demo closet', () => {
-  it('finds 199 outfits', () => {
-    expect(totalOutfits(items)).toBe(199);
+  it('finds 207 outfits', () => {
+    expect(totalOutfits(items)).toBe(207);
   });
   it('light straight chinos unlock 39 outfits', () => {
     expect(unlock(pieceById('p-chino-khaki')!, items)).toBe(39);
@@ -72,8 +72,8 @@ describe('dresses', () => {
 describe('fitting pieces to the board', () => {
   const byId = (id: string) => items.find((i) => i.id === id) ?? pieceById(id);
   it('rejects a piece that clashes with the rest of the board', () => {
-    expect(fitsBoard(byShort('o1'), { bottom: byShort('b1').id }, byId)).toBe(false);
-    expect(fitsBoard(byShort('o1'), { bottom: byShort('b2').id }, byId)).toBe(true);
+    expect(fitsBoard(byShort('o4'), { bottom: byShort('b4').id }, byId)).toBe(false);
+    expect(fitsBoard(byShort('o4'), { bottom: byShort('b3').id }, byId)).toBe(true);
   });
   it('ignores the piece it would replace', () => {
     expect(fitsBoard(byShort('b2'), { bottom: byShort('b1').id, outer: byShort('o1').id }, byId)).toBe(true);

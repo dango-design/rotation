@@ -15,7 +15,7 @@ import * as store from './db';
 import { todayISO } from './dates';
 import { demoData } from './demo';
 import { sync, type Row, type SyncResult } from './sync';
-import type { Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
+import type { Background, Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
 import { wornOn } from './wear';
 import { forecast, geocode, skyWord, type Forecast } from './weather';
 
@@ -25,6 +25,7 @@ export interface Draft {
   name: string;
   slots: OutfitSlots;
   layout?: Layout;
+  bg?: Background;
   focus: Slot;
   /** The day to plan it for (or log it on, for a past day), when it was started from a day on Today. */
   date?: string;
@@ -166,13 +167,30 @@ function useStoreValue(fixture?: Fixture) {
     if (fixed) return;
     const demo = new URLSearchParams(window.location.search).has('demo');
     if (demo) {
+      let gone = false;
       // Deferred so the first render matches the server; demo mode is chosen once per page load.
       queueMicrotask(() => {
         const d = demoData();
         setS({ ...EMPTY, ready: true, demo: true, items: d.items, plans: d.plans, wears: d.wears, settings: d.settings });
         setDraft({ name: 'Client presentation', slots: d.plans[0].slots, focus: 'bottom' });
+        // The pieces start drawn and switch to the store's photo as each cutout is ready, this week's plans first.
+        const planned = new Set(d.plans.flatMap((p) => Object.values(p.slots)));
+        const order = [...d.items].sort((a, b) => Number(planned.has(b.id)) - Number(planned.has(a.id)));
+        const onPhoto = (id: string, cutout: Blob) =>
+          setS((p) =>
+            p.demo && p.items.some((i) => i.id === id)
+              ? {
+                  ...p,
+                  items: p.items.map((i) => (i.id === id ? { ...i, imageId: id, cutout: true } : i)),
+                  images: { ...p.images, [id]: URL.createObjectURL(cutout) },
+                }
+              : p,
+          );
+        void import('./demo-photos').then((m) => m.loadDemoPhotos(order, onPhoto, () => gone));
       });
-      return;
+      return () => {
+        gone = true;
+      };
     }
     fromDevice()
       .then(setS)
@@ -424,10 +442,10 @@ function useStoreValue(fixture?: Fixture) {
 
   /** Log an outfit as worn: adds a wear to every piece and records the day. */
   const wear = useCallback(
-    (slots: OutfitSlots, date = todayISO(), layout?: Layout) => {
+    (slots: OutfitSlots, date = todayISO(), layout?: Layout, bg?: Background) => {
       if (locked.current) return;
       const ids = Object.values(slots).filter(Boolean) as string[];
-      const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}) };
+      const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) };
       setS((p) => {
         const items = p.items.map((i) => (ids.includes(i.id) ? wornOn(i, date) : i));
         persist(async () => {
@@ -441,9 +459,9 @@ function useStoreValue(fixture?: Fixture) {
   );
 
   const saveOutfit = useCallback(
-    (name: string, slots: OutfitSlots, layout?: Layout) => {
+    (name: string, slots: OutfitSlots, layout?: Layout, bg?: Background) => {
       if (locked.current) return;
-      const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), createdAt: new Date().toISOString() };
+      const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}), createdAt: new Date().toISOString() };
       setS((p) => ({ ...p, outfits: [...p.outfits, o] }));
       persist(() => store.putOutfit(o));
       return o;

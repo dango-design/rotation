@@ -1,7 +1,8 @@
 /* The web app's piece finder, running in a hidden web view (finder/entry.ts, bundled into src/lib/finder-bundle.ts).
    It works in Expo Go and on any phone. Photos are handed to it on the phone and never uploaded; the models are
    downloaded once from the CDN, starting as soon as the finder is mounted, and then cached. For product links, the
-   page asks for each store photo and the app downloads it, since the page can't read store images itself. */
+   page asks for each store photo and the app downloads it, since the page can't read store images itself (or uses the
+   copy Rotation's browser loaded). */
 
 import { File, Paths } from 'expo-file-system';
 import { useRef, useState } from 'react';
@@ -12,7 +13,7 @@ import type { TextLine } from '@core/page-text';
 import type { FinderReply, FoundPiece } from '../../finder/protocol';
 import { forFinder } from '@/lib/cutout';
 import { FINDER_JS } from '@/lib/finder-bundle';
-import { READER_HEADERS } from '@/lib/product-link';
+import { photoFor, READER_HEADERS } from '@/lib/product-link';
 
 /** The models, from this repository at a fixed commit, so the cached copies never go stale. */
 const MODELS = 'https://cdn.jsdelivr.net/gh/dango-design/rotation@eaaac184a41d814f2a2dd28575c9ce5bec7c88ab/web/public/models/';
@@ -62,6 +63,9 @@ let downloads = 0;
 /** A store's photo, downloaded on the phone and sized for the finder. Null if it can't be loaded. */
 async function storePhoto(url: string): Promise<string | null> {
   try {
+    // Rotation's browser may have loaded it already, from a store that won't send its photos to an app.
+    const loaded = photoFor(url);
+    if (loaded !== url) return await forFinder({ uri: loaded });
     const dest = new File(Paths.cache, `store-photo-${Date.now().toString(36)}-${++downloads}`);
     const file = await File.downloadFileAsync(url, dest, { headers: { ...READER_HEADERS, accept: 'image/avif,image/webp,image/png,image/jpeg,*/*;q=0.5' }, idempotent: true });
     return await forFinder({ uri: file.uri });

@@ -1,18 +1,18 @@
 'use client';
 
-/* The outfit board, shown beside the closet grid. The grid is the tray: clicking or dragging a piece
+/* The outfit board, shown beside your pieces. The pieces are the tray: clicking or dragging one
    puts it on the board, so this panel only holds the board, its actions, and pieces to shop.
-   Started from a day on Today, the same board plans that day (or logs it, for a past day). */
+   Beside the closet it builds any outfit; on Today, beside the same pieces, it plans a day (or logs one, for a past day). */
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { addDays, fmt, shortDate } from '@/lib/dates';
 import { useDays } from '@/lib/days';
 import { forSlot, SLOTS } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
-import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
+import { ExportOutfit, OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
 import { Icon, money, ShopSwitch, Tile } from './ui';
 
@@ -20,6 +20,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   const st = useStore();
   const ui = useUI();
   const router = useRouter();
+  const pathname = usePathname();
   const { today, wxFor, suggestFor } = useDays();
   const { draft, setDraft } = st;
   const day = draft.date;
@@ -57,19 +58,19 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
     if (!idea) return st.toast('Surprise me needs a top, bottom and shoes that go together, or a dress and shoes.');
     setDraft({ ...draft, slots: idea.slots, layout: undefined, focus: 'top', shuffle: (draft.shuffle ?? 0) + 1 });
   };
-  /** Leaves the day: closes the board and goes back to that day on Today. */
+  /** Leaves the day: closes the board, showing that day on Today. */
   const backToDay = () => {
     setDraft({ ...draft, date: undefined, shuffle: undefined });
     st.setBuilding(false);
-    router.push(st.href(`/?day=${day}`));
+    if (pathname !== '/') router.push(st.href(`/?day=${day}`));
   };
   const finishDay = () => {
     if (!day) return;
     if (day < today) {
-      st.requireAccount('log what you wore', () => (st.wear(slots, day, draft.layout), st.toast('Logged as worn'), backToDay()));
+      st.requireAccount('log what you wore', () => (st.wear(slots, day, draft.layout, draft.bg), st.toast('Logged as worn'), backToDay()));
     } else {
       st.requireAccount('plan this outfit', () => {
-        st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}) });
+        st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
         st.toast(day === today ? 'Planned for today' : `Planned for ${fmt(day, { weekday: 'long' })}`);
         backToDay();
       });
@@ -80,12 +81,12 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
     <aside className="card outfit-panel" aria-label="Outfit board">
       <div className="panel-head">
         <div className={`eyebrow ${day ? 'for-day' : ''}`}>{!day ? 'Building an outfit' : day < today ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}</div>
-        <button className="icon-btn" onClick={() => (day ? backToDay() : st.setBuilding(false))} aria-label={day ? 'Cancel and go back to Today' : 'Close outfit board'}>
+        <button className="icon-btn" onClick={() => (day ? backToDay() : st.setBuilding(false))} aria-label={day ? `Stop ${day < today ? 'logging' : 'planning'} ${dayLabel}` : 'Close outfit board'}>
           <Icon name="x" />
         </button>
       </div>
       <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
-      <p className="panel-hint">Click or drag pieces from your closet onto the board, and click one again to take it off.</p>
+      <p className="panel-hint">Click or drag your pieces onto the board, and click one again to take it off.</p>
       {ahead && (
         <div className="panel-day">
           {wx ? (
@@ -114,7 +115,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         </div>
       )}
 
-      <OutfitBoard slots={slots} layout={draft.layout} onLayout={(layout) => setDraft({ ...draft, layout })} onRemove={remove} onSelect={focus} onDrop={onPut} />
+      <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} />
 
       {trial.length > 0 && (
         <div className="board-status">
@@ -137,16 +138,17 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         <button
           className={day ? 'btn' : 'btn primary'}
           disabled={!ready}
-          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout), st.toast('Saved to your outfits')))}
+          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
         >
           Save outfit
         </button>
         {!day && (
-          <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout), st.toast('Logged as worn today')))}>
+          <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout, draft.bg), st.toast('Logged as worn today')))}>
             <Icon name="check" />
             Wear today
           </button>
         )}
+        <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} />
         <button className="btn ghost" onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
           Clear
         </button>
@@ -159,7 +161,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
             className="btn sm"
             disabled={!ready}
             onClick={() =>
-              st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout }), st.toast(`Planned for ${shortDate(planDate)}`)))
+              st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout, bg: draft.bg }), st.toast(`Planned for ${shortDate(planDate)}`)))
             }
           >
             <Icon name="planner" />

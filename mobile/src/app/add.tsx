@@ -5,7 +5,9 @@
    piece. A product link is read on the phone (src/lib/product-link.ts) and the finder picks the product out of the
    page's photos; when it isn't sure, you pick the cutout or another photo from the page, as on the web. A photo
    from the library or a paste is also read for text, so a screenshot of a product page fills in its name, brand,
-   store and price (src/lib/cutout.ts readScreenshot, @core/page-text).
+   store and price (src/lib/cutout.ts readScreenshot, @core/page-text). A store that only shows its pages to a full
+   browser opens in Rotation's own browser (src/components/StoreBrowser.tsx), where the person goes to the piece and
+   adds the page they're looking at.
    Dragging pieces in from other apps still needs its own add-on (see mobile/README.md). */
 
 import * as Clipboard from 'expo-clipboard';
@@ -20,9 +22,10 @@ import { Icon, type IconName } from '@/components/Icon';
 import { ItemForm, type ItemFields } from '@/components/ItemForm';
 import { ModalScreen } from '@/components/ModalScreen';
 import { usePieceFinder } from '@/components/PieceFinder';
+import { StoreBrowser } from '@/components/StoreBrowser';
 import { Btn, T, tap } from '@/components/ui';
 import { canCutOut, couldntStart, findPieces, fromFinder, keptAsIs, looksLikePair, nothingFound, readScreenshot, type Cut, type FinderCut, type Pieces } from '@/lib/cutout';
-import { blockedNote, linkIn, readLink, type Product } from '@/lib/product-link';
+import { BlockedError, blockedNote, linkIn, photoFor, readLink, type Product } from '@/lib/product-link';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/theme';
 
@@ -32,6 +35,7 @@ type FormStep = { kind: 'form'; photo?: Cut; queue: Cut[]; total: number; note?:
 type Step =
   | { kind: 'choose' }
   | { kind: 'link' }
+  | { kind: 'browse'; url: string; note?: string }
   | { kind: 'reading'; label: string }
   | LinkPick
   | { kind: 'cutting'; photo: Cut }
@@ -40,6 +44,9 @@ type Step =
   | { kind: 'saving' };
 
 const one = (photo?: Cut, note?: string): FormStep => ({ kind: 'form', photo, queue: [], total: 1, note });
+
+/** Rotation's browser needs a phone; the browser preview of the app can't show another site. */
+const canBrowse = Platform.OS !== 'web';
 
 /**
  * The details form's starting point: the type and color the finder saw, when it saw them. From a product page or a
@@ -161,10 +168,24 @@ export default function AddScreen() {
       product = await readLink(linkText);
     } catch (e) {
       if (mine !== run.current) return;
+      // A store that only shows its pages to a full browser opens in Rotation's browser instead.
+      if (e instanceof BlockedError && canBrowse)
+        return setStep({
+          kind: 'browse',
+          url: e.url.toString(),
+          note: `${e.url.hostname.replace(/^www\./, '')} only shows its pages to a full browser, so here it is. Go to the piece, then tap Add this piece.`,
+        });
       setError(e instanceof Error ? e.message : 'That page could not be read.');
       return setStep({ kind: 'link' });
     }
     if (mine !== run.current) return;
+    withProduct(product, mine);
+  };
+
+  /** A product page that was read, from a link or in Rotation's browser: find the product in its photos. */
+  const withProduct = async (product: Product, mine = ++run.current) => {
+    setError('');
+    setDetailsOnly(null);
     const found = product.images.length
       ? (setStep({ kind: 'reading', label: 'Finding the product in its photos…' }),
         await finder.findProduct(product.images, product.hint, (done, total) => {
@@ -240,11 +261,28 @@ export default function AddScreen() {
       );
     }
 
-    if (step.kind === 'link')
+    if (step.kind === 'browse')
+      return (
+        <StoreBrowser
+          url={step.url}
+          note={step.note}
+          onClose={() => setStep({ kind: 'link' })}
+          onProduct={(p) => {
+            setLinkText(p.url);
+            withProduct(p);
+          }}
+        />
+      );
+
+    if (step.kind === 'link') {
+      const pageLink = linkIn(linkText);
       return (
         <ModalScreen eyebrow="Add from a link" onClose={restart}>
           <T v="h2">Add from a product link</T>
-          <T>Paste a product page from any online store. Rotation reads its name and price, finds the product in its photos and removes the background, all on your phone.</T>
+          <T>
+            Paste a product page from any online store. Rotation reads its name and price, finds the product in its photos and removes the background, all on your phone.
+            {canBrowse ? ' A store that turns apps away opens in Rotation’s browser instead.' : ''}
+          </T>
           <View style={{ gap: 6 }}>
             <T v="tiny" style={{ fontFamily: F.semibold, color: C.ink2 }}>
               Product link
@@ -275,12 +313,16 @@ export default function AddScreen() {
               onPress={() => setStep({ ...one(undefined, 'Drawn from its type and color, since the page had no photo of it.'), product: detailsOnly })}
             />
           ) : null}
+          {error && canBrowse && pageLink ? (
+            <Btn size="sm" icon="out" label="Open the page in Rotation’s browser" style={{ alignSelf: 'flex-start' }} onPress={() => setStep({ kind: 'browse', url: pageLink })} />
+          ) : null}
           <View style={styles.actions}>
             <Btn kind="ghost" label="Back" onPress={restart} />
             <Btn kind="primary" label="Read the page" disabled={!linkText.trim()} onPress={importLink} />
           </View>
         </ModalScreen>
       );
+    }
 
     if (step.kind === 'reading')
       return (
@@ -345,7 +387,7 @@ export default function AddScreen() {
                       }}
                       style={[styles.strip, on && styles.stripOn]}
                     >
-                      <Image source={{ uri: u }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                      <Image source={{ uri: photoFor(u) }} style={StyleSheet.absoluteFill} contentFit="cover" />
                       {busy === i && (
                         <View style={styles.stripBusy}>
                           <ActivityIndicator color={C.ink} />
