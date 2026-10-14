@@ -1,6 +1,8 @@
 /* Reading a product page on the phone. The web app reads pages on its server, because a browser can't read another
    site's pages. A phone app isn't held to that, so it fetches the page itself and reads it with the web app's own
-   reader (@core/product-page). No server is needed. The piece finder then finds the product in the page's photos. */
+   reader (@core/product-page). No server is needed. The piece finder then finds the product in the page's photos.
+   Some stores only show their pages to a full browser; those open in Rotation's own browser (StoreBrowser.tsx),
+   which reads the page the person is looking at with the same reader. */
 
 import { hintFrom, pathWords, type Hint } from '@core/garment-hints';
 import { isChallengePage, readProductPage, type ProductPage } from '@core/product-page';
@@ -16,6 +18,27 @@ const siteName = (u: URL) => u.hostname.replace(/^www\./, '');
 /** What to do when a store won't show its page to an app. */
 export const blockedNote =
   "checks for a full web browser before showing its pages, so Rotation can't read them. Take a screenshot of the product page and add it with Choose from Photos; the piece is cut out of the screenshot.";
+
+/** The store only shows its pages to a full browser. The page can still be opened in Rotation's browser. */
+export class BlockedError extends Error {
+  constructor(readonly url: URL) {
+    super(`${siteName(url)} ${blockedNote}`);
+  }
+}
+
+/** Store photos Rotation's browser already loaded from the store's page, as data URLs by their address. */
+const loadedPhotos = new Map<string, string>();
+export const keepPhoto = (url: string, data: string) => loadedPhotos.set(url, data);
+/** A store photo to show or cut out: the copy the browser loaded, or the address to download it from. */
+export const photoFor = (url: string) => loadedPhotos.get(url) ?? url;
+
+/** A product from a page's HTML: its name, brand, store, price, category and photos, and what kind of piece it names. */
+export function productFrom(html: string, url: URL): Product {
+  const page = readProductPage(html, url);
+  if (isChallengePage(page, html)) throw new BlockedError(url);
+  if (!page.title && !page.images.length) throw new Error("That page doesn't describe a product we can read.");
+  return { ...page, url: url.toString(), hint: hintFrom(page.title, page.category, pathWords(url.toString())) };
+}
 
 /** The first web link in some pasted text, such as a store's share text: "Look at this! https://…". */
 export function linkIn(text: string | null | undefined): string | null {
@@ -44,13 +67,7 @@ export async function readLink(text: string): Promise<Product> {
   } finally {
     clearTimeout(timer);
   }
-  if (!res.ok)
-    throw new Error(res.status === 403 || res.status === 429 ? `${siteName(url)} ${blockedNote}` : `The store's page answered with an error (${res.status}).`);
-
-  const final = new URL(res.url || url.toString());
-  const html = await res.text();
-  const page = readProductPage(html, final);
-  if (isChallengePage(page, html)) throw new Error(`${siteName(final)} ${blockedNote}`);
-  if (!page.title && !page.images.length) throw new Error("That page doesn't describe a product we can read.");
-  return { ...page, url: final.toString(), hint: hintFrom(page.title, page.category, pathWords(final.toString())) };
+  if (res.status === 403 || res.status === 429) throw new BlockedError(url);
+  if (!res.ok) throw new Error(`The store's page answered with an error (${res.status}).`);
+  return productFrom(await res.text(), new URL(res.url || url.toString()));
 }
