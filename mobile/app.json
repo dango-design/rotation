@@ -3,6 +3,13 @@
     "name": "Rotation",
     "slug": "rotation",
     "version": "0.1.0",
+    "owner": "deniseango",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/802c9149-1e61-493b-90e0-76f9e9a06bf9"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rotation",
@@ -17,6 +24,7 @@
       }
     },
     "android": {
+      "package": "com.dangodesign.rotation",
       "adaptiveIcon": {
         "backgroundColor": "#F3F0EA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -52,6 +60,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "802c9149-1e61-493b-90e0-76f9e9a06bf9"
+      }
     }
   }
 }

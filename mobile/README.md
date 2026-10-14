@@ -15,7 +15,7 @@ It shares the web app's engine. Everything in `web/src/lib` that decides what to
    npx expo start
    ```
 
-3. Scan the QR code with the iPhone camera. The phone and the Mac need to be on the same Wi-Fi.
+3. Scan the QR code: on an iPhone with the camera, on Android with **Scan QR code** inside Expo Go. The phone and the Mac need to be on the same Wi-Fi.
 
 "Explore a demo closet" loads Jordan's closet without saving anything.
 
@@ -31,28 +31,22 @@ Pieces are cut out of photos on the phone, in Expo Go too, by the web app's own 
 
 ### Apple's cutout (development build)
 
-Rotation's own development build adds Apple's subject lifting, the same cutout Photos makes ([decision 017](../docs/process/decisions/017-cut-out-pieces-on-the-phone.md)). It's near-instant with cleaner edges, and the finder still splits pieces that touch. It's made in the cloud with EAS Build, so no Xcode is needed. It needs an iPhone on iOS 17 or later and an [Apple Developer Program](https://developer.apple.com/programs/) membership. Run these in `mobile/`:
+Rotation's own development build adds Apple's subject lifting, the same cutout Photos makes ([decision 017](../docs/process/decisions/017-cut-out-pieces-on-the-phone.md)). It's near-instant with cleaner edges, and the finder still splits pieces that touch. It's made in the cloud with EAS Build, so no Xcode is needed. It needs an iPhone on iOS 17 or later and an [Apple Developer Program](https://developer.apple.com/programs/) membership. The app is already linked to the Expo project [@deniseango/rotation](https://expo.dev/accounts/deniseango/projects/rotation); its ID is in `app.json`. Run these in `mobile/`:
 
-1. Link the app to your Expo account (once). This gives the project an ID to keep in `app.json`, under `extra.eas.projectId`. Since the config also has `app.config.js`, EAS may ask you to add it there yourself; then commit the change:
-
-   ```bash
-   npx eas-cli@latest init
-   ```
-
-2. Register your iPhone (once per phone). Choose **Website**, open the link on the iPhone, and install the profile from Settings:
+1. Register your iPhone (once per phone). Choose **Website**, open the link on the iPhone, and install the profile from Settings:
 
    ```bash
    npx eas-cli@latest device:create
    ```
 
-3. Build. The first build asks you to sign in to your Apple account and creates the certificates for you. It takes about 15 minutes in the cloud:
+2. Build. The first build asks you to sign in to your Apple account and creates the certificates for you. It takes about 15 minutes in the cloud:
 
    ```bash
    npx eas-cli@latest build --profile development --platform ios
    ```
 
-4. When it's done, scan the QR code on the build page with the iPhone and install it. iOS asks you to turn on **Developer Mode** (Settings › Privacy & Security) the first time.
-5. Run `npx expo start` as usual and open the project in the **Rotation** app instead of Expo Go.
+3. When it's done, scan the QR code on the build page with the iPhone and install it. iOS asks you to turn on **Developer Mode** (Settings › Privacy & Security) the first time.
+4. Run `npx expo start` as usual and open the project in the **Rotation** app instead of Expo Go.
 
 Screens and logic still reload live. Build again only when native code changes, such as `modules/cutout` or a new package with native code.
 
@@ -62,6 +56,36 @@ To try the cutout on a Mac without a build:
 swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cutout/try/main.swift -o /tmp/cutout
 /tmp/cutout photo.jpg /tmp/cutouts
 ```
+
+## Install it on Android
+
+An installable copy of Rotation for Android, with its own icon, that works away from the Mac. It isn't on Google Play; it installs from a link, and no Google developer account is needed. Screens and logic update over the air ([decision 023](../docs/process/decisions/023-android-build-and-updates.md)).
+
+1. Build it in the cloud (about 15 minutes). Run this in `mobile/`:
+
+   ```bash
+   npx eas-cli@latest build --profile preview --platform android
+   ```
+
+2. When it's done, open the build page on the phone, or scan its QR code with the camera, and download the APK. Android asks you to allow installing apps from the browser the first time.
+
+### Over-the-air updates
+
+After changing screens or logic, publish an update instead of building again. The app checks for it each time it opens, downloads it, and uses it from the next start. **Settings › This version** says which update it's running and has **Restart now** once a newer one has downloaded.
+
+```bash
+npx eas-cli@latest update --channel preview --environment preview --message "What changed"
+```
+
+Each build profile has its own channel (`development`, `preview`, `production` in `eas.json`), so an update reaches only the builds made with that profile.
+
+An update can't change native code. When a package with native code is added, the Expo SDK is upgraded, or `modules/` changes, make a new build. The runtime version is a fingerprint of the native code (`runtimeVersion` in `app.json`), so an update only reaches builds whose native code matches it. If a build is out of date, the phone keeps the version it has instead of loading an update that would crash. `fingerprint.config.js` leaves out the branch and commit `app.config.js` adds, so they don't count as a native change. To see whether a change needs a new build:
+
+```bash
+npx expo-updates fingerprint:generate --platform android
+```
+
+If the hash differs from the build's (on its build page, under Fingerprint), build again.
 
 ## What's in it
 
@@ -113,5 +137,6 @@ swiftc -target arm64-apple-macosx14.0 modules/cutout/ios/Cutter.swift modules/cu
 | `finder/` | The finder page's script (`entry.ts`) and its messages (`protocol.ts`) |
 | `scripts/build-finder.mjs` | Bundles `finder/entry.ts` and `web/src/lib/vision` into `src/lib/finder-bundle.ts` |
 | `modules/cutout/` | The cutout's native module: `ios/Cutter.swift` does the cutting and `ios/TextReader.swift` reads text, both with Vision; `ios/CutoutModule.swift` connects them to the app |
-| `eas.json` | EAS Build profiles; `development` is the build with the cutout |
+| `eas.json` | EAS Build profiles and their update channels; `development` is the build with the cutout, `preview` the Android APK |
+| `fingerprint.config.js` | What counts as a native change for over-the-air updates |
 | `metro.config.js` | Lets Metro load the shared code from `web/src/lib` |

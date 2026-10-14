@@ -1,8 +1,10 @@
 /* Which code this copy of the app is running, so it's clear what's being tested: the branch and commit its dev server
    or build was started from (app.config.js), whether that had changes not yet committed, and which dev server it
-   came from (8081 is the usual one; a test copy runs on another port). The tag shows only while developing. */
+   came from (8081 is the usual one; a test copy runs on another port). The tag shows only while developing.
+   An installed build also says which over-the-air update it's running (decision 023). */
 
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
 import { C } from '@/theme';
 import { T } from './ui';
@@ -26,10 +28,18 @@ export function buildLabel() {
   return [branch, `${build.commit}${build.changed ? ' + changes' : ''}`, port && `port ${port}`].filter(Boolean).join(' · ');
 }
 
+/** In an installed build, its update channel and what it's running: "Update of Oct 10, 9:02 PM on preview", or
+    "As built, on preview" before any update has arrived. Null while developing and in Expo Go. */
+export function updateLabel() {
+  if (!Updates.channel) return null;
+  if (Updates.isEmbeddedLaunch || !Updates.createdAt) return `As built, on ${Updates.channel}`;
+  return `Update of ${stamp(Updates.createdAt)} on ${Updates.channel}`;
+}
+
+const stamp = (d: Date) => d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
 /** When the commit was made, e.g. "Oct 10, 8:41 PM". */
-export const committedAt = build?.committedAt
-  ? new Date(build.committedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-  : null;
+export const committedAt = build?.committedAt ? stamp(new Date(build.committedAt)) : null;
 
 export function BuildTag({ style }: { style?: StyleProp<TextStyle> }) {
   const label = buildLabel();
