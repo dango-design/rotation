@@ -1,15 +1,18 @@
 'use client';
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { OutfitPanel } from '@/components/OutfitPanel';
+import { SLOT_CAT, TrayCard, useBoardActions } from '@/components/PieceTray';
 import { useUI } from '@/components/Shell';
-import { DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
+import { DemoLink, Flatlay, Icon, money } from '@/components/ui';
 import { CATS } from '@/lib/catalog-meta';
-import { cpw, slotOf } from '@/lib/engine';
-import { dropAt, resolveLayout } from '@/lib/layout';
+import { fmt, todayISO } from '@/lib/dates';
+import { cpw } from '@/lib/engine';
 import { plural } from '@/lib/format';
 import { useStore } from '@/lib/store';
-import type { Cat, Item, Slot } from '@/lib/types';
+import type { Cat, Item } from '@/lib/types';
 
 type SortKey = 'recent' | 'worn' | 'least' | 'cpw';
 
@@ -28,53 +31,27 @@ const BADGE: Record<string, [string, string]> = {
   demo: ['info', 'Demo'],
 };
 
-/** The closet grid filter that matches a board slot. */
-const SLOT_CAT: Record<Slot, Cat> = { outer: 'outer', top: 'top', bottom: 'bottom', shoes: 'shoes', bag: 'bag', jewelry: 'jewelry', acc: 'acc' };
-
 export default function Closet() {
   const st = useStore();
   const ui = useUI();
   const [view, setView] = useState<'pieces' | 'outfits'>('pieces');
   const [cat, setCat] = useState<Cat | 'all'>('all');
   const [sort, setSort] = useState<SortKey>('recent');
-  const { draft, setDraft } = st;
-  const onBoard = new Set(Object.values(draft.slots));
+  const router = useRouter();
+  const { put, toggle } = useBoardActions();
+  // Planning a day happens on Today, so a day on the board leaves the closet as it is and points back there.
+  const dayOnBoard = st.building ? st.draft.date : undefined;
+  const board = st.building && !dayOnBoard;
+  const dayName = dayOnBoard ? (dayOnBoard === todayISO() ? 'today' : fmt(dayOnBoard, { weekday: 'long' })) : '';
 
   const items = st.items
     .filter((i) => cat === 'all' || i.cat === cat)
     .sort(SORTS[sort][1]);
   const stores = new Set(st.items.map((i) => i.store ?? i.brand).filter(Boolean));
-
-  const put = (id: string, at?: { x: number; y: number }) => {
-    const it = st.itemById(id);
-    if (!it) return;
-    const slot = slotOf(it);
-    const next = { ...draft.slots, [slot]: id };
-    if (it.cat === 'dress') delete next.bottom;
-    let layout = draft.layout;
-    if (at) {
-      // Dropped onto the canvas: centre it where it landed, at true size, on top of everything.
-      const current = resolveLayout(draft.slots, layout, st.wearableById);
-      const z = Math.max(-1, ...Object.values(current).map((p) => p!.z)) + 1;
-      layout = { ...current, [slot]: dropAt(id, it.type, z, at) };
-    }
-    setDraft({ ...draft, slots: next, layout, focus: slot });
-  };
-  /** A click takes a piece that's already on the board back off, and puts any other piece on. */
-  const toggle = (id: string) => {
-    const it = st.itemById(id);
-    if (!it || draft.slots[slotOf(it)] !== id) return put(id);
-    const slot = slotOf(it);
-    const slots = { ...draft.slots };
-    delete slots[slot];
-    const layout = draft.layout ? { ...draft.layout } : undefined;
-    if (layout) delete layout[slot];
-    setDraft({ ...draft, slots, layout, focus: slot });
-  };
   /** Adding pieces builds a closet, so signed out it asks to sign in first. */
   const addPieces = () => st.requireAccount('start your closet', () => ui.open({ type: 'add' }));
   const startOutfit = () => {
-    if (!st.building) setDraft({ name: 'New outfit', slots: {}, focus: 'top' });
+    if (!st.building) st.setDraft({ name: 'New outfit', slots: {}, focus: 'top' });
     st.setBuilding(true);
     setView('pieces');
   };
@@ -98,8 +75,8 @@ export default function Closet() {
           <p className="sub">
             {view === 'outfits'
               ? 'Outfits you built and saved. Open one to change it or plan it for a day.'
-              : st.building
-                ? 'Click a piece to put it on the board.'
+              : board
+                ? 'Click a piece to put it on the board, or its pencil to edit it.'
                 : `${stores.size ? `From ${plural(stores.size, 'brand and store', 'brands and stores')}. ` : ''}Tap any piece to see what it pairs with.`}
           </p>
         </div>
@@ -141,105 +118,107 @@ export default function Closet() {
           </div>
         </div>
       ) : (
-        <div className={`closet-layout ${st.building ? 'building' : ''}`}>
-          {view === 'pieces' ? (
-            <div>
-              <div className="toolbar">
-                <button className={`filter-chip ${cat === 'all' ? 'active' : ''}`} onClick={() => setCat('all')}>
-                  All<b>{st.items.length}</b>
-                </button>
-                {CATS.map((c) => {
-                  const n = st.items.filter((i) => i.cat === c.id).length;
-                  return n ? (
-                    <button key={c.id} className={`filter-chip ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>
-                      {c.label}
-                      <b>{n}</b>
-                    </button>
-                  ) : null;
-                })}
-                <span className="spacer" />
-                <select className="select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort">
-                  {Object.entries(SORTS).map(([k, [label]]) => (
-                    <option key={k} value={k}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+        <>
+          {dayOnBoard && (
+            <div className="card resume-bar" role="region" aria-label="Day in progress">
+              {Object.keys(st.draft.slots).length > 0 && <Flatlay slots={st.draft.slots} layout={st.draft.layout} bg={st.draft.bg} />}
+              <div className="resume-text">
+                <b>{dayOnBoard < todayISO() ? `Logging ${dayName}` : `Planning ${dayName}`}</b>
+                The outfit is on Today. Open a piece here to see or edit it{view === 'outfits' ? ', or pick a saved outfit to use' : ''}.
               </div>
-              <div className="closet-grid">
-                {items.map((it) => {
-                  const [ic, label] = BADGE[it.source] ?? BADGE.manual;
-                  const m = metric(it);
-                  const state = st.building && onBoard.has(it.id) ? 'on-board' : '';
-                  return (
-                    <button
-                      key={it.id}
-                      className={`item-card ${state}`}
-                      draggable={st.building}
-                      onDragStart={(e) => e.dataTransfer.setData('text/plain', it.id)}
-                      onClick={() => (st.building ? toggle(it.id) : ui.open({ type: 'item', id: it.id }))}
-                      aria-label={st.building ? (onBoard.has(it.id) ? `Take ${it.name} off the board` : `Put ${it.name} on the board`) : undefined}
-                    >
-                      {st.building ? (
-                        onBoard.has(it.id) && (
-                          <span className="src good">
-                            <Icon name="check" />
-                            On board
-                          </span>
-                        )
-                      ) : (
-                        <span className="src">
-                          <Icon name={ic} />
-                          {it.source === 'email' || it.source === 'link' ? (it.store ?? it.brand) : label}
-                        </span>
-                      )}
-                      <Tile w={it} />
-                      <div>
-                        <div className="item-name">{it.name}</div>
-                        <div className="item-sub">
-                          <span>{it.brand}</span>
-                          {m ? <span className="cpw">{m}</span> : null}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="resume-actions">
+                <Link className="btn sm primary" href={st.href(`/?day=${dayOnBoard}`)}>
+                  Back to Today
+                  <Icon name="arrow" />
+                </Link>
               </div>
-            </div>
-          ) : st.outfits.length ? (
-            <div className="outfit-grid">
-              {st.outfits.map((o) => (
-                <article key={o.id} className="card saved-card">
-                  <button
-                    className="saved-open"
-                    onClick={() => (st.build({ name: o.name, slots: o.slots, layout: o.layout, bg: o.bg, focus: 'top' }), setView('pieces'))}
-                    aria-label={`Open ${o.name} on the board`}
-                  >
-                    <Flatlay slots={o.slots} layout={o.layout} bg={o.bg} />
-                  </button>
-                  <div className="saved-meta">
-                    <b>{o.name}</b>
-                    <button className="icon-btn" style={{ width: 28, height: 28 }} aria-label={`Delete ${o.name}`} onClick={() => st.requireAccount('change your outfits', () => (st.removeOutfit(o.id), st.toast('Outfit deleted')))}>
-                      <Icon name="trash" />
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="card empty">
-              <h2>No saved outfits yet</h2>
-              <p>Put a few pieces on the board and save the ones you like. Saved outfits can be planned for any day on Today.</p>
-              {!st.building && (
-                <button className="btn primary" onClick={startOutfit}>
-                  <Icon name="builder" />
-                  Build an outfit
-                </button>
-              )}
             </div>
           )}
-          {st.building && <OutfitPanel onPut={put} onFocus={(s) => (setView('pieces'), setCat(SLOT_CAT[s]))} />}
-        </div>
+          <div className={`closet-layout ${board ? 'building' : ''}`}>
+            {view === 'pieces' ? (
+              <div>
+                <div className="toolbar">
+                  <button className={`filter-chip ${cat === 'all' ? 'active' : ''}`} onClick={() => setCat('all')}>
+                    All<b>{st.items.length}</b>
+                  </button>
+                  {CATS.map((c) => {
+                    const n = st.items.filter((i) => i.cat === c.id).length;
+                    return n ? (
+                      <button key={c.id} className={`filter-chip ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>
+                        {c.label}
+                        <b>{n}</b>
+                      </button>
+                    ) : null;
+                  })}
+                  <span className="spacer" />
+                  <select className="select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort">
+                    {Object.entries(SORTS).map(([k, [label]]) => (
+                      <option key={k} value={k}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="closet-grid">
+                  {items.map((it) => {
+                    const [ic, label] = BADGE[it.source] ?? BADGE.manual;
+                    return (
+                      <TrayCard
+                        key={it.id}
+                        id={it.id}
+                        board={board}
+                        toggle={toggle}
+                        meta={metric(it)}
+                        extra={
+                          <span className="src">
+                            <Icon name={ic} />
+                            {it.source === 'email' || it.source === 'link' ? (it.store ?? it.brand) : label}
+                          </span>
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ) : st.outfits.length ? (
+              <div className="outfit-grid">
+                {st.outfits.map((o) => (
+                  <article key={o.id} className="card saved-card">
+                    <button
+                      className="saved-open"
+                      onClick={() =>
+                        dayOnBoard
+                          ? (st.build({ ...st.draft, name: o.name, slots: o.slots, layout: o.layout, bg: o.bg, focus: 'top' }), router.push(st.href(`/?day=${dayOnBoard}`)))
+                          : (st.build({ name: o.name, slots: o.slots, layout: o.layout, bg: o.bg, focus: 'top' }), setView('pieces'))
+                      }
+                      aria-label={dayOnBoard ? `Use ${o.name} for ${dayName}` : `Open ${o.name} on the board`}
+                    >
+                      <Flatlay slots={o.slots} layout={o.layout} bg={o.bg} />
+                    </button>
+                    <div className="saved-meta">
+                      <b>{o.name}</b>
+                      <button className="icon-btn" style={{ width: 28, height: 28 }} aria-label={`Delete ${o.name}`} onClick={() => st.requireAccount('change your outfits', () => (st.removeOutfit(o.id), st.toast('Outfit deleted')))}>
+                        <Icon name="trash" />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="card empty">
+                <h2>No saved outfits yet</h2>
+                <p>Put a few pieces on the board and save the ones you like. Saved outfits can be planned for any day on Today.</p>
+                {!st.building && (
+                  <button className="btn primary" onClick={startOutfit}>
+                    <Icon name="builder" />
+                    Build an outfit
+                  </button>
+                )}
+              </div>
+            )}
+            {board && <OutfitPanel onPut={put} onFocus={(s) => (setView('pieces'), setCat(SLOT_CAT[s]))} />}
+          </div>
+        </>
       )}
     </>
   );

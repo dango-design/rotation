@@ -127,12 +127,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
   /** Adding pieces builds a closet, so signed out it asks to sign in first. */
   const addPieces = () => st.requireAccount('start your closet', () => open({ type: 'add' }));
 
+  /** The outfit board stays open while you look at other pages, and the tab it's on says so: Today for a day being
+      planned, Closet for any other outfit. */
+  const boardHome = st.building ? (st.draft.date ? '/' : '/closet') : undefined;
+  const boardAway = (path: string) => path === boardHome && pathname !== path;
+  const boardNote = st.draft.date ? 'planning a day on the outfit board' : 'outfit board open';
+
   const navLink = (n: { path: string; label: string; icon: string }, count?: number) => {
     const active = pathname === n.path;
     return (
       <Link key={n.path} href={st.href(n.path)} className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
         <Icon name={n.icon} />
         <span>{n.label}</span>
+        {boardAway(n.path) && <span className="board-dot" role="img" aria-label={boardNote} title="Outfit board open" />}
         {count ? <span className="count">{count}</span> : null}
       </Link>
     );
@@ -195,6 +202,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Link key={n.path} href={st.href(n.path)} className={`tab ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
                 <Icon name={n.icon} />
                 <span>{n.label}</span>
+                {boardAway(n.path) && <span className="board-dot" role="img" aria-label={boardNote} />}
               </Link>
             );
           })}
