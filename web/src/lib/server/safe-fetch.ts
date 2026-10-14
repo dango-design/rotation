@@ -23,6 +23,16 @@ async function assertPublic(url: URL) {
   if (!addresses.length || addresses.some((a) => isPrivate(a.address))) throw new Error('That address is not allowed.');
 }
 
+/** The site answered with an error status instead of the page. */
+export class RefusedError extends Error {
+  constructor(
+    readonly status: number,
+    readonly url: URL,
+  ) {
+    super(`The store returned ${status}.`);
+  }
+}
+
 /** Fetch with a size limit, following up to three redirects and re-checking each hop. */
 export async function safeFetch(raw: string, accept: string, maxBytes: number) {
   let url = new URL(raw);
@@ -37,7 +47,7 @@ export async function safeFetch(raw: string, accept: string, maxBytes: number) {
       url = new URL(res.headers.get('location')!, url);
       continue;
     }
-    if (!res.ok || !res.body) throw new Error(`The store returned ${res.status}.`);
+    if (!res.ok || !res.body) throw new RefusedError(res.status, url);
     const reader = res.body.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;

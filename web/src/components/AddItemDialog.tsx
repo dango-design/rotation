@@ -157,13 +157,17 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
     setError('');
     setStep({ kind: 'working', label: 'Reading the product page…' });
     let product: Product;
+    // A store that blocks link readers gets its own advice; the usual note about other ways to add it would repeat it.
+    let blocked = false;
     try {
       const res = await fetch('/api/link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: linkUrl }) });
       const d = await res.json();
+      blocked = !!d.blocked;
       if (!res.ok) throw new Error(d.error || 'That page could not be read.');
       product = { ...d, url: linkUrl };
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That page could not be read.');
+      const reason = e instanceof Error ? e.message : 'That page could not be read.';
+      setError(blocked ? reason : `${reason} You can still add it by photo or description.`);
       setStep({ kind: 'link' });
       return;
     }
@@ -398,7 +402,7 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
                   <span>Product link</span>
                   <input type="url" required placeholder="https://…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} autoFocus />
                 </label>
-                {error && <p className="error-note">{error} You can still add it by photo or description.</p>}
+                {error && <p className="error-note">{error}</p>}
                 <div className="modal-actions">
                   <button type="button" className="btn ghost" onClick={() => setStep({ kind: 'choose' })}>
                     Back

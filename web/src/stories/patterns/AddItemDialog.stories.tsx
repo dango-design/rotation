@@ -119,6 +119,23 @@ export const LinkCouldNotBeRead: Story = {
   },
 };
 
+/** A store that blocks link readers gets its own advice, without the usual note repeating it. */
+export const LinkBlocked: Story = {
+  parameters: {
+    api: {
+      'POST /api/link': {
+        status: 422,
+        body: { error: "nordstrom.com checks for a full web browser before showing its pages, so Rotation can't read them. Save the product photo, or take a screenshot of the page, and add it by photo instead.", blocked: true },
+      },
+    },
+  },
+  play: async ({ canvas }) => {
+    await readLink(canvas, 'https://www.nordstrom.com/s/leggings/5460106');
+    await expect(await canvas.findByText(/checks for a full web browser/)).toBeVisible();
+    await expect(canvas.queryByText(/You can still add it by photo or description/)).toBeNull();
+  },
+};
+
 /** A clean product shot: the product is cut out and the page's name, brand and price fill in. */
 export const LinkRead: Story = {
   parameters: { api: { 'POST /api/link': { body: product([photo('linenshirt', '#E9E1CF', '#ffffff')]) } } },

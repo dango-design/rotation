@@ -19,8 +19,16 @@ export const MAX_IMAGES = 8;
 const CHALLENGE =
   /^\s*(client challenge|access denied|just a moment|attention required|pardon our interruption|robot or human|are you a (robot|human)|security check|request rejected|checking your browser|please verify you are a human|bot verification)\b/i;
 
-/** The store sent a bot check instead of the product page. Rotation doesn't try to get past these. */
-export const isChallengePage = (page: Pick<ProductPage, 'title'>) => CHALLENGE.test(page.title);
+/** The words a person would see on a page, leaving out its scripts and styles. */
+const visibleText = (html: string) => decode(html.replace(/<(script|style|noscript|template)\b[\s\S]*?<\/\1\s*>/gi, ' ').replace(/<[^>]*>/g, ' '));
+
+/**
+ * The store sent a bot check instead of the product page: a page titled like one, or a page with no title, no
+ * photos and nothing to read, only a script that checks the browser (Nordstrom sends these). Rotation doesn't try
+ * to get past these.
+ */
+export const isChallengePage = (page: Pick<ProductPage, 'title' | 'images'>, html: string) =>
+  CHALLENGE.test(page.title) || (!page.title && !page.images.length && !visibleText(html));
 
 const ENTITIES: Record<string, string> = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', trade: '™', reg: '®' };
 
