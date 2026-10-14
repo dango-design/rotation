@@ -329,7 +329,6 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
                 ref={fileRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 hidden
                 onChange={(e) => {
                   if (e.target.files?.[0]) onFile(e.target.files[0]);
