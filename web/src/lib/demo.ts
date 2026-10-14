@@ -120,6 +120,10 @@ export function demoData() {
     { date: addDays(today, 3), name: 'Dinner out', slots: { outer: id('o4'), top: id('d3'), shoes: id('s3') } },
   ];
   const wears: WearEntry[] = [
+    // Older wears, from before this week, so there are outfits to wear again.
+    { id: 'demo-w4', date: addDays(today, -23), slots: { top: id('t6'), bottom: id('b4'), shoes: id('s1'), acc: id('a3') } },
+    { id: 'demo-w3', date: addDays(today, -16), slots: { outer: id('o2'), top: id('t3'), bottom: id('b1'), shoes: id('s2') } },
+    { id: 'demo-w2', date: addDays(today, -10), slots: { top: id('t5'), bottom: id('b2'), shoes: id('s1'), bag: id('a1') } },
     { id: 'demo-w1', date: addDays(today, -1), slots: { top: id('t6'), bottom: id('b4'), shoes: id('s1'), acc: id('a3') } },
   ];
   if (mon !== today && addDays(today, -1) !== mon) {

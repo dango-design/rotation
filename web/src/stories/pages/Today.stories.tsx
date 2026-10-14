@@ -127,13 +127,30 @@ export const NothingLogged: Story = {
   },
 };
 
-/** Picking one of your saved outfits for a day. */
-export const UseASavedOutfit: Story = {
+/** Repeat an outfit: planning opens on the outfits worn before, newest first, with how often each was worn. Picking one
+    puts it on the board to adjust or plan as it is. */
+export const RepeatAnOutfit: Story = {
   parameters: { store: () => openToday({ outfits: savedOutfits() }) },
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Use a saved outfit' }));
-    await settled();
-    await expect(canvas.getByRole('dialog', { name: 'Plan a saved outfit' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Repeat an outfit' }));
+    await expect(canvas.getByRole('button', { name: 'Worn before' })).toHaveClass('active');
+    await expect(canvas.getByText('2 times in all')).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Put Worn yesterday on the board' }));
+    await expect(canvas.getByRole('button', { name: 'Worn yesterday, on the board' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Plan for today' })).toBeEnabled();
+  },
+};
+
+/** A saved outfit, planned from the Saved tab: it keeps its name. A behavior test only. */
+export const PlanASavedOutfit: Story = {
+  parameters: { store: () => openToday({ outfits: savedOutfits() }), chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Repeat an outfit' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Saved' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Put Weekend errands on the board' }));
+    await expect(canvas.getByRole('textbox', { name: 'Outfit name' })).toHaveValue('Weekend errands');
+    await userEvent.click(canvas.getByRole('button', { name: 'Plan for today' }));
+    await expect(canvas.getByRole('heading', { name: 'Weekend errands' })).toBeVisible();
   },
 };
 

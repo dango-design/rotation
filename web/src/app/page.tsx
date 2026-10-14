@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { OutfitPanel } from '@/components/OutfitPanel';
-import { PieceTray, SLOT_CAT, useBoardActions } from '@/components/PieceTray';
+import { PieceTray, SLOT_CAT, type TrayTab, useBoardActions } from '@/components/PieceTray';
 import { useUI } from '@/components/Shell';
 import { boardProps, DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { backgroundOf } from '@/lib/backgrounds';
@@ -15,7 +15,8 @@ import { plural } from '@/lib/format';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
-import type { Background, Cat, Layout, OutfitSlots } from '@/lib/types';
+import { wornOutfits } from '@/lib/wear';
+import type { Cat } from '@/lib/types';
 
 function greeting() {
   const h = new Date().getHours();
@@ -30,8 +31,8 @@ export default function Today() {
   const router = useRouter();
   const { today, wxFor, suggestFor, startPlanning } = useDays();
   const [day, setDay] = useState(today);
-  const [picking, setPicking] = useState(false);
   const [cat, setCat] = useState<Cat | 'all'>('all');
+  const [tray, setTray] = useState<TrayTab>('pieces');
   const { put } = useBoardActions();
   // Coming back from planning a day on the board shows that day. Deferred so the first render matches the server.
   useEffect(() => {
@@ -89,30 +90,19 @@ export default function Today() {
   const boardCount = SLOTS.filter((s) => st.draft.slots[s]).length;
   const boardDay = onBoard === today ? 'today' : onBoard ? fmt(onBoard, { weekday: 'long' }) : '';
   const discardBoard = () => (st.setDraft({ name: 'New outfit', slots: {}, focus: 'top' }), st.setBuilding(false));
-  const planDay = (d: string, opts?: Parameters<typeof startPlanning>[1]) => {
+  const planDay = (d: string, opts?: Parameters<typeof startPlanning>[1], from: TrayTab = 'pieces') => {
     setDay(d);
     setCat('all');
+    setTray(from);
     startPlanning(d, opts);
   };
+  // Outfits to wear again: ones worn before, then saved ones.
+  const repeatFrom: TrayTab | undefined = wornOutfits(st.wears, st.plans).length ? 'worn' : st.outfits.length ? 'saved' : undefined;
 
   const surpriseMe = () => {
     if (idea) planDay(day, { slots: idea.slots, shuffle: 1 });
   };
-  const pickDay = (d: string) => {
-    setDay(d);
-    setPicking(false);
-  };
-  const finish = (name: string, s: OutfitSlots, layout?: Layout, bg?: Background, logDay = day) => {
-    setPicking(false);
-    if (logDay < today) {
-      st.requireAccount('log what you wore', () => (st.wear(s, logDay, layout, bg), st.toast('Logged as worn')));
-    } else {
-      st.requireAccount('plan this outfit', () => {
-        st.setPlan(logDay, { name, slots: s, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
-        st.toast(logDay === today ? 'Planned for today' : `Planned for ${fmt(logDay, { weekday: 'long' })}`);
-      });
-    }
-  };
+  const pickDay = (d: string) => setDay(d);
 
   return (
     <>
@@ -227,8 +217,8 @@ export default function Today() {
 
       {planningHere ? (
         <section className="closet-layout building day-planner" aria-label={`${past ? 'Log' : 'Plan'} ${dayName}`}>
-          <PieceTray cat={cat} onCat={setCat} />
-          <OutfitPanel onPut={put} onFocus={(s) => setCat(SLOT_CAT[s])} />
+          <PieceTray tab={tray} onTab={setTray} cat={cat} onCat={setCat} />
+          <OutfitPanel onPut={put} onFocus={(s) => (setTray('pieces'), setCat(SLOT_CAT[s]))} />
         </section>
       ) : (
         <section className={`today-grid ${lead ? '' : 'solo'}`}>
@@ -304,9 +294,9 @@ export default function Today() {
                     <Icon name="plus" />
                     {past ? 'Log an outfit' : `Plan ${isToday ? "today's" : `${weekday}'s`} outfit`}
                   </button>
-                  {st.outfits.length > 0 && (
-                    <button className="btn" onClick={() => setPicking(true)}>
-                      Use a saved outfit
+                  {repeatFrom && (
+                    <button className="btn" onClick={() => planDay(day, undefined, repeatFrom)}>
+                      {past ? 'Pick a past outfit' : 'Repeat an outfit'}
                     </button>
                   )}
                   {!past && idea && (
@@ -376,30 +366,6 @@ export default function Today() {
         </section>
       )}
 
-      {picking && (
-        <>
-          <div className="backdrop" onClick={() => setPicking(false)} />
-          <div className="modal-wrap">
-            <div className="modal" role="dialog" aria-label={past ? 'Log a saved outfit' : 'Plan a saved outfit'}>
-              <button className="icon-btn close" onClick={() => setPicking(false)} aria-label="Close">
-                <Icon name="x" />
-              </button>
-              <h2>
-                {past ? 'Log' : 'Plan'} {fmt(day, { weekday: 'long', month: 'short', day: 'numeric' })}
-              </h2>
-              <p className="lede">{past ? 'Which of your saved outfits did you wear?' : 'Pick one of your saved outfits.'}</p>
-              <div className="picker">
-                {st.outfits.map((o) => (
-                  <button key={o.id} onClick={() => finish(o.name, o.slots, o.layout, o.bg)}>
-                    <Flatlay slots={o.slots} layout={o.layout} bg={o.bg} />
-                    {o.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </>
   );
 }
