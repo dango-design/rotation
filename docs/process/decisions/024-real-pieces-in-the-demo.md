@@ -1,6 +1,6 @@
 # 024 — The demo closet is real pieces with the stores' photos
 
-**Date:** Oct 12, 2026 · **Status:** Accepted · **Builds on:** [019](019-product-links-on-the-phone.md), [012](012-find-the-right-piece.md) · **Milestone:** next
+**Date:** Oct 12, 2026 · **Status:** Accepted · **Builds on:** [019](019-product-links-on-the-phone.md), [012](012-find-the-right-piece.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

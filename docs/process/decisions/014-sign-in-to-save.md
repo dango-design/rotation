@@ -1,6 +1,6 @@
 # 014 — Build outfits without an account; sign in to build a closet and save
 
-**Date:** Oct 9, 2026 · **Status:** Accepted · **Replaces:** "accounts are optional" in [013](013-optional-accounts-and-sync.md) · **Milestone:** next
+**Date:** Oct 9, 2026 · **Status:** Accepted · **Replaces:** "accounts are optional" in [013](013-optional-accounts-and-sync.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

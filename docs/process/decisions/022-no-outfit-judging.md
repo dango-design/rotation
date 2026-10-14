@@ -1,6 +1,6 @@
 # 022 — The builder doesn't judge whether pieces go together
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [021](021-plan-in-the-builder.md) · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [021](021-plan-in-the-builder.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

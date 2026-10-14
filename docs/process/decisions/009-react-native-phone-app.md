@@ -1,6 +1,6 @@
 # 009 — Build the phone app in React Native, sharing the web app's engine
 
-**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** `v5-live-app`
 
 ## Context
 

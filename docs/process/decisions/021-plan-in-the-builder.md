@@ -1,6 +1,6 @@
 # 021 — Plan a day in the outfit builder
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Replaces:** the piece-by-piece planner in [006](006-build-first-suggest-along-the-way.md) · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Replaces:** the piece-by-piece planner in [006](006-build-first-suggest-along-the-way.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

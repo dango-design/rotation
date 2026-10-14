@@ -1,6 +1,6 @@
 # 026 — Keep the quiet editorial look
 
-**Date:** Oct 12, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 12, 2026 · **Status:** Accepted · **Milestone:** `v5-live-app`
 
 ## Context
 

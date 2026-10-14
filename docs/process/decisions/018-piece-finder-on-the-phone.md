@@ -1,6 +1,6 @@
 # 018 — Run the web app's piece finder on the phone, with Apple's cutout when it's there
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [017](017-cut-out-pieces-on-the-phone.md) · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Builds on:** [017](017-cut-out-pieces-on-the-phone.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 030 — Repeat an outfit
 
-**Date:** Oct 13, 2026 · **Status:** Accepted · **Builds on:** [029](029-plan-a-day-on-today.md) · **Milestone:** next
+**Date:** Oct 13, 2026 · **Status:** Accepted · **Builds on:** [029](029-plan-a-day-on-today.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

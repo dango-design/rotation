@@ -13,6 +13,7 @@ How this project got from idea to app, kept so every step can be referenced late
 | `v2-rotation-app` | Oct 6, 2026 | First working app, named Rotation: real closets stored on the device, photo import with on-device background removal, the engine, daily outfits with live weather, builder, planner, Fill the gap, insights and a demo mode | [Code](https://github.com/dango-design/rotation/tree/v2-rotation-app) · [Screens](screens/v2-rotation-app/) · [Strategy](../strategy/v2-rotation-app.md) |
 | `v3-three-tabs` | Oct 7, 2026 | Three tabs instead of six: the week planner moves onto Today, the outfit builder opens beside the closet, saved outfits get their own view, and stats move to a Closet report | [Code](https://github.com/dango-design/rotation/tree/v3-three-tabs) · [Screens](screens/v3-three-tabs/) · [Strategy](../strategy/v3-three-tabs.md) |
 | `v4-plan-and-canvas` | Oct 8, 2026 | Planning a day piece by piece with suggestions as you go, any single piece counts as an outfit, bags and jewelry and one-pieces as categories, a design-canvas outfit board at true-to-life sizes, and a unisex demo closet | [Code](https://github.com/dango-design/rotation/tree/v4-plan-and-canvas) · [Screens](screens/v4-plan-and-canvas/) · [Strategy](../strategy/v4-plan-and-canvas.md) |
+| `v5-live-app` | Oct 13, 2026 | The live app: public on Vercel with accounts that sync, a React Native phone app sharing the engine, light and dark mode, a phone-shaped canvas that exports, the real-piece demo closet, and planning a day right on Today, including outfits worn before | [Code](https://github.com/dango-design/rotation/tree/v5-live-app) · [Screens](screens/v5-live-app/) · [Strategy](../strategy/v5-live-app.md) |
 
 ## Decisions
 
@@ -43,11 +44,14 @@ How this project got from idea to app, kept so every step can be referenced late
 | [024](decisions/024-real-pieces-in-the-demo.md) | The demo closet is real pieces with the stores' photos | Oct 12, 2026 |
 | [026](decisions/026-keep-the-quiet-editorial-look.md) | Keep the quiet editorial look, after exploring four other directions | Oct 12, 2026 |
 | [027](decisions/027-public-site-and-tagging-limits.md) | Put Rotation on Vercel, and limit photo tagging for everyone but approved accounts | Oct 12, 2026 |
+| [028](decisions/028-board-stays-open-and-says-so.md) | The outfit board stays open, and says so | Oct 13, 2026 |
+| [029](decisions/029-plan-a-day-on-today.md) | Plan a day on Today | Oct 13, 2026 |
+| [030](decisions/030-repeat-an-outfit.md) | Repeat an outfit | Oct 13, 2026 |
 
 ## Capturing a milestone
 
 1. Capture screens at 2x:
-   - The app: build and start it (`cd web && npm run build && npx next start -p 3100`, or build and use the `app-prod` launch config), then `scripts/screenshots-app.sh <milestone-name>` (demo closet) and `node scripts/screenshots-flows.mjs <milestone-name>` (screens that need clicks: the empty-day card and the planner's canvas)
+   - The app: build and start it (`cd web && npm run build && npx next start -p 3100`, or build and use the `app-prod` launch config), then `node scripts/screenshots-flows.mjs <milestone-name>`. It cuts out the demo closet's photos first, then takes every page, the screens that need clicks (the empty day, planning on Today, repeating an outfit), Today in dark mode and the phone layout. Shots are light unless named dark, whatever this Mac's setting
    - The prototype: `python3 -m http.server 4173 --directory mockup`, then `scripts/screenshots.sh <milestone-name>` (with and without design notes)
 2. Save the strategy doc as `docs/strategy/<milestone-name>.md`
 3. Write a decision record in `decisions/` for anything that changed direction

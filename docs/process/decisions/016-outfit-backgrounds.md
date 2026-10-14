@@ -1,6 +1,6 @@
 # 016 — Each outfit can have its own background, in any color
 
-**Date:** Oct 10, 2026 · **Status:** Accepted · **Changes:** "one preference for the whole app" in [011](011-neutral-board-backgrounds.md) · **Milestone:** next
+**Date:** Oct 10, 2026 · **Status:** Accepted · **Changes:** "one preference for the whole app" in [011](011-neutral-board-backgrounds.md) · **Milestone:** `v5-live-app`
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 011 — Board backgrounds are a few light neutrals, set once
 
-**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** `v5-live-app`
 
 ## Context
 

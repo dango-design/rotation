@@ -1,6 +1,6 @@
 # 012 — Find the right piece in a photo or product page, and ask when unsure
 
-**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** next
+**Date:** Oct 9, 2026 · **Status:** Accepted · **Milestone:** `v5-live-app`
 
 ## Context
 
