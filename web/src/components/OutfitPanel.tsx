@@ -141,23 +141,26 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
             {logging ? 'Log as worn' : `Plan for ${dayLabel}`}
           </button>
         )}
-        <button
-          className={day ? 'btn' : 'btn primary'}
-          disabled={!ready}
-          onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
-        >
-          Save outfit
-        </button>
+        {/* Started from a day on Today, the board plans (or logs) that day; from the closet, it makes an outfit to save. */}
         {!day && (
-          <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.logDay(today, { name: draft.name.trim() || "Today's outfit", slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) }), st.toast('Logged as worn today')))}>
-            <Icon name="check" />
-            Wear today
-          </button>
+          <>
+            <button
+              className="btn primary"
+              disabled={!ready}
+              onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
+            >
+              Save outfit
+            </button>
+            <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.logDay(today, { name: draft.name.trim() || "Today's outfit", slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) }), st.toast('Logged as worn today')))}>
+              <Icon name="check" />
+              Wear today
+            </button>
+          </>
         )}
-        <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} />
-        <button className="btn ghost" onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
+        <button className="btn ghost" disabled={!pieces.length} onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
           Clear
         </button>
+        <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} className="icon-btn panel-export" />
       </div>
       {!day && (
         <div className="panel-plan">

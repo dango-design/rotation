@@ -242,9 +242,9 @@ export function ExportOutfit({ slots, layout, bg, name, className = 'btn' }: { s
     }
   };
   return (
-    <button className={className} disabled={empty || busy} onClick={go} title="Save as an image sized for your phone">
+    <button className={className} disabled={empty || busy} onClick={go} aria-label={busy ? 'Exporting image' : 'Export image'} title="Export image, sized for your phone">
       <Icon name="upload" />
-      {busy ? 'Exporting…' : 'Export image'}
+      {!className.includes('icon-btn') && (busy ? 'Exporting…' : 'Export image')}
     </button>
   );
 }

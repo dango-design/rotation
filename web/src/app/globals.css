@@ -779,6 +779,8 @@ a.nav-item { text-decoration: none; }
 .outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); align-self: center; }
 .outfit-panel .board-status { font-size: 12.5px; }
 .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.panel-actions .panel-export { margin-left: auto; }
+.icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .panel-plan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); }
 .panel-plan .select { height: 32px; padding: 0 10px; }
 .panel-shop { border-top: 1px solid var(--line); padding-top: 14px; }
