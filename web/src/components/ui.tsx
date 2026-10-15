@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { asHex, backgroundOf, hexOf, isDark, isNeutral, NEUTRALS, PALETTE } from '@/lib/backgrounds';
 import { garmentSvg } from '@/lib/garments';
 import { useStore } from '@/lib/store';
@@ -107,6 +107,40 @@ export function Flatlay({ slots, layout, bg, className = '' }: { slots: OutfitSl
         })}
       </div>
     </div>
+  );
+}
+
+/** Asks before something that can't be taken back. Escape or the backdrop keeps things as they are; the safe choice
+    has focus, so Enter can't confirm by accident. */
+export function Confirm({ title, children, confirm, cancel = 'Cancel', onConfirm, onCancel }: { title: string; children: ReactNode; confirm: string; cancel?: string; onConfirm: () => void; onCancel: () => void }) {
+  const keep = useRef<HTMLButtonElement>(null);
+  const cancelNow = useEffectEvent(onCancel);
+  useEffect(() => {
+    keep.current?.focus();
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && cancelNow();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, []);
+  return (
+    <>
+      <div className="backdrop" onClick={onCancel} />
+      <div className="modal-wrap">
+        <div className="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+          <h2 id="confirm-title">{title}</h2>
+          <p id="confirm-body" className="lede">
+            {children}
+          </p>
+          <div className="modal-actions">
+            <button ref={keep} type="button" className="btn ghost" onClick={onCancel}>
+              {cancel}
+            </button>
+            <button type="button" className="btn danger" onClick={onConfirm}>
+              {confirm}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 

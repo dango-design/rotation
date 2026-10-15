@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { Disclosure, Icon } from '@/components/ui';
+import { expect, fn, userEvent, within } from 'storybook/test';
+import { Confirm, Disclosure, Icon } from '@/components/ui';
 
 /* How Rotation tells people what happened, what's wrong, and what to do next. */
 
@@ -95,4 +96,26 @@ export const EmptyState: Story = {
       </button>
     </div>
   ),
+};
+
+const keep = fn();
+const clear = fn();
+
+/** Asks before something that can't be taken back, like clearing a day's plan. The safe choice has focus, and Escape or
+    the backdrop keeps things as they are. */
+export const ConfirmDialog: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <Confirm title="Clear this plan?" confirm="Clear plan" cancel="Keep it" onCancel={keep} onConfirm={clear}>
+      Client presentation comes off today. The pieces stay in your closet.
+    </Confirm>
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByRole('button', { name: 'Keep it' })).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    await expect(keep).toHaveBeenCalled();
+    await userEvent.click(page.getByRole('button', { name: 'Clear plan' }));
+    await expect(clear).toHaveBeenCalledOnce();
+  },
 };
