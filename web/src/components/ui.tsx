@@ -44,6 +44,7 @@ export const ICONS: Record<string, string> = {
   left: '<path d="m15 6-6 6 6 6"/>',
   right: '<path d="m9 6 6 6-6 6"/>',
   upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  more: '<circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/>',
 };
 
 export function Icon({ name }: { name: string }) {
@@ -163,9 +164,10 @@ export function BackgroundPicker({ value, onChange }: { value: Background; onCha
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
+    // Captured, so it closes on a press that the canvas keeps to itself, like one on a piece or another corner control.
     const away = (e: PointerEvent) => ref.current?.contains(e.target as Node) || setOpen(false);
-    document.addEventListener('pointerdown', away);
-    return () => document.removeEventListener('pointerdown', away);
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
   }, [open]);
   const custom = !isNeutral(value) && !PALETTE.some(([hex]) => hex === value);
   const swatch = (bg: Background, label: string) => (
@@ -186,7 +188,7 @@ export function BackgroundPicker({ value, onChange }: { value: Background; onCha
           <label className={`bg-any ${custom ? 'on' : ''}`} title="Any color">
             <input type="color" value={hexOf(value)} onChange={(e) => asHex(e.target.value) && onChange(asHex(e.target.value)!)} />
             <i style={custom ? { background: value } : undefined} />
-            Any color
+            <span>Any color</span>
           </label>
         </div>
       )}
