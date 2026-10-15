@@ -2,17 +2,17 @@
 
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { lowestPrice } from '@core/catalog';
 import { KNOWN_STORES, TYPES } from '@core/catalog-meta';
 import { rankPieces, shortlist, slotOf, totalOutfits, whyLine } from '@core/engine';
 import { bestOutfitWith, pairedIn, previewsFor } from '@core/styling';
-import type { Piece } from '@core/types';
+import type { OutfitSlots, Piece } from '@core/types';
 import { Flatlay, Tile } from '@/components/Art';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
 import { Disclosure, OptionRows } from '@/components/Shop';
-import { Btn, Card, Chip, IconBtn, money, SectionHead, SwitchRow, T } from '@/components/ui';
+import { Btn, Card, Chip, IconBtn, money, SectionHead, SwitchRow, T, tap } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/theme';
 
@@ -23,10 +23,15 @@ export default function Fill() {
   const total = top3.reduce((a, p) => a + p.unlock, 0);
   const spend = top3.reduce((a, p) => a + lowestPrice(p.piece), 0);
 
-  const tryIt = (p: Piece) => {
-    st.setDraft({ name: `Trying the ${p.name.toLowerCase()}`, slots: bestOutfitWith(p, st.items), focus: slotOf(p) });
+  /** Opens the piece in the builder, in the outfit given or the one built from what's worn most. */
+  const tryIt = (p: Piece, slots: OutfitSlots = bestOutfitWith(p, st.items)) => {
+    st.setDraft({ name: `Trying the ${p.name.toLowerCase()}`, slots, focus: slotOf(p) });
     router.push('/builder');
   };
+  const pairedNames = (o: OutfitSlots, p: Piece) =>
+    pairedIn(o, p.id)
+      .map((id) => st.itemById(id)?.name)
+      .filter((n): n is string => !!n);
 
   const head = (
     <View style={{ gap: 6 }}>
@@ -132,21 +137,31 @@ export default function Fill() {
                 Outfits it unlocks
               </T>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                {prev.map((o, k) => (
-                  <View key={k} style={{ width: 140, gap: 4 }}>
-                    <Flatlay slots={o} />
-                    <T v="tiny" numberOfLines={2}>
-                      {pairedIn(o, p.id)
-                        .map((id) => st.itemById(id)?.name)
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </T>
-                  </View>
-                ))}
+                {prev.map((o, k) => {
+                  const names = pairedNames(o, p);
+                  return (
+                    <Pressable
+                      key={k}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Try it with ${names.join(' and ')}`}
+                      accessibilityHint="Opens this outfit in the builder"
+                      onPress={() => {
+                        tap();
+                        tryIt(p, o);
+                      }}
+                      style={({ pressed }) => [{ width: 140, gap: 4 }, pressed && { opacity: 0.75, transform: [{ scale: 0.98 }] }]}
+                    >
+                      <Flatlay slots={o} />
+                      <T v="tiny" numberOfLines={2}>
+                        {names.join(' · ')}
+                      </T>
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </View>
-            <OptionRows p={p} />
             <Btn icon="builder" label="Try with my closet" onPress={() => tryIt(p)} />
+            <OptionRows p={p} limit={1} />
           </Card>
         );
       })}
