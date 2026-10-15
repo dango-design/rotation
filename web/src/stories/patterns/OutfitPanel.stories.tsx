@@ -28,13 +28,7 @@ const meta = {
         </div>
       ),
   ],
-  parameters: {
-    layout: 'padded',
-    // Known issues: a suggested piece on the canvas is a button holding its Compare button (nested-interactive) and is
-    // named differently from its visible tag (label-content-name-mismatch); the empty-canvas hint is --ink-3 on --tile,
-    // 4.35:1 (color-contrast). Reported, not failed.
-    a11y: { test: 'todo' },
-  },
+  parameters: { layout: 'padded' },
   // The side-panel layout; narrower windows get the bottom sheet (see AsBottomSheet).
   globals: { viewport: { value: 'desktop' } },
 } satisfies Meta<typeof OutfitPanel>;
@@ -44,7 +38,11 @@ type Story = StoryObj<typeof meta>;
 
 /** A new outfit: an empty canvas, and nothing to save yet. */
 export const Empty: Story = {
-  parameters: { store: board({ name: 'New outfit', slots: {}, focus: 'top' }) },
+  parameters: {
+    store: board({ name: 'New outfit', slots: {}, focus: 'top' }),
+    // Known issue: the empty-canvas hint is --ink-3 on --tile, 4.35:1 (color-contrast). Reported, not failed.
+    a11y: { test: 'todo' },
+  },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Your picks show up here')).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Save outfit' })).toBeDisabled();
@@ -83,11 +81,17 @@ export const BoldPairing: Story = {
   },
 };
 
-/** A suggested piece on the canvas, outlined in gap blue with its price. An outfit with something to buy can't be saved yet. */
+/** A suggested piece on the canvas, outlined in gap blue with its price. An outfit with something to buy can't be saved
+    yet. The board in the panel is too narrow for "Not in your closet", so the tag keeps to the price and Compare stores. */
 export const WithSuggestedPiece: Story = {
   parameters: { store: board({ name: 'Trying the light straight chinos', slots: { outer: id('o1'), top: id('t3'), bottom: 'p-chino-khaki', shoes: id('s3') }, focus: 'bottom' }) },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/Not in your closet/)).toBeVisible();
+    const compare = canvas.getByRole('button', { name: 'Compare stores' });
+    await expect(compare).toBeVisible();
+    const board = canvas.getByLabelText(/Outfit canvas/).getBoundingClientRect();
+    const tag = compare.closest('.trial-tag')!.getBoundingClientRect();
+    await expect(tag.left).toBeGreaterThanOrEqual(board.left);
+    await expect(tag.right).toBeLessThanOrEqual(board.right);
     await expect(canvas.getByRole('button', { name: 'Save outfit' })).toBeDisabled();
   },
 };

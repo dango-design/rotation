@@ -5,7 +5,7 @@
    back. Pieces start at true-to-life sizes. Keyboard: arrows nudge (Shift for bigger steps), ] and [ move a piece up
    and down the stack (with ⌘ or Ctrl, all the way), Delete removes it, Escape deselects. */
 
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { deliverImage, renderOutfitImage } from '@/lib/export-image';
 import { ASPECT, clampW, heightOf, keepVisible, resizeAround, resolveLayout, restack, stackOrder, trueWidth } from '@/lib/layout';
 import { useStore } from '@/lib/store';
@@ -152,27 +152,39 @@ export function OutfitBoard({
         const it = st.wearableById(slots[s])!;
         const p = placed[s]!;
         const trial = !('wears' in it);
+        // The tag goes under the piece's middle, as far as the board's edges allow.
+        const mid = Math.min(100, Math.max(0, p.x + p.w / 2));
         return (
-          <div
-            key={s}
-            className={`canvas-piece ${selected === s ? 'selected' : ''} ${trial ? 'trial' : ''}`}
-            style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z }}
-            role="button"
-            tabIndex={-1}
-            aria-label={it.name}
-            aria-pressed={selected === s}
-            onPointerDown={(e) => start(e, s, 'move')}
-          >
-            <Art w={it} />
+          <Fragment key={s}>
+            <div
+              className={`canvas-piece ${selected === s ? 'selected' : ''} ${trial ? 'trial' : ''}`}
+              style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z }}
+              role="button"
+              tabIndex={-1}
+              aria-label={it.name}
+              aria-pressed={selected === s}
+              onPointerDown={(e) => start(e, s, 'move')}
+            >
+              <Art w={it} />
+            </div>
             {trial && (
-              <div className="trial-tag" onPointerDown={(e) => e.stopPropagation()}>
-                Not in your closet · from {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
-                <button className="btn" onClick={() => ui.open({ type: 'compare', id: it.id })}>
-                  Compare stores
-                </button>
+              // On the board rather than in the piece, so it can be kept inside the board's edges and clear of its corner.
+              <div className="trial-spot" style={{ bottom: `max(44px, calc(${100 - p.y - heightOf(p.w)}% + 4px))` }}>
+                <div className="trial-tag" style={{ left: `${mid}%`, transform: `translateX(-${mid}%)` }}>
+                  <span>
+                    <span className="trial-note">Not in your closet · from </span>
+                    <span className="trial-from">From </span>
+                    {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
+                  </span>
+                  <button className="btn" aria-label="Compare stores" onPointerDown={(e) => e.stopPropagation()} onClick={() => ui.open({ type: 'compare', id: it.id })}>
+                    <span>
+                      Compare<span className="trial-stores"> stores</span>
+                    </span>
+                  </button>
+                </div>
               </div>
             )}
-          </div>
+          </Fragment>
         );
       })}
 

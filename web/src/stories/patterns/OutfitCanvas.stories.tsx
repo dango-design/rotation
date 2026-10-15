@@ -11,12 +11,12 @@ import { demoCloset, demoId as id } from '../fixtures';
    and brought forward or sent back. Keyboard: arrows nudge, ] and [ restack, Delete removes, Escape deselects.
    Here the canvas keeps its own state, so every change sticks. */
 
-function Canvas({ slots: initialSlots, layout: initialLayout, onLayout, onRemove }: { slots: OutfitSlots; layout?: Layout; onLayout: (l?: Layout) => void; onRemove: (s: Slot) => void }) {
+function Canvas({ slots: initialSlots, layout: initialLayout, width = 380, onLayout, onRemove }: { slots: OutfitSlots; layout?: Layout; width?: number; onLayout: (l?: Layout) => void; onRemove: (s: Slot) => void }) {
   const [slots, setSlots] = useState(initialSlots);
   const [layout, setLayout] = useState(initialLayout);
   const [bg, setBg] = useState<Background>();
   return (
-    <div style={{ width: 380 }}>
+    <div style={{ width }}>
       <OutfitBoard
         slots={slots}
         layout={layout}
@@ -116,9 +116,25 @@ export const DeleteWithKeyboard: Story = {
 /** A suggested piece, outlined in gap blue with its price and a link to compare stores. */
 export const WithSuggestedPiece: Story = {
   args: { slots: { outer: id('o1'), top: id('t3'), bottom: 'p-chino-khaki', shoes: id('s3') } },
-  // Known issue: the piece is a button holding its Compare button (nested-interactive), named differently from its
-  // visible tag (label-content-name-mismatch). Reported, not failed.
-  parameters: { a11y: { test: 'todo' } },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/Not in your closet/)).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Compare stores' })).toBeVisible();
+  },
+};
+
+/** On a phone the board is only about 130px across. The tag stacks its price over a shorter Compare button, and stays
+    inside the board's edges. */
+export const SuggestedPieceOnAPhone: Story = {
+  args: { ...WithSuggestedPiece.args, width: 127 },
+  play: async ({ canvas }) => {
+    const compare = canvas.getByRole('button', { name: 'Compare stores' });
+    await expect(compare).toBeVisible();
+    await expect(canvas.getByText(/Not in your closet/)).not.toBeVisible();
+    const board = canvas.getByLabelText(/Outfit canvas/).getBoundingClientRect();
+    const tag = compare.closest('.trial-tag')!.getBoundingClientRect();
+    await expect(tag.left).toBeGreaterThanOrEqual(board.left);
+    await expect(tag.right).toBeLessThanOrEqual(board.right);
+  },
 };
 
 /** Nothing on it yet. */
