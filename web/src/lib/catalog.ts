@@ -2,7 +2,7 @@
    Product names and prices are illustrative examples, not live store data; real data comes from product feeds later. */
 
 import { SWATCHES, TYPES } from './catalog-meta';
-import type { GarmentType, Piece, StoreOption } from './types';
+import type { GarmentType, Item, Piece, StoreOption } from './types';
 
 function piece(id: string, name: string, type: GarmentType, colorName: string, style: number, options: [string, string, number][]): Piece {
   const sw = SWATCHES.find((s) => s.name === colorName);
@@ -71,3 +71,17 @@ export const lowestPrice = (p: Piece) => Math.min(...p.options.map((o) => o.pric
 /** A web search for the product at that store. Real product links come with product feeds. */
 export const findUrl = (store: string, product: string) =>
   `https://www.google.com/search?q=${encodeURIComponent(`${store} ${product}`)}`;
+
+/** The size to pick at a store: from past purchases there, or inferred from the same kind of piece elsewhere. A size only
+    carries over when it's written the same way as the closest match, so a skirt in M doesn't size chinos sold as 32 × 30. */
+export function sizeHint(store: string, p: Piece, items: Item[]) {
+  const sized = items
+    .filter((i) => i.cat === p.cat && i.size && i.size !== 'One size')
+    .sort((a, b) => Number(b.type === p.type) - Number(a.type === p.type) || b.wears - a.wears);
+  const best = sized[0];
+  if (!best) return '';
+  const numeric = (s?: string) => /\d/.test(s ?? '');
+  const here = sized.find((i) => (i.store ?? i.brand) === store && numeric(i.size) === numeric(best.size));
+  if (here) return `Your size: ${here.size}, from your closet`;
+  return `Likely ${best.size}, based on your other ${p.cat === 'shoes' ? 'shoes' : 'pieces like this'}`;
+}

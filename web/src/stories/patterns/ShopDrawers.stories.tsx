@@ -26,13 +26,15 @@ type Story = StoryObj<typeof meta>;
 /** Compare stores for a suggested piece. Favorite stores have a star; sizes come from what you own. */
 export const CompareStores: Story = {};
 
-/** Adding an option to the list turns its button into a chip. */
+/** Adding an option to the list turns its button to On list; pressing it again takes it off. */
 export const AddToList: Story = {
   play: async ({ canvas }) => {
     await settled();
     const uniqlo = canvas.getByText('Uniqlo').closest('.opt-row') as HTMLElement;
-    await userEvent.click(within(uniqlo).getByRole('button', { name: 'Add to list' }));
+    await userEvent.click(within(uniqlo).getByRole('button', { name: /^Add to list/ }));
     await expect(within(uniqlo).getByText('On list')).toBeVisible();
+    await userEvent.click(within(uniqlo).getByRole('button', { name: /^On list/ }));
+    await expect(within(uniqlo).getByRole('button', { name: /^Add to list/ })).toBeVisible();
   },
 };
 

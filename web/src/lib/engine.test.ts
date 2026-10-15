@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CATALOG, pieceById } from './catalog';
 import { demoData } from './demo';
 import { TYPES } from './catalog-meta';
-import { check, duplicate, fitsBoard, isComplete, rankPieces, slotOf, totalOutfits, unlock, whyLine } from './engine';
+import { check, duplicate, fitsBoard, isComplete, rankPieces, shortlist, slotOf, totalOutfits, unlock, whyLine } from './engine';
 import { garmentSvg } from './garments';
 import type { GarmentType, Item } from './types';
 
@@ -50,6 +50,12 @@ describe('Outfit Unlock on the demo closet', () => {
     const picks = rankPieces(CATALOG, items);
     expect(picks[0].piece.id).toBe('p-chino-khaki');
     expect(picks.find((p) => p.piece.id === 'p-hoodie-grey')!.score).toBe(0);
+  });
+  it('shortlists three different kinds of piece, and moves a second of a kind down', () => {
+    const { top, more } = shortlist(rankPieces(CATALOG, items));
+    expect(top.map((p) => p.piece.type)).toEqual([...new Set(top.map((p) => p.piece.type))]);
+    expect(top).toHaveLength(3);
+    expect(more.map((p) => p.piece.id)).toContain('p-chino-navy');
   });
   it('flags exact duplicates and close cousins', () => {
     expect(duplicate(pieceById('p-hoodie-grey')!, items).level).toBe(1);

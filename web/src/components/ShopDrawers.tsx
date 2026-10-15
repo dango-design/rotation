@@ -1,21 +1,13 @@
 'use client';
 
-import { findUrl, pieceById } from '@/lib/catalog';
+import { useState } from 'react';
+import { findUrl, pieceById, sizeHint } from '@/lib/catalog';
 import { duplicate, unlock, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
-import type { Item, Piece, StoreOption } from '@/lib/types';
+import type { Piece, StoreOption } from '@/lib/types';
 import { Disclosure, Icon, money, Tile } from './ui';
 
 export const listKey = (pieceId: string, store: string) => `${pieceId}|${store}`;
-
-/** The size to pick at a store: from past purchases there, or inferred from the same kind of piece elsewhere. */
-export function sizeHint(store: string, p: Piece, items: Item[]) {
-  const sameCat = items.filter((i) => i.cat === p.cat && i.size && i.size !== 'One size');
-  const here = sameCat.find((i) => (i.store ?? i.brand) === store);
-  if (here) return `Your size: ${here.size}, from your closet`;
-  const any = sameCat.sort((a, b) => b.wears - a.wears)[0];
-  return any ? `Likely ${any.size}, based on your other ${p.cat === 'shoes' ? 'shoes' : 'pieces like this'}` : '';
-}
 
 /** Store options for a piece: favorite stores first, then lowest price. */
 export function sortedOptions(p: Piece, favorites: string[]): StoreOption[] {
@@ -23,11 +15,17 @@ export function sortedOptions(p: Piece, favorites: string[]): StoreOption[] {
   return [...p.options].sort((a, b) => fav(b) - fav(a) || a.price - b.price);
 }
 
-export function OptionRows({ p }: { p: Piece }) {
-  const { settings, items, list, addToList, toast, requireAccount } = useStore();
+/** A piece's store options, each with a size hint and a way on and off the list. `limit` shows that many and folds the
+    rest behind a button, so the piece leads and the stores follow. */
+export function OptionRows({ p, limit }: { p: Piece; limit?: number }) {
+  const { settings, items, list, addToList, removeFromList, toast, requireAccount } = useStore();
+  const [all, setAll] = useState(false);
+  const options = sortedOptions(p, settings.favoriteStores);
+  const shown = limit && !all ? options.slice(0, limit) : options;
+  const folded = options.slice(limit ?? options.length);
   return (
     <div className="opt-list">
-      {sortedOptions(p, settings.favoriteStores).map((o) => {
+      {shown.map((o) => {
         const key = listKey(p.id, o.store);
         const added = list.some((e) => e.key === key);
         const hint = sizeHint(o.store, p, items);
@@ -43,7 +41,13 @@ export function OptionRows({ p }: { p: Piece }) {
                 )}
               </div>
               <div className="opt-product">
-                {o.product} · <a href={findUrl(o.store, o.product)} target="_blank" rel="noreferrer">find it</a>
+                {o.product} ·{' '}
+                <a href={findUrl(o.store, o.product)} target="_blank" rel="noreferrer">
+                  find it
+                  <span className="sr-only">
+                    : {o.product} at {o.store}, opens in a new tab
+                  </span>
+                </a>
               </div>
               {hint && (
                 <div className="opt-fit">
@@ -53,27 +57,45 @@ export function OptionRows({ p }: { p: Piece }) {
               )}
             </div>
             <div className="opt-price">{money(o.price)}</div>
-            {added ? (
-              <span className="chip good">
-                <Icon name="check" />
-                On list
-              </span>
-            ) : (
-              <button
-                className="btn xs"
-                onClick={() =>
-                  requireAccount('save your shopping list', () => {
+            <button
+              className={`btn xs ${added ? 'on-list' : ''}`}
+              title={added ? 'Take it off your list' : undefined}
+              onClick={() =>
+                requireAccount('save your shopping list', () => {
+                  if (added) {
+                    removeFromList(key);
+                    toast(`Removed from your list · ${o.product} from ${o.store}`);
+                  } else {
                     addToList(key);
                     toast(`Added to your list · ${o.product} from ${o.store}`);
-                  })
-                }
-              >
-                Add to list
-              </button>
-            )}
+                  }
+                })
+              }
+            >
+              {added ? (
+                <>
+                  <Icon name="check" />
+                  On list
+                </>
+              ) : (
+                'Add to list'
+              )}
+              <span className="sr-only">
+                {' '}
+                · {o.product} from {o.store}
+                {added ? '. Press to remove it.' : ''}
+              </span>
+            </button>
           </div>
         );
       })}
+      {/* One button that stays put while the list opens and closes, so focus stays on it. */}
+      {limit && options.length > limit ? (
+        <button className="opt-more" aria-expanded={all} onClick={() => setAll(!all)}>
+          {all ? 'Fewer stores' : `${folded.length} more ${folded.length === 1 ? 'store' : 'stores'}, from ${money(Math.min(...folded.map((o) => o.price)))}`}
+          <Icon name="right" />
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -162,7 +184,7 @@ export function ListDrawer({ onClose }: { onClose: () => void }) {
                       onClick={() =>
                         requireAccount('save your shopping list', () => {
                           removeFromList(key);
-                          toast('Removed from your list');
+                          toast(`Removed from your list · ${option.product} from ${store}`);
                         })
                       }
                     >

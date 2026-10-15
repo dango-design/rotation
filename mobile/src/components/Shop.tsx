@@ -2,23 +2,14 @@
 
 import * as WebBrowser from 'expo-web-browser';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { findUrl } from '@core/catalog';
-import type { Item, Piece, StoreOption } from '@core/types';
+import { findUrl, sizeHint } from '@core/catalog';
+import type { Piece, StoreOption } from '@core/types';
 import { useStore } from '@/lib/store';
 import { C, F, R } from '@/theme';
 import { Icon } from './Icon';
 import { Btn, Chip, money, T } from './ui';
 
 export const listKey = (pieceId: string, store: string) => `${pieceId}|${store}`;
-
-/** The size to pick at a store: from past purchases there, or inferred from the same kind of piece elsewhere. */
-export function sizeHint(store: string, p: Piece, items: Item[]) {
-  const sameCat = items.filter((i) => i.cat === p.cat && i.size && i.size !== 'One size');
-  const here = sameCat.find((i) => (i.store ?? i.brand) === store);
-  if (here) return `Your size: ${here.size}, from your closet`;
-  const any = [...sameCat].sort((a, b) => b.wears - a.wears)[0];
-  return any ? `Likely ${any.size}, based on your other ${p.cat === 'shoes' ? 'shoes' : 'pieces like this'}` : '';
-}
 
 /** Store options for a piece: favorite stores first, then lowest price. */
 export function sortedOptions(p: Piece, favorites: string[]): StoreOption[] {

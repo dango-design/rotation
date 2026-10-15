@@ -6,8 +6,8 @@ import { router } from '../../../.storybook/router';
 import { inShell } from '../decorators';
 import { demoCloset, oneTee } from '../fixtures';
 
-/* What's missing. The pieces that would add the most new outfits with what you own, each with store options and
-   previews of the outfits it unlocks; then what wasn't recommended, and why. Piece first, store second. */
+/* What's missing. The pieces that would add the most new outfits with what you own, each with previews of the outfits it
+   unlocks and its best store option (the rest fold away); then what wasn't recommended, and why. Piece first, store second. */
 
 const meta = {
   title: 'Pages/Fill the gap',
@@ -19,8 +19,6 @@ const meta = {
     store: demoCloset,
     // The pick cards change layout at 1320px too, so this page also gets a laptop snapshot.
     chromatic: { modes: { ...pageModes, laptop: modes.laptop } },
-    // Known issue: section titles are h3 straight after the page's h1 (heading-order). Reported, not failed.
-    a11y: { test: 'todo' },
   },
 } satisfies Meta<typeof Fill>;
 
@@ -38,6 +36,26 @@ export const TryWithMyCloset: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Try with my closet' })[0]);
+    await expect(router().push).toHaveBeenCalledWith('/closet');
+  },
+};
+
+/** Each pick shows its best store; the rest open in place, and the button keeps focus to close them again. */
+export const MoreStores: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    const more = canvas.getByRole('button', { name: '2 more stores, from $59.95' });
+    await userEvent.click(more);
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
+    await expect(canvas.getByRole('button', { name: 'Add to list · Straight Khakis from Gap' })).toBeVisible();
+  },
+};
+
+/** An outfit preview opens that outfit on the board. */
+export const TryAPreview: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getAllByRole('button', { name: /^Try it with / })[0]);
     await expect(router().push).toHaveBeenCalledWith('/closet');
   },
 };

@@ -133,6 +133,17 @@ export function rankPieces(catalog: Piece[], closet: Item[]): Pick[] {
     .sort((a, b) => b.score - a.score || b.unlock - a.unlock);
 }
 
+/** What Fill the gap shows from the ranking: the top three, no two of the same kind (a second pair of chinos would crowd
+    out a different piece), the next three, and what it held back because it's owned already or adds nothing. */
+export function shortlist(ranked: Pick[]): { top: Pick[]; more: Pick[]; skipped: Pick[] } {
+  const picks = ranked.filter((p) => p.unlock > 0 && p.dup.level < 1);
+  const top: Pick[] = [];
+  for (const p of picks) if (top.length < 3 && !top.some((t) => t.piece.type === p.piece.type)) top.push(p);
+  const more = picks.filter((p) => !top.includes(p)).slice(0, 3);
+  const skipped = ranked.filter((p) => p.dup.level === 1 || (p.unlock === 0 && p.piece.cat === 'outer')).slice(0, 4);
+  return { top, more, skipped };
+}
+
 /** One plain sentence on why a piece is suggested. */
 export function whyLine(p: Wearable, closet: Item[]): string {
   const outs = outfitsWith(p, closet);

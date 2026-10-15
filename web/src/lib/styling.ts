@@ -20,6 +20,12 @@ export function bestOutfitWith(piece: Wearable, closet: Item[]): OutfitSlots {
   return best;
 }
 
+/** The two owned pieces that say the most about an outfit built around a suggested piece: the top or dress, bottom and
+    shoes it goes with, leaving out the piece itself. */
+export function pairedIn(o: OutfitSlots, pieceId: string): string[] {
+  return [o.top, o.bottom, o.shoes].filter((id): id is string => !!id && id !== pieceId).slice(0, 2);
+}
+
 /** Up to n outfits for a suggested piece, as varied as possible; offset varies neighbouring cards. */
 export function previewsFor(piece: Wearable, closet: Item[], n = 3, offset = 0): OutfitSlots[] {
   const get = (id: string) => closet.find((i) => i.id === id);

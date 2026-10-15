@@ -5,8 +5,8 @@ import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { lowestPrice } from '@core/catalog';
 import { KNOWN_STORES, TYPES } from '@core/catalog-meta';
-import { rankPieces, slotOf, totalOutfits, whyLine } from '@core/engine';
-import { bestOutfitWith, previewsFor } from '@core/styling';
+import { rankPieces, shortlist, slotOf, totalOutfits, whyLine } from '@core/engine';
+import { bestOutfitWith, pairedIn, previewsFor } from '@core/styling';
 import type { Piece } from '@core/types';
 import { Flatlay, Tile } from '@/components/Art';
 import { Icon } from '@/components/Icon';
@@ -19,13 +19,9 @@ import { C, F } from '@/theme';
 export default function Fill() {
   const st = useStore();
   const router = useRouter();
-  const ranked = useMemo(() => rankPieces(st.catalog, st.items), [st.catalog, st.items]);
-  const picks = ranked.filter((p) => p.unlock > 0 && p.dup.level < 1);
-  const top3 = picks.slice(0, 3);
-  const more = picks.slice(3, 6);
+  const { top: top3, more, skipped } = useMemo(() => shortlist(rankPieces(st.catalog, st.items)), [st.catalog, st.items]);
   const total = top3.reduce((a, p) => a + p.unlock, 0);
   const spend = top3.reduce((a, p) => a + lowestPrice(p.piece), 0);
-  const skipped = ranked.filter((p) => p.dup.level === 1 || (p.unlock === 0 && p.piece.cat === 'outer')).slice(0, 4);
 
   const tryIt = (p: Piece) => {
     st.setDraft({ name: `Trying the ${p.name.toLowerCase()}`, slots: bestOutfitWith(p, st.items), focus: slotOf(p) });
@@ -50,10 +46,12 @@ export default function Fill() {
       ) : (
         <T v="h1">Your closet, as it is</T>
       )}
-      <T>
-        We compared {st.catalog.length} common pieces from {KNOWN_STORES.length} stores with your {st.items.length}. These create the most new outfits with what you already
-        own.
-      </T>
+      {st.settings.showShop && top3.length > 0 && (
+        <T>
+          We compared {st.catalog.length} common pieces from {KNOWN_STORES.length} stores with the {st.items.length} pieces in your closet. These would make the most new
+          outfits with what you already own.
+        </T>
+      )}
     </View>
   );
 
@@ -101,7 +99,7 @@ export default function Fill() {
         </View>
       </View>
 
-      {top3.map(({ piece: p, unlock }, i) => {
+      {top3.map(({ piece: p, unlock, dup }, i) => {
         const prev = previewsFor(p, st.items, 3, i * 2);
         return (
           <Card key={p.id} pad={16} style={{ gap: 14 }}>
@@ -128,6 +126,7 @@ export default function Fill() {
               </View>
             </View>
             <T>{whyLine(p, st.items)}</T>
+            {dup.level > 0 && dup.item && <T>Close to your {dup.item.name}, so it ranks a little lower.</T>}
             <View>
               <T v="eyebrow" style={{ marginBottom: 8 }}>
                 Outfits it unlocks
@@ -137,7 +136,7 @@ export default function Fill() {
                   <View key={k} style={{ width: 140, gap: 4 }}>
                     <Flatlay slots={o} />
                     <T v="tiny" numberOfLines={2}>
-                      {[o.top !== p.id ? o.top : o.bottom, o.shoes]
+                      {pairedIn(o, p.id)
                         .map((id) => st.itemById(id)?.name)
                         .filter(Boolean)
                         .join(' · ')}
@@ -154,33 +153,40 @@ export default function Fill() {
 
       {more.length > 0 && (
         <View>
-          <SectionHead title="Also worth a look" sub="Fewer new outfits, still a good fit with your closet." />
+          <SectionHead title="Also worth a look" sub="Good fits that rank lower, most often because they're close to something you own or to a pick above." />
           <View style={{ gap: 10 }}>
-            {more.map(({ piece: p, unlock, dup }) => (
-              <Card key={p.id} pad={12} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-                <Tile w={p} size={72} />
-                <View style={{ flex: 1, gap: 2 }}>
-                  <T v="label">{p.name}</T>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Icon name="unlock" size={13} color={C.gapInk} />
-                    <T v="tiny" style={{ color: C.gapInk, fontFamily: F.semibold }}>
-                      Unlocks {unlock} outfits · from {money(lowestPrice(p))}
+            {more.map(({ piece: p, unlock, dup }) => {
+              const twin = top3.find((t) => t.piece.type === p.type)?.piece;
+              return (
+                <Card key={p.id} pad={12} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                  <Tile w={p} size={72} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <T v="label">{p.name}</T>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Icon name="unlock" size={13} color={C.gapInk} />
+                      <T v="tiny" style={{ color: C.gapInk, fontFamily: F.semibold }}>
+                        Unlocks {unlock} outfits · from {money(lowestPrice(p))}
+                      </T>
+                    </View>
+                    <T v="small" numberOfLines={3}>
+                      {twin
+                        ? `Another take on the ${twin.name.toLowerCase()} above, in ${p.colorName.toLowerCase()}.`
+                        : dup.level > 0 && dup.item
+                          ? `Close to your ${dup.item.name}, so it ranks lower.`
+                          : whyLine(p, st.items)}
                     </T>
+                    <Btn size="xs" kind="ghost" label={`Compare ${p.options.length} stores`} style={{ alignSelf: 'flex-start', marginLeft: -10 }} onPress={() => router.push({ pathname: '/compare/[id]', params: { id: p.id } })} />
                   </View>
-                  <T v="small" numberOfLines={3}>
-                    {dup.level > 0 && dup.item ? `Close to your ${dup.item.name.toLowerCase()}, so it ranks lower.` : whyLine(p, st.items)}
-                  </T>
-                  <Btn size="xs" kind="ghost" label={`Compare ${p.options.length} stores`} style={{ alignSelf: 'flex-start', marginLeft: -10 }} onPress={() => router.push({ pathname: '/compare/[id]', params: { id: p.id } })} />
-                </View>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </View>
         </View>
       )}
 
       {skipped.length > 0 && (
         <View>
-          <SectionHead title="What we didn't recommend, and why" sub="Fewer, better picks mean fewer returns and more trust." />
+          <SectionHead title="What we didn't recommend, and why" sub="Each is too close to something you already own, or wouldn't add a new outfit." />
           <Card pad={12} style={{ gap: 4 }}>
             {skipped.map(({ piece: p, dup }, i) => (
               <View key={p.id} style={[styles.skip, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line }]}>
