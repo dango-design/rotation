@@ -24,9 +24,11 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   const { today, wxFor, suggestFor } = useDays();
   const { draft, setDraft } = st;
   const day = draft.date;
+  // A past day, or a day already worn, is logged; today and later are planned.
+  const logging = !!day && (day < today || !!draft.log);
   const dayLabel = day === today ? 'today' : day ? fmt(day, { weekday: 'long' }) : '';
   // Planning today or later shows the day's forecast and Surprise me, or says what each still needs.
-  const ahead = !!day && day >= today;
+  const ahead = !!day && day >= today && !logging;
   const wx = ahead ? wxFor(day) : undefined;
   const idea = ahead ? suggestFor(day, draft.shuffle ?? 0) : null;
   const [planDate, setPlanDate] = useState(addDays(today, 1));
@@ -60,14 +62,18 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   };
   /** Leaves the day: closes the board, showing that day on Today. */
   const backToDay = () => {
-    setDraft({ ...draft, date: undefined, shuffle: undefined });
+    setDraft({ ...draft, date: undefined, shuffle: undefined, log: undefined });
     st.setBuilding(false);
     if (pathname !== '/') router.push(st.href(`/?day=${day}`));
   };
   const finishDay = () => {
     if (!day) return;
-    if (day < today) {
-      st.requireAccount('log what you wore', () => (st.wear(slots, day, draft.layout, draft.bg), st.toast('Logged as worn'), backToDay()));
+    if (logging) {
+      st.requireAccount('log what you wore', () => {
+        st.logDay(day, { name: draft.name.trim() || 'What I wore', slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
+        st.toast(day === today ? 'Logged as worn today' : 'Logged as worn');
+        backToDay();
+      });
     } else {
       st.requireAccount('plan this outfit', () => {
         st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
@@ -80,8 +86,8 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   return (
     <aside className="card outfit-panel" aria-label="Outfit board">
       <div className="panel-head">
-        <div className={`eyebrow ${day ? 'for-day' : ''}`}>{!day ? 'Building an outfit' : day < today ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}</div>
-        <button className="icon-btn" onClick={() => (day ? backToDay() : st.setBuilding(false))} aria-label={day ? `Stop ${day < today ? 'logging' : 'planning'} ${dayLabel}` : 'Close outfit board'}>
+        <div className={`eyebrow ${day ? 'for-day' : ''}`}>{!day ? 'Building an outfit' : logging ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}</div>
+        <button className="icon-btn" onClick={() => (day ? backToDay() : st.setBuilding(false))} aria-label={day ? `Stop ${logging ? 'logging' : 'planning'} ${dayLabel}` : 'Close outfit board'}>
           <Icon name="x" />
         </button>
       </div>
@@ -131,8 +137,8 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
       <div className="panel-actions">
         {day && (
           <button className="btn primary" disabled={!ready} onClick={finishDay}>
-            <Icon name={day < today ? 'check' : 'planner'} />
-            {day < today ? 'Log as worn' : `Plan for ${dayLabel}`}
+            <Icon name={logging ? 'check' : 'planner'} />
+            {logging ? 'Log as worn' : `Plan for ${dayLabel}`}
           </button>
         )}
         <button
@@ -143,7 +149,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
           Save outfit
         </button>
         {!day && (
-          <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, undefined, draft.layout, draft.bg), st.toast('Logged as worn today')))}>
+          <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.logDay(today, { name: draft.name.trim() || "Today's outfit", slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) }), st.toast('Logged as worn today')))}>
             <Icon name="check" />
             Wear today
           </button>

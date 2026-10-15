@@ -47,9 +47,11 @@ export default function Builder() {
   const shop = st.settings.showShop ? forSlot(draft.focus, slots, st.items, st.catalog).shop : [];
 
   const day = draft.date;
+  // A past day, or a day already worn, is logged; today and later are planned.
+  const logging = !!day && (day < today || !!draft.log);
   const dayLabel = day === today ? 'today' : day ? fmt(day, { weekday: 'long' }) : '';
   // Planning today or later shows the day's forecast and Surprise me, or says what each still needs.
-  const ahead = !!day && day >= today;
+  const ahead = !!day && day >= today && !logging;
   const wx = ahead ? wxFor(day) : undefined;
   const idea = ahead ? suggestFor(day, draft.shuffle ?? 0) : null;
 
@@ -61,14 +63,14 @@ export default function Builder() {
   const close = () => (router.canGoBack() ? router.back() : router.replace(day ? '/' : '/closet'));
   /** Leaves a day being planned and goes back to it on Today. */
   const leaveDay = () => {
-    setDraft({ ...draft, date: undefined, shuffle: undefined });
+    setDraft({ ...draft, date: undefined, shuffle: undefined, log: undefined });
     close();
   };
   const finishDay = () => {
     if (!day) return;
-    if (day < today) {
-      st.wear(slots, day, draft.layout, draft.bg);
-      st.toast('Logged as worn');
+    if (logging) {
+      st.logDay(day, { name: draft.name.trim() || 'What I wore', slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
+      st.toast(day === today ? 'Logged as worn today' : 'Logged as worn');
     } else {
       st.setPlan(day, { name: draft.name.trim() || 'Planned outfit', slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
       st.toast(day === today ? 'Planned for today' : `Planned for ${fmt(day, { weekday: 'long' })}`);
@@ -103,7 +105,7 @@ export default function Builder() {
           <IconBtn icon="x" label={day ? 'Cancel' : 'Close'} size={38} onPress={day ? leaveDay : close} />
           <View style={{ flex: 1 }}>
             <T v="eyebrow" style={day ? { color: C.clayInk } : undefined}>
-              {!day ? 'Building an outfit' : day < today ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}
+              {!day ? 'Building an outfit' : logging ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}
             </T>
             <TextInput value={draft.name} onChangeText={(t) => setDraft({ ...draft, name: t })} style={styles.name} accessibilityLabel="Outfit name" returnKeyType="done" />
           </View>
@@ -254,7 +256,7 @@ export default function Builder() {
                 }}
               />
               <View style={{ flex: 1 }} />
-              <Btn kind="primary" icon={day < today ? 'check' : 'planner'} label={day < today ? 'Log as worn' : `Plan for ${dayLabel}`} disabled={!ready} onPress={finishDay} />
+              <Btn kind="primary" icon={logging ? 'check' : 'planner'} label={logging ? 'Log as worn' : `Plan for ${dayLabel}`} disabled={!ready} onPress={finishDay} />
             </>
           ) : (
             <>
@@ -264,7 +266,7 @@ export default function Builder() {
                 label="Wear today"
                 disabled={!ready}
                 onPress={() => {
-                  st.wear(slots, undefined, draft.layout, draft.bg);
+                  st.logDay(today, { name: draft.name.trim() || "Today's outfit", slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
                   st.toast('Logged as worn today');
                 }}
               />

@@ -11,6 +11,7 @@ import { rankPieces, slotOf, SLOTS, whyLine } from '@core/engine';
 import { bestOutfitWith } from '@core/styling';
 import { hexOf } from '@core/backgrounds';
 import type { Background, Layout, OutfitSlots } from '@core/types';
+import { dayWear } from '@core/wear';
 import { Flatlay, Tile } from '@/components/Art';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
@@ -67,7 +68,7 @@ export default function Today() {
   const isToday = day === today;
   const past = day < today;
   const plan = st.plans.find((p) => p.date === day);
-  const worn = st.wears.filter((w) => w.date === day).at(-1);
+  const worn = dayWear(st.wears, day);
   const heroBg = worn ? worn.bg : plan?.bg;
   const slots = worn?.slots ?? plan?.slots;
   const weekday = isToday ? 'today' : fmt(day, { weekday: 'long' });
@@ -87,7 +88,7 @@ export default function Today() {
   const finish = (name: string, s: OutfitSlots, layout?: Layout, bg?: Background) => {
     setPicking(false);
     if (past) {
-      st.wear(s, day, layout, bg);
+      st.logDay(day, { name, slots: s, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
       st.toast('Logged as worn');
     } else {
       st.setPlan(day, { name, slots: s, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
@@ -114,7 +115,7 @@ export default function Today() {
         <ScrollView ref={strip} onLayout={() => centerDay(false)} horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -GUTTER }} contentContainerStyle={{ paddingHorizontal: GUTTER, paddingVertical: 4, gap: 8 }}>
           {days.map((d) => {
             const p = st.plans.find((x) => x.date === d);
-            const w = st.wears.filter((x) => x.date === d).at(-1);
+            const w = dayWear(st.wears, d);
             const s = w?.slots ?? p?.slots;
             const open = !s && d >= today;
             const dwx = st.weather?.days.find((x) => x.date === d);
@@ -179,22 +180,25 @@ export default function Today() {
                 </Row>
               ))}
             </View>
+            {!worn && !past && (
+              <T v="small">Counts as worn once {isToday ? 'the day is over' : `${fmt(day, { weekday: 'long' })} has passed`}. You can change it after.</T>
+            )}
             <View style={styles.actions}>
               {worn ? (
-                <Chip tone="good" icon="check" label="Logged" />
+                <>
+                  <Chip tone="good" icon="check" label="Worn" />
+                  <Btn icon="pencil" label="Change" onPress={() => startPlanning(day, { slots: worn.slots, layout: worn.layout, bg: worn.bg, name: plan?.name, log: true })} />
+                  <Btn
+                    kind="ghost"
+                    label="Didn't wear it"
+                    onPress={() => {
+                      st.unlogDay(day);
+                      st.toast(isToday ? 'Taken off today' : `Taken off ${fmt(day, { weekday: 'long' })}`);
+                    }}
+                  />
+                </>
               ) : (
                 <>
-                  {day <= today && (
-                    <Btn
-                      kind="primary"
-                      icon="check"
-                      label={isToday ? 'Wear this' : 'Wore it'}
-                      onPress={() => {
-                        st.wear(slots, day, plan?.layout, plan?.bg);
-                        st.toast(isToday ? 'Logged as worn today' : 'Logged as worn');
-                      }}
-                    />
-                  )}
                   {!past && <Btn icon="pencil" label="Change" onPress={() => startPlanning(day, { slots: plan!.slots, layout: plan!.layout, bg: plan!.bg, name: plan!.name })} />}
                   <Btn
                     kind="ghost"

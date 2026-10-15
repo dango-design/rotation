@@ -92,13 +92,15 @@ export interface Plan {
   bg?: Background;
 }
 
-/** Outfits actually worn, one entry per wear. */
+/** Outfits actually worn, one entry per wear. A day's outfit has the id `day:<date>` (see lib/wear.ts dayWearId). */
 export interface WearEntry {
   id: string;
   date: string;
   slots: OutfitSlots;
   layout?: Layout;
   bg?: Background;
+  /** Each piece's last worn day before this wear moved it, so taking the wear back can put it back. */
+  before?: Record<string, string | null>;
 }
 
 export interface StoreOption {

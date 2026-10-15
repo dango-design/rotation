@@ -48,6 +48,8 @@ How this project got from idea to app, kept so every step can be referenced late
 | [028](decisions/028-board-stays-open-and-says-so.md) | The outfit board stays open, and says so | Oct 13, 2026 |
 | [029](decisions/029-plan-a-day-on-today.md) | Plan a day on Today | Oct 13, 2026 |
 | [030](decisions/030-repeat-an-outfit.md) | Repeat an outfit | Oct 13, 2026 |
+| [031](decisions/031-blocked-stores-open-in-rotations-browser.md) | Blocked stores open in Rotation's browser | Oct 13, 2026 |
+| [032](decisions/032-planned-days-count-as-worn.md) | A planned day counts as worn once it passes | Oct 14, 2026 |
 
 ## Capturing a milestone
 

@@ -26,11 +26,11 @@ export function useDays() {
 
   /** Opens the outfit board for a day, on Today beside your pieces: logging for a past day, planning for today or later.
       A day already on the board picks up where it was left, unless Surprise me asks for a fresh outfit. */
-  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; shuffle?: number; name?: string } = {}) => {
+  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; shuffle?: number; name?: string; log?: boolean } = {}) => {
     if (st.building && st.draft.date === day && opts.shuffle === undefined) return;
     const slots = opts.slots ?? {};
     const name = opts.name ?? (day === today ? "Today's outfit" : `${fmt(day, { weekday: 'long' })}'s outfit`);
-    st.build({ name, slots, layout: opts.layout, bg: opts.bg, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle });
+    st.build({ name, slots, layout: opts.layout, bg: opts.bg, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle, ...(opts.log ? { log: true } : {}) });
   };
 
   return { today, wxFor, suggestFor, startPlanning };

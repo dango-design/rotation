@@ -69,8 +69,8 @@ export default function Insights() {
         </div>
         <div className="card kpi">
           <div className="v">{weekWears}</div>
-          <div className="l">Outfits logged this week</div>
-          <div className="s">Tap Wear this on Today to log one</div>
+          <div className="l">Outfits worn this week</div>
+          <div className="s">Plan a day on Today; it counts once the day has passed</div>
         </div>
       </div>
       <div className="ins-grid">
