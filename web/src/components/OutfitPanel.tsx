@@ -121,7 +121,15 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         </div>
       )}
 
-      <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} />
+      <div className="board-wrap">
+        <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} />
+        <div className="board-tools">
+          <button className="btn sm ghost" disabled={!pieces.length} onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
+            Clear
+          </button>
+          <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} className="icon-btn sm" />
+        </div>
+      </div>
 
       {trial.length > 0 && (
         <div className="board-status">
@@ -151,17 +159,13 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
             Save outfit
           </button>
         )}
-        <button className="btn ghost" disabled={!pieces.length} onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
-          Clear
-        </button>
-        <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} className="icon-btn panel-export" />
       </div>
       {!day && (
         <div className="panel-plan">
-          <span>Plan it for</span>
+          <span>Or plan it for</span>
           <input type="date" className="select" value={planDate} min={today} onChange={(e) => setPlanDate(e.target.value)} aria-label="Plan date" />
           <button
-            className="btn sm"
+            className="btn"
             disabled={!ready}
             onClick={() =>
               st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout, bg: draft.bg }), st.toast(`Planned for ${shortDate(planDate)}`)))

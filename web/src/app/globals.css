@@ -776,13 +776,20 @@ a.nav-item { text-decoration: none; }
 /* Planning a day: the forecast and "Surprise me" under the hint. */
 .panel-day { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .panel-day .callout-wx { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
-.outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); align-self: center; }
+.outfit-panel .board-wrap { align-self: center; display: flex; flex-direction: column; gap: 8px; }
+.outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); }
 .outfit-panel .board-status { font-size: 12.5px; }
-.panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.panel-actions .panel-export { margin-left: auto; }
+.board-tools { display: flex; justify-content: space-between; align-items: center; }
+.board-tools .btn.ghost { padding: 0 10px; margin-left: -10px; }
+.icon-btn.sm { width: 32px; height: 32px; }
+.icon-btn.sm svg { width: 16px; height: 16px; }
+.panel-actions { display: flex; gap: 8px; }
+.panel-actions .btn { flex: 1; }
 .icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.panel-plan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); }
-.panel-plan .select { height: 32px; padding: 0 10px; }
+.panel-plan { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-3); }
+.panel-plan span { white-space: nowrap; }
+.panel-plan .select { flex: 1; min-width: 0; height: 36px; padding: 0 12px; }
+.panel-plan .btn { height: 36px; }
 .panel-shop { border-top: 1px solid var(--line); padding-top: 14px; }
 .panel-shop .slot-tabs { margin-top: 0; margin-bottom: 10px; }
 .outfit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
