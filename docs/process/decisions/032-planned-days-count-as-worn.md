@@ -30,3 +30,4 @@ Denise asked how someone would undo or edit a logged outfit, then questioned the
 - The rule lives in `web/src/lib/wear.ts` (`settle`, `putOn`, `takeOff`, `dayWear`), shared by the web and phone stores. Each wear now notes every piece's previous last worn day (`before`), so taking it back is exact.
 - The closet report's "Outfits logged this week" is now "Outfits worn this week".
 - Days with nothing planned still need to be logged by hand, from the board or a saved outfit.
+- **Update, Oct 14, 2026:** **Wear today** was taken off the closet's outfit board ([PR #43](https://github.com/dango-design/rotation/pull/43)), which now only makes outfits to save. Today is logged by planning it on Today, and it counts once the day is over.

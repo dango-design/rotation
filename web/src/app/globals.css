@@ -781,9 +781,13 @@ a.nav-item { text-decoration: none; }
 .panel-day .callout-wx { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
 .outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); align-self: center; }
 .outfit-panel .board-status { font-size: 12.5px; }
-.panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.panel-plan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); }
-.panel-plan .select { height: 32px; padding: 0 10px; }
+.panel-actions { display: flex; gap: 8px; }
+.panel-actions .btn { flex: 1; }
+.icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.panel-plan { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-3); }
+.panel-plan span { white-space: nowrap; }
+.panel-plan .select { flex: 1; min-width: 0; height: 36px; padding: 0 12px; }
+.panel-plan .btn { height: 36px; }
 .panel-shop { border-top: 1px solid var(--line); padding-top: 14px; }
 .panel-shop .slot-tabs { margin-top: 0; margin-bottom: 10px; }
 .outfit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
@@ -870,6 +874,9 @@ a.nav-item { text-decoration: none; }
 }
 /* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot. */
 .canvas-corner { position: absolute; right: 10px; bottom: 10px; z-index: 1000; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+.canvas-icon { width: 28px; height: 28px; padding: 0; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--ink-2); display: grid; place-items: center; }
+.canvas-icon svg { width: 14px; height: 14px; }
+.canvas-icon:disabled { opacity: 0.45; }
 .canvas-tidy { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); }
 /* The outfit's background: a dot in the corner that opens the colors above it. */
 .bg-picker { position: relative; }

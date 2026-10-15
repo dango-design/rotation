@@ -27,6 +27,8 @@ export function OutfitBoard({
   onRemove,
   onSelect,
   onDrop,
+  onClear,
+  name,
 }: {
   slots: OutfitSlots;
   layout?: Layout;
@@ -38,6 +40,10 @@ export function OutfitBoard({
   onSelect?: (slot: Slot) => void;
   /** A piece dragged in from the closet, with where it was dropped (in % of the canvas). */
   onDrop?: (id: string, at: { x: number; y: number }) => void;
+  /** Empties the board. With it, Clear sits in the corner with the board's other controls. */
+  onClear?: () => void;
+  /** The outfit's name, for its exported image. With it, the corner offers Export. */
+  name?: string;
 }) {
   const st = useStore();
   const ui = useUI();
@@ -218,6 +224,16 @@ export function OutfitBoard({
             Tidy up
           </button>
         )}
+        {onClear && !empty && (
+          <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onClear(), setPicked(null))} title="Take every piece off the board">
+            Clear
+          </button>
+        )}
+        {name !== undefined && !empty && (
+          <span onPointerDown={(e) => e.stopPropagation()}>
+            <ExportOutfit slots={slots} layout={layout} bg={bg} name={name} className="canvas-icon" />
+          </span>
+        )}
       </div>
     </div>
   );
@@ -242,9 +258,9 @@ export function ExportOutfit({ slots, layout, bg, name, className = 'btn' }: { s
     }
   };
   return (
-    <button className={className} disabled={empty || busy} onClick={go} title="Save as an image sized for your phone">
+    <button className={className} disabled={empty || busy} onClick={go} aria-label={busy ? 'Exporting image' : 'Export image'} title="Export image, sized for your phone">
       <Icon name="upload" />
-      {busy ? 'Exporting…' : 'Export image'}
+      {!/icon/.test(className) && (busy ? 'Exporting…' : 'Export image')}
     </button>
   );
 }

@@ -244,32 +244,14 @@ export default function Builder() {
         </View>
 
         <View style={[styles.foot, { paddingBottom: insets.bottom + 10 }]}>
+          {/* Started from a day on Today, the builder plans (or logs) that day; from the closet, it makes an outfit to save. */}
           {day ? (
             <>
-              <Btn
-                size="sm"
-                label="Save outfit"
-                disabled={!ready}
-                onPress={() => {
-                  st.saveOutfit(name, slots, draft.layout, draft.bg);
-                  st.toast('Saved to your outfits');
-                }}
-              />
               <View style={{ flex: 1 }} />
               <Btn kind="primary" icon={logging ? 'check' : 'planner'} label={logging ? 'Log as worn' : `Plan for ${dayLabel}`} disabled={!ready} onPress={finishDay} />
             </>
           ) : (
             <>
-              <Btn
-                size="sm"
-                icon="check"
-                label="Wear today"
-                disabled={!ready}
-                onPress={() => {
-                  st.logDay(today, { name: draft.name.trim() || "Today's outfit", slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
-                  st.toast('Logged as worn today');
-                }}
-              />
               <Btn size="sm" icon="planner" label="Plan" disabled={!ready} onPress={() => setPlanning(true)} />
               <View style={{ flex: 1 }} />
               <Btn
