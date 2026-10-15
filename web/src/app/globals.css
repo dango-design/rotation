@@ -885,14 +885,22 @@ a.nav-item { text-decoration: none; }
   .canvas-tools button { width: 28px; height: 28px; }
   .canvas-tools svg { width: 15px; height: 15px; }
 }
-/* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot. */
+/* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot and
+   below a suggested piece's tag. Their pop-ups open above them from the corner's right edge, so they stay on the board. */
 .canvas-corner { position: absolute; right: 10px; bottom: 10px; z-index: 1000; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+.canvas-actions { display: contents; }
+.canvas-more { display: none; }
+.canvas-menu { position: absolute; right: 0; bottom: calc(100% + 8px); display: flex; flex-direction: column; padding: 4px; border-radius: 12px; background: var(--panel); box-shadow: var(--shadow-lg); animation: fade 0.12s ease; }
+/* Words only: with the export icon, the menu would be wider than a phone's board. */
+.canvas-menu-item { height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: none; text-align: left; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.canvas-menu-item:hover:not(:disabled) { background: var(--panel-2); color: var(--ink); }
+.canvas-menu-item:disabled { opacity: 0.45; }
+.canvas-menu-item svg { display: none; }
 .canvas-icon { width: 28px; height: 28px; padding: 0; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--ink-2); display: grid; place-items: center; }
 .canvas-icon svg { width: 14px; height: 14px; }
 .canvas-icon:disabled { opacity: 0.45; }
 .canvas-tidy { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); }
 /* The outfit's background: a dot in the corner that opens the colors above it. */
-.bg-picker { position: relative; }
 .bg-current { width: 28px; height: 28px; padding: 0; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); display: grid; place-items: center; }
 .bg-current i, .bg-pop i { width: 16px; height: 16px; border-radius: 99px; box-shadow: inset 0 0 0 1px rgba(28, 27, 25, 0.18); }
 .bg-pop { position: absolute; right: 0; bottom: calc(100% + 8px); width: 190px; padding: 10px; border-radius: 12px; background: var(--panel); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 8px; animation: fade 0.12s ease; }
@@ -905,6 +913,17 @@ a.nav-item { text-decoration: none; }
 .bg-any input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .canvas:hover .canvas-corner, .canvas:focus-within .canvas-corner { opacity: 1; }
 @media (hover: none) { .canvas-corner { opacity: 1; } }
+/* A board under 220px across (the phone sheet, a short window) can't fit the actions in a row beside the dot: they go
+   in the More menu. The colors line up three to a row, with Any color as the last swatch. */
+@container (max-width: 219px) {
+  .canvas-actions { display: none; }
+  .canvas-more { display: block; }
+  .bg-pop { display: grid; grid-template-columns: repeat(3, 28px); gap: 4px; width: auto; padding: 8px; }
+  .bg-row { display: contents; }
+  .bg-any { height: 28px; padding: 0; border: 0; justify-content: center; }
+  .bg-any i { width: 22px; height: 22px; }
+  .bg-any span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 
 /* ---------- Board background swatches ---------- */
 .swatches { display: flex; align-items: center; gap: 2px; }
