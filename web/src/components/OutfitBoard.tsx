@@ -5,7 +5,7 @@
    back. Pieces start at true-to-life sizes. Keyboard: arrows nudge (Shift for bigger steps), ] and [ move a piece up
    and down the stack (with ⌘ or Ctrl, all the way), Delete removes it, Escape deselects. */
 
-import { useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { deliverImage, renderOutfitImage } from '@/lib/export-image';
 import { ASPECT, clampW, heightOf, keepVisible, resizeAround, resolveLayout, restack, stackOrder, trueWidth } from '@/lib/layout';
 import { useStore } from '@/lib/store';
@@ -121,6 +121,23 @@ export function OutfitBoard({
   const sel = selected ? placed[selected] : undefined;
   const top = order[order.length - 1];
   const bottom = order[0];
+  // Tidy up, Clear and Export, beside the background dot. A board too small for them in a row (under 220px across,
+  // see .canvas-corner) has them in a menu instead.
+  const actions = (inMenu: boolean) => (
+    <>
+      {layout && (
+        <button className={inMenu ? 'canvas-menu-item' : 'canvas-tidy'} onClick={() => (onLayout(undefined), setPicked(null))} title="Put every piece back at its true size and spot">
+          Tidy up
+        </button>
+      )}
+      {onClear && (
+        <button className={inMenu ? 'canvas-menu-item' : 'canvas-tidy'} onClick={() => (onClear(), setPicked(null))} title="Take every piece off the board">
+          Clear
+        </button>
+      )}
+      {name !== undefined && <ExportOutfit slots={slots} layout={layout} bg={bg} name={name} className={inMenu ? 'canvas-menu-item' : 'canvas-icon'} />}
+    </>
+  );
 
   return (
     <div
@@ -152,27 +169,39 @@ export function OutfitBoard({
         const it = st.wearableById(slots[s])!;
         const p = placed[s]!;
         const trial = !('wears' in it);
+        // The tag goes under the piece's middle, as far as the board's edges allow.
+        const mid = Math.min(100, Math.max(0, p.x + p.w / 2));
         return (
-          <div
-            key={s}
-            className={`canvas-piece ${selected === s ? 'selected' : ''} ${trial ? 'trial' : ''}`}
-            style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z }}
-            role="button"
-            tabIndex={-1}
-            aria-label={it.name}
-            aria-pressed={selected === s}
-            onPointerDown={(e) => start(e, s, 'move')}
-          >
-            <Art w={it} />
+          <Fragment key={s}>
+            <div
+              className={`canvas-piece ${selected === s ? 'selected' : ''} ${trial ? 'trial' : ''}`}
+              style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${p.w}%`, zIndex: p.z }}
+              role="button"
+              tabIndex={-1}
+              aria-label={it.name}
+              aria-pressed={selected === s}
+              onPointerDown={(e) => start(e, s, 'move')}
+            >
+              <Art w={it} />
+            </div>
             {trial && (
-              <div className="trial-tag" onPointerDown={(e) => e.stopPropagation()}>
-                Not in your closet · from {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
-                <button className="btn" onClick={() => ui.open({ type: 'compare', id: it.id })}>
-                  Compare stores
-                </button>
+              // On the board rather than in the piece, so it can be kept inside the board's edges and clear of its corner.
+              <div className="trial-spot" style={{ bottom: `max(44px, calc(${100 - p.y - heightOf(p.w)}% + 4px))` }}>
+                <div className="trial-tag" style={{ left: `${mid}%`, transform: `translateX(-${mid}%)` }}>
+                  <span>
+                    <span className="trial-note">Not in your closet · from </span>
+                    <span className="trial-from">From </span>
+                    {money(Math.min(...(it as Piece).options.map((o) => o.price)))}
+                  </span>
+                  <button className="btn" aria-label="Compare stores" onPointerDown={(e) => e.stopPropagation()} onClick={() => ui.open({ type: 'compare', id: it.id })}>
+                    <span>
+                      Compare<span className="trial-stores"> stores</span>
+                    </span>
+                  </button>
+                </div>
               </div>
             )}
-          </div>
+          </Fragment>
         );
       })}
 
@@ -217,24 +246,50 @@ export function OutfitBoard({
         </div>
       )}
 
-      <div className="canvas-corner">
+      {/* Pressing a control here doesn't deselect the piece. */}
+      <div className="canvas-corner" onPointerDown={(e) => e.stopPropagation()}>
         <BackgroundPicker value={background} onChange={onBg} />
-        {layout && !empty && (
-          <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onLayout(undefined), setPicked(null))} title="Put every piece back at its true size and spot">
-            Tidy up
-          </button>
-        )}
-        {onClear && !empty && (
-          <button className="canvas-tidy" onPointerDown={(e) => e.stopPropagation()} onClick={() => (onClear(), setPicked(null))} title="Take every piece off the board">
-            Clear
-          </button>
-        )}
-        {name !== undefined && !empty && (
-          <span onPointerDown={(e) => e.stopPropagation()}>
-            <ExportOutfit slots={slots} layout={layout} bg={bg} name={name} className="canvas-icon" />
-          </span>
+        {!empty && (layout || onClear || name !== undefined) && (
+          <>
+            <div className="canvas-actions">{actions(false)}</div>
+            <CornerMenu>{actions(true)}</CornerMenu>
+          </>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The corner's actions on a small board: a "More" button that opens them above the corner. */
+function CornerMenu({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    // Captured, so it closes on a press that the canvas keeps to itself, like one on a piece or the background dot.
+    const away = (e: PointerEvent) => ref.current?.contains(e.target as Node) || setOpen(false);
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  }, [open]);
+  const close = (e: React.KeyboardEvent) => {
+    // Keys stay here, so arrows and Delete don't reach the selected piece. Escape closes the menu.
+    e.stopPropagation();
+    if (e.key === 'Escape' && open) {
+      setOpen(false);
+      ref.current?.querySelector('button')?.focus();
+    }
+  };
+  return (
+    <div className="canvas-more" ref={ref} onKeyDown={close}>
+      <button className="canvas-icon" aria-expanded={open} aria-label="More" title="More" onClick={() => setOpen(!open)}>
+        <Icon name="more" />
+      </button>
+      {open && (
+        // Picking one closes the menu.
+        <div className="canvas-menu" role="group" aria-label="More" onClick={() => setOpen(false)}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }

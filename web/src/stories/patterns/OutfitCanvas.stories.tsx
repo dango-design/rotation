@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { useState } from 'react';
-import { expect, fn, userEvent, waitFor } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { OutfitBoard } from '@/components/OutfitBoard';
 import type { Background, Layout, OutfitSlots, Slot } from '@/lib/types';
 import { settled } from '../decorators';
@@ -11,12 +11,29 @@ import { demoCloset, demoId as id } from '../fixtures';
    and brought forward or sent back. Keyboard: arrows nudge, ] and [ restack, Delete removes, Escape deselects.
    Here the canvas keeps its own state, so every change sticks. */
 
-function Canvas({ slots: initialSlots, layout: initialLayout, onLayout, onRemove }: { slots: OutfitSlots; layout?: Layout; onLayout: (l?: Layout) => void; onRemove: (s: Slot) => void }) {
+function Canvas({
+  slots: initialSlots,
+  layout: initialLayout,
+  width = 380,
+  name,
+  onLayout,
+  onRemove,
+  onClear,
+}: {
+  slots: OutfitSlots;
+  layout?: Layout;
+  width?: number;
+  /** With a name, the corner offers Export; with onClear, Clear. */
+  name?: string;
+  onLayout: (l?: Layout) => void;
+  onRemove: (s: Slot) => void;
+  onClear?: () => void;
+}) {
   const [slots, setSlots] = useState(initialSlots);
   const [layout, setLayout] = useState(initialLayout);
   const [bg, setBg] = useState<Background>();
   return (
-    <div style={{ width: 380 }}>
+    <div style={{ width }}>
       <OutfitBoard
         slots={slots}
         layout={layout}
@@ -29,6 +46,8 @@ function Canvas({ slots: initialSlots, layout: initialLayout, onLayout, onRemove
           setSlots(next);
           onRemove(s);
         }}
+        onClear={onClear && (() => (setSlots({}), setLayout(undefined), onClear()))}
+        name={name}
       />
     </div>
   );
@@ -116,9 +135,60 @@ export const DeleteWithKeyboard: Story = {
 /** A suggested piece, outlined in gap blue with its price and a link to compare stores. */
 export const WithSuggestedPiece: Story = {
   args: { slots: { outer: id('o1'), top: id('t3'), bottom: 'p-chino-khaki', shoes: id('s3') } },
-  // Known issue: the piece is a button holding its Compare button (nested-interactive), named differently from its
-  // visible tag (label-content-name-mismatch). Reported, not failed.
-  parameters: { a11y: { test: 'todo' } },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/Not in your closet/)).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Compare stores' })).toBeVisible();
+  },
+};
+
+/** On a phone the board is only about 130px across. The tag stacks its price over a shorter Compare button, and stays
+    inside the board's edges. */
+export const SuggestedPieceOnAPhone: Story = {
+  args: { ...WithSuggestedPiece.args, width: 127 },
+  play: async ({ canvas }) => {
+    const compare = canvas.getByRole('button', { name: 'Compare stores' });
+    await expect(compare).toBeVisible();
+    await expect(canvas.getByText(/Not in your closet/)).not.toBeVisible();
+    const board = canvas.getByLabelText(/Outfit canvas/).getBoundingClientRect();
+    const tag = compare.closest('.trial-tag')!.getBoundingClientRect();
+    await expect(tag.left).toBeGreaterThanOrEqual(board.left);
+    await expect(tag.right).toBeLessThanOrEqual(board.right);
+  },
+};
+
+/** The corner on a phone-sized board: Tidy up, Clear and Export don't fit beside the background dot, so they fold into
+    a More menu. The menu and the colors open inside the board, and opening one closes the other. */
+export const CornerOnAPhone: Story = {
+  args: { ...HandArranged.args, width: 127, name: 'Weekend', onClear: fn() },
+  play: async ({ canvas, args }) => {
+    const board = canvas.getByLabelText(/Outfit canvas/).getBoundingClientRect();
+    const inside = async (el: Element) => {
+      const r = el.getBoundingClientRect();
+      await expect(r.left).toBeGreaterThanOrEqual(board.left);
+      await expect(r.right).toBeLessThanOrEqual(board.right);
+      await expect(r.top).toBeGreaterThanOrEqual(board.top);
+      await expect(r.bottom).toBeLessThanOrEqual(board.bottom);
+    };
+    await expect(canvas.queryByRole('button', { name: 'Tidy up' })).toBeNull();
+    await inside(canvas.getByRole('button', { name: 'Background color' }));
+    await inside(canvas.getByRole('button', { name: 'More' }));
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Background color' }));
+    await inside(canvas.getByRole('group', { name: 'Background color' }));
+
+    await userEvent.click(canvas.getByRole('button', { name: 'More' }));
+    await expect(canvas.queryByRole('group', { name: 'Background color' })).toBeNull();
+    const menu = canvas.getByRole('group', { name: 'More' });
+    await inside(menu);
+    await expect(within(menu).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual(['Tidy up', 'Clear', 'Export image']);
+
+    // Picking one closes the menu. Tidied, the outfit has nothing left to tidy.
+    await userEvent.click(within(menu).getByRole('button', { name: 'Tidy up' }));
+    await expect(args.onLayout).toHaveBeenCalledWith(undefined);
+    await expect(canvas.queryByRole('group', { name: 'More' })).toBeNull();
+    await userEvent.click(canvas.getByRole('button', { name: 'More' }));
+    await expect(within(canvas.getByRole('group', { name: 'More' })).queryByRole('button', { name: 'Tidy up' })).toBeNull();
+  },
 };
 
 /** Nothing on it yet. */
