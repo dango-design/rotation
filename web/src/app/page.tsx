@@ -15,7 +15,7 @@ import { plural } from '@/lib/format';
 import { rankPieces, slotOf, SLOTS, whyLine } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import { bestOutfitWith } from '@/lib/styling';
-import { wornOutfits } from '@/lib/wear';
+import { dayWear, wornOutfits } from '@/lib/wear';
 import type { Cat } from '@/lib/types';
 
 function greeting() {
@@ -66,7 +66,7 @@ export default function Today() {
   }
 
   const plan = st.plans.find((p) => p.date === day);
-  const worn = st.wears.filter((w) => w.date === day).at(-1);
+  const worn = dayWear(st.wears, day);
   const heroBg = backgroundOf(worn ? worn.bg : plan?.bg, st.settings.board);
   const slots = worn?.slots ?? plan?.slots;
   const weekday = isToday ? 'today' : fmt(day, { weekday: 'long' });
@@ -174,7 +174,7 @@ export default function Today() {
         <div className="strip-days">
           {days.map((d) => {
             const p = st.plans.find((x) => x.date === d);
-            const w = st.wears.filter((x) => x.date === d).at(-1);
+            const w = dayWear(st.wears, d);
             const dwx = st.weather?.days.find((x) => x.date === d);
             const s = w?.slots ?? p?.slots;
             const sl = w ? w.layout : p?.layout;
@@ -241,23 +241,24 @@ export default function Today() {
                     </button>
                   ))}
                 </div>
+                {!worn && !past && <p className="meta-line">Counts as worn once {isToday ? 'the day is over' : `${fmt(day, { weekday: 'long' })} has passed`}. You can change it after.</p>}
                 <div className="hero-actions">
                   {worn ? (
-                    <span className="chip good">
-                      <Icon name="check" />
-                      Logged
-                    </span>
+                    <>
+                      <span className="chip good">
+                        <Icon name="check" />
+                        Worn
+                      </span>
+                      <button className="btn" onClick={() => planDay(day, { slots: worn.slots, layout: worn.layout, bg: worn.bg, name: plan?.name, log: true })}>
+                        <Icon name="pencil" />
+                        Change
+                      </button>
+                      <button className="btn ghost" onClick={() => st.requireAccount('change what you wore', () => (st.unlogDay(day), st.toast(isToday ? 'Taken off today' : `Taken off ${fmt(day, { weekday: 'long' })}`)))}>
+                        Didn&apos;t wear it
+                      </button>
+                    </>
                   ) : (
                     <>
-                      {day <= today && (
-                        <button
-                          className="btn primary"
-                          onClick={() => st.requireAccount('log what you wore', () => (st.wear(slots, day, plan?.layout, plan?.bg), st.toast(isToday ? 'Logged as worn today' : 'Logged as worn')))}
-                        >
-                          <Icon name="check" />
-                          {isToday ? 'Wear this' : 'Wore it'}
-                        </button>
-                      )}
                       {!past && (
                         <button className="btn" onClick={() => planDay(day, { slots: plan!.slots, layout: plan!.layout, bg: plan!.bg, name: plan!.name })}>
                           <Icon name="pencil" />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { demoData } from './demo';
-import { wornOn, wornOutfits } from './wear';
+import { dayWear, dayWearId, putOn, settle, takeOff, wornOn, wornOutfits } from './wear';
 
 const { items } = demoData();
 const tee = { ...items[0], wears: 4, lastWorn: '2026-10-08' };
@@ -35,5 +35,65 @@ describe('outfits worn before', () => {
   it('keeps the name of the plan it was worn from', () => {
     const [o] = wornOutfits([w('1', '2026-10-01', { top: 'a', bottom: 'b' })], [{ date: '2026-10-01', name: 'Brunch', slots: {} }]);
     expect(o.name).toBe('Brunch');
+  });
+});
+
+describe('planned days count as worn once they pass', () => {
+  const a = { ...items[0], id: 'a', wears: 3, lastWorn: '2026-10-01' };
+  const b = { ...items[1], id: 'b', wears: 0, lastWorn: undefined };
+  const plan = (date: string, slots: Record<string, string> = { top: 'a', bottom: 'b' }) => ({ date, name: 'Plan', slots });
+
+  it('logs a planned day before today, once, under the day\'s own id', () => {
+    const { items: next, added } = settle([a, b], [plan('2026-10-12'), plan('2026-10-14')], [], '2026-10-14');
+    expect(added.map((w) => w.id)).toEqual([dayWearId('2026-10-12')]);
+    expect(next.map((i) => [i.wears, i.lastWorn])).toEqual([
+      [4, '2026-10-12'],
+      [1, '2026-10-12'],
+    ]);
+    expect(settle(next, [plan('2026-10-12')], added, '2026-10-15').added).toEqual([]);
+  });
+
+  it('leaves a day already logged as an outfit, or piece by piece', () => {
+    const outfit = { id: 'x', date: '2026-10-12', slots: { top: 'a', bottom: 'c' } };
+    expect(settle([a, b], [plan('2026-10-12')], [outfit], '2026-10-14').added).toEqual([]);
+    const pieces = [
+      { id: 'y', date: '2026-10-12', slots: { top: 'a' } },
+      { id: 'z', date: '2026-10-12', slots: { bottom: 'b' } },
+    ];
+    expect(settle([a, b], [plan('2026-10-12')], pieces, '2026-10-14').added).toEqual([]);
+  });
+
+  it("still logs a planned day when only one other piece was logged that day", () => {
+    const lone = { id: 'y', date: '2026-10-12', slots: { acc: 'c' } };
+    expect(settle([a, b], [plan('2026-10-12')], [lone], '2026-10-14').added).toHaveLength(1);
+  });
+});
+
+describe('taking a wear back', () => {
+  const a = { ...items[0], id: 'a', wears: 3, lastWorn: '2026-10-01' };
+
+  it('puts the count and last worn day back as they were', () => {
+    const { items: worn, entry } = putOn([a], { id: dayWearId('2026-10-12'), date: '2026-10-12', slots: { top: 'a' } });
+    expect(worn[0]).toMatchObject({ wears: 4, lastWorn: '2026-10-12' });
+    expect(takeOff(worn, entry, [])[0]).toMatchObject({ wears: 3, lastWorn: '2026-10-01' });
+  });
+
+  it('keeps a later last worn day, and falls back to the latest other wear', () => {
+    const entry = { id: 'e', date: '2026-10-05', slots: { top: 'a' } };
+    expect(takeOff([{ ...a, lastWorn: '2026-10-09' }], entry, [])[0]).toMatchObject({ wears: 2, lastWorn: '2026-10-09' });
+    const other = { id: 'o', date: '2026-10-03', slots: { top: 'a' } };
+    expect(takeOff([{ ...a, lastWorn: '2026-10-05' }], entry, [other])[0]).toMatchObject({ lastWorn: '2026-10-03' });
+    expect(takeOff([{ ...a, lastWorn: '2026-10-05' }], entry, [])[0].lastWorn).toBeUndefined();
+  });
+});
+
+describe("a day's outfit", () => {
+  it("prefers the day's own record, then an outfit, then a lone piece", () => {
+    const lone = { id: '1', date: '2026-10-12', slots: { top: 'a' } };
+    const outfit = { id: '2', date: '2026-10-12', slots: { top: 'a', bottom: 'b' } };
+    const own = { id: dayWearId('2026-10-12'), date: '2026-10-12', slots: { top: 'c', bottom: 'd' } };
+    expect(dayWear([lone], '2026-10-12')?.id).toBe('1');
+    expect(dayWear([outfit, lone], '2026-10-12')?.id).toBe('2');
+    expect(dayWear([own, outfit, lone], '2026-10-12')?.id).toBe(own.id);
   });
 });

@@ -87,6 +87,7 @@ export const deleteOutfit = (id: string) => change('outfit', id, true, (tx) => t
 export const putPlan = (p: Plan) => change('plan', p.date, false, (tx) => tx.objectStore('plans').put(p));
 export const deletePlan = (date: string) => change('plan', date, true, (tx) => tx.objectStore('plans').delete(date));
 export const putWear = (w: WearEntry) => change('wear', w.id, false, (tx) => tx.objectStore('wears').put(w));
+export const deleteWear = (id: string) => change('wear', id, true, (tx) => tx.objectStore('wears').delete(id));
 export const putSettings = (s: Settings) => change('settings', 'settings', false, (tx) => tx.objectStore('meta').put(s, 'settings'));
 export const putList = (l: ListEntry[]) => change('list', 'list', false, (tx) => tx.objectStore('meta').put(l, 'list'));
 

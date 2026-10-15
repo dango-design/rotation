@@ -3,12 +3,13 @@
    Everything that decides what to wear or buy comes from the shared engine in @core. */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { CATALOG } from '@core/catalog';
 import { TYPES } from '@core/catalog-meta';
 import { todayISO } from '@core/dates';
 import { demoData } from '@core/demo';
 import type { Background, Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from '@core/types';
-import { wornOn } from '@core/wear';
+import { dayWear, dayWearId, putOn, settle, takeOff } from '@core/wear';
 import { forecast, geocode, skyWord, type Forecast } from '@core/weather';
 import { clearImages, dropImage, imageAsDataUrl, keepImage, uriFor } from './files';
 import * as persist from './persist';
@@ -26,6 +27,8 @@ export interface Draft {
   date?: string;
   /** The next suggestion "Surprise me" offers for that day, so it doesn't repeat the one already on the canvas. */
   shuffle?: number;
+  /** Changing what was worn on that day (today included), rather than planning it. */
+  log?: boolean;
 }
 
 interface State {
@@ -160,16 +163,61 @@ function useStoreValue() {
     });
   }, []);
 
-  /** Logs an outfit as worn: adds a wear to every piece and records the day. */
+  /** Logs a piece as worn on its own: adds a wear to it and records the day. */
   const wear = useCallback((slots: OutfitSlots, date = todayISO(), layout?: Layout, bg?: Background) => {
-    const ids = Object.values(slots).filter(Boolean) as string[];
-    const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) };
-    setS((p) => ({
-      ...p,
-      items: p.items.map((i) => (ids.includes(i.id) ? wornOn(i, date) : i)),
-      wears: [...p.wears, entry],
-    }));
+    setS((p) => {
+      const done = putOn(p.items, { id: uid(), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
+      return { ...p, items: done.items, wears: [...p.wears, done.entry] };
+    });
   }, []);
+
+  /** Logs the outfit worn on a day, replacing the one logged before, and makes it the day's plan so the day keeps its
+      name. Past days and today; a planned day that passes is logged on its own (settle, below). */
+  const logDay = useCallback((date: string, outfit: Omit<Plan, 'date'>) => {
+    setS((p) => {
+      const old = dayWear(p.wears, date);
+      const replaced = old && Object.values(old.slots).filter(Boolean).length > 1 ? old : undefined;
+      const others = p.wears.filter((w) => w !== replaced);
+      const kept = replaced ? takeOff(p.items, replaced, others) : p.items;
+      const { name, slots, layout, bg } = outfit;
+      const done = putOn(kept, { id: dayWearId(date), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
+      const plan: Plan = { date, name, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) };
+      return {
+        ...p,
+        items: done.items,
+        wears: [...others.filter((w) => w.id !== done.entry.id), done.entry],
+        plans: [...p.plans.filter((x) => x.date !== date), plan],
+      };
+    });
+  }, []);
+
+  /** "Didn't wear it": takes the day's outfit back off its pieces and clears the day, so it isn't logged again. */
+  const unlogDay = useCallback((date: string) => {
+    setS((p) => {
+      const old = dayWear(p.wears, date);
+      const wears = p.wears.filter((w) => w !== old);
+      return { ...p, items: old ? takeOff(p.items, old, wears) : p.items, wears, plans: p.plans.filter((x) => x.date !== date) };
+    });
+  }, []);
+
+  // A planned day counts as worn once it has passed (decision 032), as on the web: checked as the closet loads or
+  // changes, and when the app comes back to the front, since the day may have turned over.
+  const [today, setToday] = useState(todayISO);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && setToday(todayISO()));
+    const every = setInterval(() => setToday(todayISO()), 60_000);
+    return () => (sub.remove(), clearInterval(every));
+  }, []);
+  const unsettled = s.ready && settle(s.items, s.plans, s.wears, today).added.length > 0;
+  useEffect(() => {
+    if (!unsettled) return;
+    queueMicrotask(() =>
+      setS((p) => {
+        const { items, added } = settle(p.items, p.plans, p.wears, today);
+        return added.length ? { ...p, items, wears: [...p.wears, ...added] } : p;
+      }),
+    );
+  }, [unsettled, today]);
 
   const saveOutfit = useCallback((name: string, slots: OutfitSlots, layout?: Layout, bg?: Background) => {
     const o: Outfit = { id: uid(), name, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}), createdAt: new Date().toISOString() };
@@ -251,6 +299,8 @@ function useStoreValue() {
       updateItem,
       removeItem,
       wear,
+      logDay,
+      unlogDay,
       saveOutfit,
       removeOutfit,
       setPlan,
@@ -262,7 +312,7 @@ function useStoreValue() {
       exportData,
       importData,
     }),
-    [s, weather, draft, toastMsg, toast, itemById, wearableById, imageFor, startDemo, leaveDemo, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData],
+    [s, weather, draft, toastMsg, toast, itemById, wearableById, imageFor, startDemo, leaveDemo, addItem, updateItem, removeItem, wear, logDay, unlogDay, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData],
   );
 }
 

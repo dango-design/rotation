@@ -16,7 +16,7 @@ import { todayISO } from './dates';
 import { demoData } from './demo';
 import { sync, type Row, type SyncResult } from './sync';
 import type { Background, Item, Layout, ListEntry, Outfit, OutfitSlots, Piece, Plan, Settings, Slot, WearEntry } from './types';
-import { wornOn } from './wear';
+import { dayWear, dayWearId, putOn, settle, takeOff } from './wear';
 import { forecast, geocode, skyWord, type Forecast } from './weather';
 
 export const DEFAULT_SETTINGS: Settings = { city: '', favoriteStores: [], showShop: true, occasion: 'work' };
@@ -31,6 +31,8 @@ export interface Draft {
   date?: string;
   /** The next suggestion "Surprise me" offers for that day, so it doesn't repeat the one already on the board. */
   shuffle?: number;
+  /** Changing what was worn on that day (today included), rather than planning it. */
+  log?: boolean;
 }
 
 interface State {
@@ -79,6 +81,8 @@ function migrate<T extends { slots: OutfitSlots }>(list: T[], items: Item[]): T[
   });
 }
 const withCats = (items: Item[]) => items.map((i) => (TYPES[i.type] && TYPES[i.type].cat !== i.cat ? { ...i, cat: TYPES[i.type].cat } : i));
+/** The pieces in `next` that aren't the same as in `prev`, to save. */
+const changed = (prev: Item[], next: Item[]) => next.filter((i, n) => i !== prev[n]);
 const byCreated = (items: Item[]) => [...items].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
 /** The closet as saved on this device. */
@@ -440,23 +444,102 @@ function useStoreValue(fixture?: Fixture) {
     [persist],
   );
 
-  /** Log an outfit as worn: adds a wear to every piece and records the day. */
+  /** Log a piece as worn on its own: adds a wear to it and records the day. */
   const wear = useCallback(
     (slots: OutfitSlots, date = todayISO(), layout?: Layout, bg?: Background) => {
       if (locked.current) return;
-      const ids = Object.values(slots).filter(Boolean) as string[];
-      const entry: WearEntry = { id: uid(), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) };
       setS((p) => {
-        const items = p.items.map((i) => (ids.includes(i.id) ? wornOn(i, date) : i));
+        const done = putOn(p.items, { id: uid(), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
         persist(async () => {
-          await store.putWear(entry);
-          await Promise.all(items.filter((i) => ids.includes(i.id)).map(store.putItem));
+          await store.putWear(done.entry);
+          await Promise.all(changed(p.items, done.items).map(store.putItem));
         });
-        return { ...p, items, wears: [...p.wears, entry] };
+        return { ...p, items: done.items, wears: [...p.wears, done.entry] };
       });
     },
     [persist],
   );
+
+  /** Log the outfit worn on a day, replacing the one logged before, and make it the day's plan so the day keeps its
+      name. Past days and today; a planned day that passes is logged on its own (settle, below). */
+  const logDay = useCallback(
+    (date: string, outfit: Omit<Plan, 'date'>) => {
+      if (locked.current) return;
+      setS((p) => {
+        const old = dayWear(p.wears, date);
+        const replaced = old && Object.values(old.slots).filter(Boolean).length > 1 ? old : undefined;
+        const others = p.wears.filter((w) => w !== replaced);
+        const kept = replaced ? takeOff(p.items, replaced, others) : p.items;
+        const { name, slots, layout, bg } = outfit;
+        const done = putOn(kept, { id: dayWearId(date), date, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) });
+        const plan: Plan = { date, name, slots, ...(layout ? { layout } : {}), ...(bg ? { bg } : {}) };
+        persist(async () => {
+          if (replaced && replaced.id !== done.entry.id) await store.deleteWear(replaced.id);
+          await store.putWear(done.entry);
+          await store.putPlan(plan);
+          await Promise.all(changed(p.items, done.items).map(store.putItem));
+        });
+        return {
+          ...p,
+          items: done.items,
+          wears: [...others.filter((w) => w.id !== done.entry.id), done.entry],
+          plans: [...p.plans.filter((x) => x.date !== date), plan],
+        };
+      });
+    },
+    [persist],
+  );
+
+  /** "Didn't wear it": takes the day's outfit back off its pieces and clears the day, so it isn't logged again. */
+  const unlogDay = useCallback(
+    (date: string) => {
+      if (locked.current) return;
+      setS((p) => {
+        const old = dayWear(p.wears, date);
+        const wears = p.wears.filter((w) => w !== old);
+        const items = old ? takeOff(p.items, old, wears) : p.items;
+        persist(async () => {
+          if (old) await store.deleteWear(old.id);
+          await store.deletePlan(date);
+          await Promise.all(changed(p.items, items).map(store.putItem));
+        });
+        return { ...p, items, wears, plans: p.plans.filter((x) => x.date !== date) };
+      });
+    },
+    [persist],
+  );
+
+  // A planned day counts as worn once it has passed (decision 032). Checked as the closet loads or changes, and when
+  // the app comes back into view, since the day may have turned over while it was open.
+  const [today, setToday] = useState(todayISO);
+  useEffect(() => {
+    if (fixed) return;
+    const check = () => setToday(todayISO());
+    const every = setInterval(check, 60_000);
+    document.addEventListener('visibilitychange', check);
+    window.addEventListener('focus', check);
+    return () => {
+      clearInterval(every);
+      document.removeEventListener('visibilitychange', check);
+      window.removeEventListener('focus', check);
+    };
+  }, [fixed]);
+  const unsettled = s.ready && !needsAccount && settle(s.items, s.plans, s.wears, today).added.length > 0;
+  useEffect(() => {
+    if (!unsettled || fixed) return;
+    // Just after this render, like the demo's load: the closet on screen catches up with the date.
+    queueMicrotask(() =>
+      setS((p) => {
+        const { items, added } = settle(p.items, p.plans, p.wears, today);
+        if (!added.length) return p;
+        persist(async () => {
+          await Promise.all(added.map(store.putWear));
+          await Promise.all(changed(p.items, items).map(store.putItem));
+        });
+        return { ...p, items, wears: [...p.wears, ...added] };
+      }),
+    );
+  }, [unsettled, today, fixed, persist]);
 
   const saveOutfit = useCallback(
     (name: string, slots: OutfitSlots, layout?: Layout, bg?: Background) => {
@@ -657,6 +740,8 @@ function useStoreValue(fixture?: Fixture) {
       updateItem,
       removeItem,
       wear,
+      logDay,
+      unlogDay,
       saveOutfit,
       removeOutfit,
       setPlan,
@@ -681,7 +766,7 @@ function useStoreValue(fixture?: Fixture) {
       signOut,
       syncNow: runSync,
     }),
-    [s, weather, draft, building, build, toastMsg, toast, itemById, wearableById, imageFor, href, addItem, updateItem, removeItem, wear, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData, accountsOn, account, syncState, needsAccount, requireAccount, signInAsk, closeSignIn, sendCode, verifyCode, signOut, runSync],
+    [s, weather, draft, building, build, toastMsg, toast, itemById, wearableById, imageFor, href, addItem, updateItem, removeItem, wear, logDay, unlogDay, saveOutfit, removeOutfit, setPlan, updateSettings, setCity, addToList, removeFromList, resetAll, exportData, importData, accountsOn, account, syncState, needsAccount, requireAccount, signInAsk, closeSignIn, sendCode, verifyCode, signOut, runSync],
   );
 }
 

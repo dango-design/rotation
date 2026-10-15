@@ -25,11 +25,11 @@ export function useDays() {
     return suggest(st.items, { occasion, today: date, shuffle: n, temp: wx?.temp, sky: wx?.sky, skyWord: wx?.word });
   };
 
-  /** Opens the outfit builder for a day: logging for a past day, planning for today or later. */
-  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; shuffle?: number; name?: string } = {}) => {
+  /** Opens the outfit builder for a day: logging for a past day or a day already worn, planning for today or later. */
+  const startPlanning = (day: string, opts: { slots?: OutfitSlots; layout?: Layout; bg?: Background; shuffle?: number; name?: string; log?: boolean } = {}) => {
     const slots = opts.slots ?? {};
     const name = opts.name ?? (day === today ? "Today's outfit" : `${fmt(day, { weekday: 'long' })}'s outfit`);
-    st.setDraft({ name, slots, layout: opts.layout, bg: opts.bg, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle });
+    st.setDraft({ name, slots, layout: opts.layout, bg: opts.bg, focus: SLOTS.find((s) => slots[s]) ?? 'top', date: day, shuffle: opts.shuffle, ...(opts.log ? { log: true } : {}) });
     router.push('/builder');
   };
 
