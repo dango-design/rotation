@@ -5,7 +5,7 @@ import { Icon, ICONS } from '@/components/ui';
 /* Buttons are CSS classes (.btn plus a variant and a size) on a plain <button>. This wrapper only exists so the
    options show up as controls; in the app, write the classes directly. */
 
-type Variant = 'default' | 'primary' | 'gap' | 'ghost';
+type Variant = 'default' | 'primary' | 'gap' | 'ghost' | 'danger';
 type Size = 'md' | 'sm' | 'xs';
 
 function Button({ label, variant = 'default', size = 'md', icon, disabled, onClick }: { label: string; variant?: Variant; size?: Size; icon?: string; disabled?: boolean; onClick?: () => void }) {
@@ -18,13 +18,14 @@ function Button({ label, variant = 'default', size = 'md', icon, disabled, onCli
   );
 }
 
-const VARIANTS: Variant[] = ['primary', 'default', 'gap', 'ghost'];
+const VARIANTS: Variant[] = ['primary', 'default', 'gap', 'ghost', 'danger'];
 const SIZES: Size[] = ['md', 'sm', 'xs'];
 const USE: Record<Variant, string> = {
   primary: 'The main action: Wear this, Add pieces, Save outfit. One per area.',
   default: 'Everything else: Shuffle, Style it, Compare.',
   gap: 'Shopping actions on light surfaces.',
   ghost: 'Low-stakes or reversible: Clear, Saved outfits, Remove (first step).',
+  danger: "Confirms something that can't be taken back, inside a Confirm dialog: Clear plan.",
 };
 const row = { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' } as const;
 

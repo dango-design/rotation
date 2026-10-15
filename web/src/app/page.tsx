@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { OutfitPanel } from '@/components/OutfitPanel';
 import { PieceTray, SLOT_CAT, type TrayTab, useBoardActions } from '@/components/PieceTray';
 import { useUI } from '@/components/Shell';
-import { boardProps, DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
+import { boardProps, Confirm, DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { backgroundOf } from '@/lib/backgrounds';
 import { isAccessory, onePhrase, TYPES } from '@/lib/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, weekStart } from '@/lib/dates';
@@ -33,6 +33,8 @@ export default function Today() {
   const [day, setDay] = useState(today);
   const [cat, setCat] = useState<Cat | 'all'>('all');
   const [tray, setTray] = useState<TrayTab>('pieces');
+  /** Asking before the day's plan is cleared. */
+  const [clearing, setClearing] = useState(false);
   const { put } = useBoardActions();
   // Coming back from planning a day on the board shows that day. Deferred so the first render matches the server.
   useEffect(() => {
@@ -265,7 +267,7 @@ export default function Today() {
                           Change
                         </button>
                       )}
-                      <button className="btn ghost" onClick={() => st.requireAccount('change your plans', () => (st.setPlan(day, null), st.toast('Plan cleared')))}>
+                      <button className="btn ghost" onClick={() => setClearing(true)}>
                         Clear plan
                       </button>
                     </>
@@ -367,6 +369,20 @@ export default function Today() {
         </section>
       )}
 
+      {clearing && plan && (
+        <Confirm
+          title="Clear this plan?"
+          confirm="Clear plan"
+          cancel="Keep it"
+          onCancel={() => setClearing(false)}
+          onConfirm={() => {
+            setClearing(false);
+            st.requireAccount('change your plans', () => (st.setPlan(day, null), st.toast('Plan cleared')));
+          }}
+        >
+          {plan.name} comes off {dayName}. The pieces stay in your closet.
+        </Confirm>
+      )}
     </>
   );
 }

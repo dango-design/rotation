@@ -3,7 +3,7 @@
 
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { lowestPrice } from '@core/catalog';
 import { isAccessory, onePhrase, TYPES } from '@core/catalog-meta';
 import { addDays, ago, daysBetween, fmt, longDay, weekStart } from '@core/dates';
@@ -204,8 +204,14 @@ export default function Today() {
                     kind="ghost"
                     label="Clear plan"
                     onPress={() => {
-                      st.setPlan(day, null);
-                      st.toast('Plan cleared');
+                      const clear = () => (st.setPlan(day, null), st.toast('Plan cleared'));
+                      const body = `${plan!.name} comes off ${dayName}. The pieces stay in your closet.`;
+                      // The system's own alert on a phone; the web build (used for testing) has no Alert, so it asks the browser.
+                      if (Platform.OS === 'web') return window.confirm(`Clear this plan?\n\n${body}`) && clear();
+                      Alert.alert('Clear this plan?', body, [
+                        { text: 'Keep it', style: 'cancel' },
+                        { text: 'Clear plan', style: 'destructive', onPress: clear },
+                      ]);
                     }}
                   />
                 </>
