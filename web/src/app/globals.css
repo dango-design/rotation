@@ -776,13 +776,8 @@ a.nav-item { text-decoration: none; }
 /* Planning a day: the forecast and "Surprise me" under the hint. */
 .panel-day { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .panel-day .callout-wx { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
-.outfit-panel .board-wrap { align-self: center; display: flex; flex-direction: column; gap: 8px; }
-.outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); }
+.outfit-panel .board { flex: none; border-radius: 14px; height: min(58vh, 560px); align-self: center; }
 .outfit-panel .board-status { font-size: 12.5px; }
-.board-tools { display: flex; justify-content: space-between; align-items: center; }
-.board-tools .btn.ghost { padding: 0 10px; margin-left: -10px; }
-.icon-btn.sm { width: 32px; height: 32px; }
-.icon-btn.sm svg { width: 16px; height: 16px; }
 .panel-actions { display: flex; gap: 8px; }
 .panel-actions .btn { flex: 1; }
 .icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -876,6 +871,9 @@ a.nav-item { text-decoration: none; }
 }
 /* Board controls that only show while you're working on the canvas. Bottom-right, clear of the shoes' usual spot. */
 .canvas-corner { position: absolute; right: 10px; bottom: 10px; z-index: 1000; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+.canvas-icon { width: 28px; height: 28px; padding: 0; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--ink-2); display: grid; place-items: center; }
+.canvas-icon svg { width: 14px; height: 14px; }
+.canvas-icon:disabled { opacity: 0.45; }
 .canvas-tidy { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 92%, transparent); font-size: 12px; font-weight: 600; color: var(--ink-2); }
 /* The outfit's background: a dot in the corner that opens the colors above it. */
 .bg-picker { position: relative; }

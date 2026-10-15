@@ -12,7 +12,7 @@ import { useDays } from '@/lib/days';
 import { forSlot, SLOTS } from '@/lib/engine';
 import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
-import { ExportOutfit, OutfitBoard, SLOT_LABEL } from './OutfitBoard';
+import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
 import { Icon, money, ShopSwitch, Tile } from './ui';
 
@@ -121,15 +121,7 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         </div>
       )}
 
-      <div className="board-wrap">
-        <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} />
-        <div className="board-tools">
-          <button className="btn sm ghost" disabled={!pieces.length} onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
-            Clear
-          </button>
-          <ExportOutfit slots={slots} layout={draft.layout} bg={draft.bg} name={draft.name} className="icon-btn sm" />
-        </div>
-      </div>
+      <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} onClear={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })} name={draft.name} />
 
       {trial.length > 0 && (
         <div className="board-status">
