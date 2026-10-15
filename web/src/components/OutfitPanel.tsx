@@ -143,19 +143,13 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
         )}
         {/* Started from a day on Today, the board plans (or logs) that day; from the closet, it makes an outfit to save. */}
         {!day && (
-          <>
-            <button
-              className="btn primary"
-              disabled={!ready}
-              onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
-            >
-              Save outfit
-            </button>
-            <button className="btn" disabled={!ready} onClick={() => st.requireAccount('log what you wore', () => (st.logDay(today, { name: draft.name.trim() || "Today's outfit", slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) }), st.toast('Logged as worn today')))}>
-              <Icon name="check" />
-              Wear today
-            </button>
-          </>
+          <button
+            className="btn primary"
+            disabled={!ready}
+            onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
+          >
+            Save outfit
+          </button>
         )}
         <button className="btn ghost" disabled={!pieces.length} onClick={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })}>
           Clear

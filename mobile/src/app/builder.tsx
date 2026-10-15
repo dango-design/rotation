@@ -252,16 +252,6 @@ export default function Builder() {
             </>
           ) : (
             <>
-              <Btn
-                size="sm"
-                icon="check"
-                label="Wear today"
-                disabled={!ready}
-                onPress={() => {
-                  st.logDay(today, { name: draft.name.trim() || "Today's outfit", slots, ...(draft.layout ? { layout: draft.layout } : {}), ...(draft.bg ? { bg: draft.bg } : {}) });
-                  st.toast('Logged as worn today');
-                }}
-              />
               <Btn size="sm" icon="planner" label="Plan" disabled={!ready} onPress={() => setPlanning(true)} />
               <View style={{ flex: 1 }} />
               <Btn

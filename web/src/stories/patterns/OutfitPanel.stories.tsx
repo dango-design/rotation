@@ -77,7 +77,9 @@ export const BoldPairing: Story = {
   parameters: { store: board({ name: 'Weekend', slots: { top: id('t9'), bottom: id('b2'), shoes: id('s1'), acc: id('a2') }, focus: 'acc' }) },
   play: async ({ canvas }) => {
     await expect(canvas.queryByText(/compete for attention/)).toBeNull();
-    await expect(canvas.getByRole('button', { name: 'Wear today' })).toBeEnabled();
+    await expect(canvas.getByRole('button', { name: 'Save outfit' })).toBeEnabled();
+    // The closet's board makes outfits to save; wearing one is planned on Today.
+    await expect(canvas.queryByRole('button', { name: 'Wear today' })).toBeNull();
   },
 };
 
