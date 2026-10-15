@@ -110,6 +110,99 @@ export const LoggingAPastDay: Story = {
   },
 };
 
+/** Stopping Saturday from the bar after changing it asks first: the changes on the board go, and Errands stays planned
+    for Saturday. */
+export const StopPlanningAsksFirst: Story = {
+  parameters: PlanningADay.parameters,
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Stop planning Saturday' }));
+    const ask = await canvas.findByRole('alertdialog', { name: 'Stop planning Saturday?' });
+    await expect(ask).toHaveTextContent("The changes on the board aren't saved. Errands stays planned for Saturday.");
+  },
+};
+
+/** Monday has nothing planned yet, so stopping it from the bar asks first, with the focus on Keep planning. Escape backs
+    out and gives the focus back to the bar; Stop planning drops the outfit and the bar. A behavior test only. */
+export const StopPlanningADay: Story = {
+  parameters: {
+    store: () => demoCloset({ building: true, draft: { name: "Monday's outfit", slots: { top: id('t4'), bottom: id('b3') }, focus: 'shoes', date: '2026-10-12' } }),
+    chromatic: { disableSnapshot: true },
+  },
+  play: async ({ canvas }) => {
+    const stop = canvas.getByRole('button', { name: 'Stop planning Monday' });
+    stop.focus();
+    await userEvent.keyboard('{Enter}');
+    const ask = await canvas.findByRole('alertdialog', { name: 'Stop planning Monday?' });
+    await expect(ask).toHaveTextContent('Nothing is planned for Monday yet, so the outfit on the board goes. Its pieces stay in your closet.');
+    await expect(within(ask).getByRole('button', { name: 'Keep planning' })).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    await expect(canvas.queryByRole('alertdialog')).toBeNull();
+    await expect(stop).toHaveFocus();
+
+    await userEvent.click(stop);
+    await userEvent.click(within(await canvas.findByRole('alertdialog')).getByRole('button', { name: 'Stop planning' }));
+    await expect(canvas.queryByRole('region', { name: 'Day in progress' })).toBeNull();
+    await expect(canvas.getByRole('status')).toHaveTextContent('Stopped planning Monday');
+  },
+};
+
+/** Saturday on the board just as it's planned: stopping loses nothing, so it doesn't ask. The bar goes and Errands
+    stays planned. A behavior test only. */
+export const StopPlanningUnchanged: Story = {
+  parameters: {
+    store: () => {
+      const closet = demoCloset();
+      const plan = closet.plans!.find((p) => p.date === '2026-10-10')!;
+      return { ...closet, building: true, draft: { name: plan.name, slots: plan.slots, layout: plan.layout, bg: plan.bg, focus: 'top', date: plan.date } };
+    },
+    chromatic: { disableSnapshot: true },
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Stop planning Saturday' }));
+    await expect(canvas.queryByRole('alertdialog')).toBeNull();
+    await expect(canvas.queryByRole('region', { name: 'Day in progress' })).toBeNull();
+    await expect(canvas.getByRole('status')).toHaveTextContent('Stopped planning Saturday. Errands is still planned.');
+  },
+};
+
+/** The board's × asks the same way. Nothing is logged for Tuesday yet, so stopping would take the outfit off the board. */
+export const StopLoggingFromTheBoard: Story = {
+  parameters: LoggingAPastDay.parameters,
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Back to the board' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Stop logging Tuesday' }));
+    const ask = await canvas.findByRole('alertdialog', { name: 'Stop logging Tuesday?' });
+    await expect(ask).toHaveTextContent('Nothing is logged for Tuesday yet, so the outfit on the board goes. Its pieces stay in your closet.');
+    await expect(within(ask).getByRole('button', { name: 'Keep logging' })).toHaveFocus();
+  },
+};
+
+/** Stop logging closes the board and shows Tuesday, still asking what was worn. A behavior test only. */
+export const StopLoggingADay: Story = {
+  parameters: { ...LoggingAPastDay.parameters, chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Back to the board' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Stop logging Tuesday' }));
+    await userEvent.click(within(await canvas.findByRole('alertdialog')).getByRole('button', { name: 'Stop logging' }));
+    await expect(canvas.queryByRole('complementary', { name: 'Outfit board' })).toBeNull();
+    await expect(canvas.getByRole('heading', { name: 'What did you wear on Tuesday?' })).toBeVisible();
+    await expect(canvas.getByRole('status')).toHaveTextContent('Stopped logging Tuesday');
+  },
+};
+
+/** "Change", then the board's × without changing anything: nothing would be lost, so it doesn't ask, and today's plan
+    is as it was. A behavior test only. */
+export const StopChangingAPlan: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Change' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Stop planning today' }));
+    await expect(canvas.queryByRole('alertdialog')).toBeNull();
+    await expect(canvas.getByRole('heading', { name: 'Client presentation' })).toBeVisible();
+    await expect(canvas.getByRole('status')).toHaveTextContent('Stopped planning today. Client presentation is still planned.');
+  },
+};
+
 /** Yesterday was logged, so it shows what was worn. */
 export const WornYesterday: Story = {
   play: async ({ canvas }) => {

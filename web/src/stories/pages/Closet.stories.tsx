@@ -83,8 +83,9 @@ export const StopPlanningAsksFirst: Story = {
   },
 };
 
-/** Monday has nothing planned yet, so stopping it asks first, with the focus on Keep planning and Escape backing out.
-    Stop planning drops the outfit and the bar, and the closet is a closet again. A behavior test only. */
+/** Monday has nothing planned yet, so stopping it asks first, with the focus on Keep planning. Escape backs out and
+    gives the focus back to the bar; Stop planning drops the outfit and the bar, and the closet is a closet again. A
+    behavior test only. */
 export const StopPlanningADay: Story = {
   parameters: {
     store: () => demoCloset({ building: true, draft: { name: "Monday's outfit", slots: { top: id('t4'), bottom: id('b3') }, focus: 'shoes', date: '2026-10-12' } }),
@@ -100,6 +101,7 @@ export const StopPlanningADay: Story = {
     await userEvent.keyboard('{Escape}');
     await expect(canvas.queryByRole('alertdialog')).toBeNull();
     await expect(canvas.getByRole('region', { name: 'Day in progress' })).toBeVisible();
+    await expect(stop).toHaveFocus();
 
     await userEvent.click(stop);
     await userEvent.click(within(await canvas.findByRole('alertdialog')).getByRole('button', { name: 'Stop planning' }));

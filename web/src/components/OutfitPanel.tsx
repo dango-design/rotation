@@ -14,6 +14,7 @@ import { useStore } from '@/lib/store';
 import type { Piece, Slot } from '@/lib/types';
 import { OutfitBoard, SLOT_LABEL } from './OutfitBoard';
 import { useUI } from './Shell';
+import { useStopDay } from './StopDay';
 import { Icon, money, ShopSwitch, Tile } from './ui';
 
 export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: number; y: number }) => void; onFocus: (slot: Slot) => void }) {
@@ -60,12 +61,16 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
     if (!idea) return st.toast('Surprise me needs a top, bottom and shoes that go together, or a dress and shoes.');
     setDraft({ ...draft, slots: idea.slots, layout: undefined, focus: 'top', shuffle: (draft.shuffle ?? 0) + 1 });
   };
-  /** Leaves the day: closes the board, showing that day on Today. */
+  /** Shows the day on Today, once the board has closed. */
+  const showDay = () => pathname !== '/' && router.push(st.href(`/?day=${day}`));
+  /** Leaves the day once it's planned or logged: closes the board, showing that day on Today. */
   const backToDay = () => {
     setDraft({ ...draft, date: undefined, shuffle: undefined, log: undefined });
     st.setBuilding(false);
-    if (pathname !== '/') router.push(st.href(`/?day=${day}`));
+    showDay();
   };
+  // The × stops the day instead, asking first if that would lose pieces the day doesn't have yet.
+  const stopDay = useStopDay(showDay);
   const finishDay = () => {
     if (!day) return;
     if (logging) {
@@ -84,143 +89,147 @@ export function OutfitPanel({ onPut, onFocus }: { onPut: (id: string, at?: { x: 
   };
 
   return (
-    <aside className="card outfit-panel" aria-label="Outfit board">
-      <div className="panel-head">
-        <div className={`eyebrow ${day ? 'for-day' : ''}`}>{!day ? 'Building an outfit' : logging ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}</div>
-        <button className="icon-btn" onClick={() => (day ? backToDay() : st.setBuilding(false))} aria-label={day ? `Stop ${logging ? 'logging' : 'planning'} ${dayLabel}` : 'Close outfit board'}>
-          <Icon name="x" />
-        </button>
-      </div>
-      <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
-      <p className="panel-hint">Click or drag your pieces onto the board, and click one again to take it off.</p>
-      {ahead && (
-        <div className="panel-day">
-          {wx ? (
-            <span className="callout-wx">
-              <Icon name={wx.sky} />
-              {wx.temp}° and {wx.word}: {wx.temp >= 66 ? 'warm enough to skip a layer.' : 'a layer will help.'}
-            </span>
-          ) : !st.settings.city ? (
-            <span className="callout-wx">
-              <Icon name="cloud" />
-              <Link href={st.href('/settings')} className="link">
-                Add your city
-              </Link>
-              for the forecast
-            </span>
-          ) : (
-            <span className="callout-wx">
-              <Icon name="cloud" />
-              No forecast this far ahead yet.
-            </span>
-          )}
-          <button className="btn sm ghost" onClick={surpriseMe}>
-            <Icon name="shuffle" />
-            Surprise me
+    <>
+      <aside className="card outfit-panel" aria-label="Outfit board">
+        <div className="panel-head">
+          <div className={`eyebrow ${day ? 'for-day' : ''}`}>{!day ? 'Building an outfit' : logging ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}</div>
+          <button className="icon-btn" onClick={day ? stopDay.stop : () => st.setBuilding(false)} aria-label={day ? stopDay.label : 'Close outfit board'}>
+            <Icon name="x" />
           </button>
         </div>
-      )}
-
-      <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} onClear={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })} name={draft.name} />
-
-      {trial.length > 0 && (
-        <div className="board-status">
-          <span className="share-line">
-            <Icon name="unlock" />
-            <span>
-              <b>{trial.length}</b> to shop
-            </span>
-          </span>
-        </div>
-      )}
-
-      <div className="panel-actions">
-        {day && (
-          <button className="btn primary" disabled={!ready} onClick={finishDay}>
-            <Icon name={logging ? 'check' : 'planner'} />
-            {logging ? 'Log as worn' : `Plan for ${dayLabel}`}
-          </button>
-        )}
-        {/* Started from a day on Today, the board plans (or logs) that day; from the closet, it makes an outfit to save. */}
-        {!day && (
-          <button
-            className="btn primary"
-            disabled={!ready}
-            onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
-          >
-            Save outfit
-          </button>
-        )}
-      </div>
-      {!day && (
-        <div className="panel-plan">
-          <span>Or plan it for</span>
-          <input type="date" className="select" value={planDate} min={today} onChange={(e) => setPlanDate(e.target.value)} aria-label="Plan date" />
-          <button
-            className="btn"
-            disabled={!ready}
-            onClick={() =>
-              st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout, bg: draft.bg }), st.toast(`Planned for ${shortDate(planDate)}`)))
-            }
-          >
-            <Icon name="planner" />
-            Plan
-          </button>
-        </div>
-      )}
-
-      <div className="panel-shop">
-        <div className="group-label">Shop the gap</div>
-        {st.settings.showShop ? (
-          <>
-            <div className="slot-tabs">
-              {SLOTS.map((s) => (
-                <button key={s} className={draft.focus === s ? 'active' : ''} onClick={() => focus(s)}>
-                  {SLOT_LABEL[s]}
-                </button>
-              ))}
-            </div>
-            {draft.focus === 'bottom' && dressOn ? (
-              <div className="empty-note">A dress is on the board, so no bottom is needed.</div>
-            ) : shop.length ? (
-              shop.map(({ piece, unlock }) => (
-                <div key={piece.id} className="sugg shop">
-                  <Tile w={piece} />
-                  <div>
-                    <div className="sugg-name">{piece.name}</div>
-                    <div className="unlock-line">
-                      <Icon name="unlock" />
-                      Unlocks {unlock} outfits
-                    </div>
-                    <div className="sugg-sub">
-                      From {money(Math.min(...piece.options.map((o) => o.price)))} at {piece.options.length} stores
-                    </div>
-                  </div>
-                  {slots[draft.focus] === piece.id ? (
-                    <button className="btn xs" onClick={() => ui.open({ type: 'compare', id: piece.id })}>
-                      Compare
-                    </button>
-                  ) : (
-                    <button className="btn xs" onClick={() => put(draft.focus, piece.id)}>
-                      Try it
-                    </button>
-                  )}
-                </div>
-              ))
+        <input className="outfit-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label="Outfit name" />
+        <p className="panel-hint">Click or drag your pieces onto the board, and click one again to take it off.</p>
+        {ahead && (
+          <div className="panel-day">
+            {wx ? (
+              <span className="callout-wx">
+                <Icon name={wx.sky} />
+                {wx.temp}° and {wx.word}: {wx.temp >= 66 ? 'warm enough to skip a layer.' : 'a layer will help.'}
+              </span>
+            ) : !st.settings.city ? (
+              <span className="callout-wx">
+                <Icon name="cloud" />
+                <Link href={st.href('/settings')} className="link">
+                  Add your city
+                </Link>
+                for the forecast
+              </span>
             ) : (
-              <div className="empty-note">Nothing new needed here. Your closet already covers this slot.</div>
+              <span className="callout-wx">
+                <Icon name="cloud" />
+                No forecast this far ahead yet.
+              </span>
             )}
-          </>
-        ) : (
-          <div className="shop-off">
-            <Icon name="info" />
-            <span>Shopping suggestions are hidden. Only pieces you own are shown.</span>
+            <button className="btn sm ghost" onClick={surpriseMe}>
+              <Icon name="shuffle" />
+              Surprise me
+            </button>
           </div>
         )}
-        <div className="complete-foot">
-          <ShopSwitch />
+
+        <OutfitBoard slots={slots} layout={draft.layout} bg={draft.bg} onLayout={(layout) => setDraft({ ...draft, layout })} onBg={(bg) => setDraft({ ...draft, bg })} onRemove={remove} onSelect={focus} onDrop={onPut} onClear={() => setDraft(day ? { ...draft, slots: {}, layout: undefined, focus: 'top' } : { name: 'New outfit', slots: {}, focus: 'top' })} name={draft.name} />
+
+        {trial.length > 0 && (
+          <div className="board-status">
+            <span className="share-line">
+              <Icon name="unlock" />
+              <span>
+                <b>{trial.length}</b> to shop
+              </span>
+            </span>
+          </div>
+        )}
+
+        <div className="panel-actions">
+          {day && (
+            <button className="btn primary" disabled={!ready} onClick={finishDay}>
+              <Icon name={logging ? 'check' : 'planner'} />
+              {logging ? 'Log as worn' : `Plan for ${dayLabel}`}
+            </button>
+          )}
+          {/* Started from a day on Today, the board plans (or logs) that day; from the closet, it makes an outfit to save. */}
+          {!day && (
+            <button
+              className="btn primary"
+              disabled={!ready}
+              onClick={() => st.requireAccount('save this outfit', () => (st.saveOutfit(draft.name || 'Untitled outfit', slots, draft.layout, draft.bg), st.toast('Saved to your outfits')))}
+            >
+              Save outfit
+            </button>
+          )}
         </div>
-      </div>
-    </aside>
+        {!day && (
+          <div className="panel-plan">
+            <span>Or plan it for</span>
+            <input type="date" className="select" value={planDate} min={today} onChange={(e) => setPlanDate(e.target.value)} aria-label="Plan date" />
+            <button
+              className="btn"
+              disabled={!ready}
+              onClick={() =>
+                st.requireAccount('plan this outfit', () => (st.setPlan(planDate, { name: draft.name || 'Planned outfit', slots, layout: draft.layout, bg: draft.bg }), st.toast(`Planned for ${shortDate(planDate)}`)))
+              }
+            >
+              <Icon name="planner" />
+              Plan
+            </button>
+          </div>
+        )}
+
+        <div className="panel-shop">
+          <div className="group-label">Shop the gap</div>
+          {st.settings.showShop ? (
+            <>
+              <div className="slot-tabs">
+                {SLOTS.map((s) => (
+                  <button key={s} className={draft.focus === s ? 'active' : ''} onClick={() => focus(s)}>
+                    {SLOT_LABEL[s]}
+                  </button>
+                ))}
+              </div>
+              {draft.focus === 'bottom' && dressOn ? (
+                <div className="empty-note">A dress is on the board, so no bottom is needed.</div>
+              ) : shop.length ? (
+                shop.map(({ piece, unlock }) => (
+                  <div key={piece.id} className="sugg shop">
+                    <Tile w={piece} />
+                    <div>
+                      <div className="sugg-name">{piece.name}</div>
+                      <div className="unlock-line">
+                        <Icon name="unlock" />
+                        Unlocks {unlock} outfits
+                      </div>
+                      <div className="sugg-sub">
+                        From {money(Math.min(...piece.options.map((o) => o.price)))} at {piece.options.length} stores
+                      </div>
+                    </div>
+                    {slots[draft.focus] === piece.id ? (
+                      <button className="btn xs" onClick={() => ui.open({ type: 'compare', id: piece.id })}>
+                        Compare
+                      </button>
+                    ) : (
+                      <button className="btn xs" onClick={() => put(draft.focus, piece.id)}>
+                        Try it
+                      </button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="empty-note">Nothing new needed here. Your closet already covers this slot.</div>
+              )}
+            </>
+          ) : (
+            <div className="shop-off">
+              <Icon name="info" />
+              <span>Shopping suggestions are hidden. Only pieces you own are shown.</span>
+            </div>
+          )}
+          <div className="complete-foot">
+            <ShopSwitch />
+          </div>
+        </div>
+      </aside>
+      {/* Outside the panel, which is its own stacking context as a bottom sheet. */}
+      {stopDay.ask}
+    </>
   );
 }

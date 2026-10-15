@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import { useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { Confirm, Disclosure, Icon } from '@/components/ui';
 
@@ -117,5 +118,37 @@ export const ConfirmDialog: Story = {
     await expect(keep).toHaveBeenCalled();
     await userEvent.click(page.getByRole('button', { name: 'Clear plan' }));
     await expect(clear).toHaveBeenCalledOnce();
+  },
+};
+
+function AskFromAButton() {
+  const [asking, setAsking] = useState(false);
+  return (
+    <>
+      <button className="btn ghost" onClick={() => setAsking(true)}>
+        Clear today&apos;s plan
+      </button>
+      {asking && (
+        <Confirm title="Clear this plan?" confirm="Clear plan" cancel="Keep it" onCancel={() => setAsking(false)} onConfirm={() => setAsking(false)}>
+          Client presentation comes off today. The pieces stay in your closet.
+        </Confirm>
+      )}
+    </>
+  );
+}
+
+/** Backing out gives the focus back to the button that asked, so the keyboard picks up where it was. A behavior test
+    only. */
+export const ConfirmGivesFocusBack: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  render: () => <AskFromAButton />,
+  play: async ({ canvas }) => {
+    const ask = canvas.getByRole('button', { name: "Clear today's plan" });
+    ask.focus();
+    await userEvent.keyboard('{Enter}');
+    await expect(canvas.getByRole('button', { name: 'Keep it' })).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    await expect(canvas.queryByRole('alertdialog')).toBeNull();
+    await expect(ask).toHaveFocus();
   },
 };
