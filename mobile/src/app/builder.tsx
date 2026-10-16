@@ -5,13 +5,14 @@
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATS } from '@core/catalog-meta';
 import { addDays, fmt } from '@core/dates';
 import { forSlot, slotOf, SLOTS } from '@core/engine';
 import { ASPECT } from '@core/layout';
 import type { Cat, Piece, Slot } from '@core/types';
+import { dayWear, unsavedDay } from '@core/wear';
 import { Tile } from '@/components/Art';
 import { CarryProvider, CarryTile } from '@/components/Carry';
 import { Icon } from '@/components/Icon';
@@ -66,6 +67,31 @@ export default function Builder() {
     setDraft({ ...draft, date: undefined, shuffle: undefined, log: undefined });
     close();
   };
+  const verb = logging ? 'logging' : 'planning';
+  /** The ×: stops planning (or logging) the day. Whatever the day already had stays as it was, so it only asks first
+      when the board holds pieces the day doesn't have yet; otherwise it stops at once. */
+  const stopDay = () => {
+    if (!day) return;
+    const plan = st.plans.find((p) => p.date === day);
+    const kept = logging ? !!dayWear(st.wears, day) : !!plan;
+    const stop = () => {
+      st.toast(!kept ? `Stopped ${verb} ${dayLabel}` : logging ? `Stopped logging ${dayLabel}. What you wore is unchanged.` : `Stopped planning ${dayLabel}. ${plan!.name} is still planned.`);
+      leaveDay();
+    };
+    if (!unsavedDay({ ...draft, date: day }, st.plans, st.wears, today)) return stop();
+    const title = `Stop ${verb} ${dayLabel}?`;
+    const body = !kept
+      ? `Nothing is ${logging ? 'logged' : 'planned'} for ${dayLabel} yet, so the outfit on the board goes. Its pieces stay in your closet.`
+      : logging
+        ? `The changes on the board aren't saved. What you wore ${day === today ? 'today' : `on ${dayLabel}`} stays as it was.`
+        : `The changes on the board aren't saved. ${plan!.name} stays planned for ${dayLabel}.`;
+    // The system's own alert on a phone; the web build (used for testing) has no Alert, so it asks the browser.
+    if (Platform.OS === 'web') return window.confirm(`${title}\n\n${body}`) && stop();
+    Alert.alert(title, body, [
+      { text: `Keep ${verb}`, style: 'cancel' },
+      { text: `Stop ${verb}`, style: 'destructive', onPress: stop },
+    ]);
+  };
   const finishDay = () => {
     if (!day) return;
     if (logging) {
@@ -102,7 +128,7 @@ export default function Builder() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <CarryProvider onDrop={put} style={{ paddingTop: insets.top + 8 }}>
         <View style={styles.head}>
-          <IconBtn icon="x" label={day ? 'Cancel' : 'Close'} size={38} onPress={day ? leaveDay : close} />
+          <IconBtn icon="x" label={day ? `Stop ${verb} ${dayLabel}` : 'Close'} size={38} onPress={day ? stopDay : close} />
           <View style={{ flex: 1 }}>
             <T v="eyebrow" style={day ? { color: C.clayInk } : undefined}>
               {!day ? 'Building an outfit' : logging ? `Logging ${dayLabel}` : `Planning ${dayLabel}`}
