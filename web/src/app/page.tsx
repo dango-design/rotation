@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { OutfitPanel } from '@/components/OutfitPanel';
 import { PieceTray, SLOT_CAT, type TrayTab, useBoardActions } from '@/components/PieceTray';
 import { useUI } from '@/components/Shell';
+import { useStopDay } from '@/components/StopDay';
 import { boardProps, Confirm, DemoLink, Flatlay, Icon, money, Tile } from '@/components/ui';
 import { backgroundOf } from '@/lib/backgrounds';
 import { isAccessory, onePhrase, TYPES } from '@/lib/catalog-meta';
@@ -36,6 +37,8 @@ export default function Today() {
   /** Asking before the day's plan is cleared. */
   const [clearing, setClearing] = useState(false);
   const { put } = useBoardActions();
+  // Stopping the day on the board asks first if that would lose pieces the day doesn't have yet.
+  const stopDay = useStopDay();
   // Coming back from planning a day on the board shows that day. Deferred so the first render matches the server.
   useEffect(() => {
     const d = new URLSearchParams(window.location.search).get('day');
@@ -90,8 +93,6 @@ export default function Today() {
   const onBoard = st.building ? st.draft.date : undefined;
   const planningHere = !!onBoard && onBoard === day;
   const boardCount = SLOTS.filter((s) => st.draft.slots[s]).length;
-  const boardDay = onBoard === today ? 'today' : onBoard ? fmt(onBoard, { weekday: 'long' }) : '';
-  const discardBoard = () => (st.setDraft({ name: 'New outfit', slots: {}, focus: 'top' }), st.setBuilding(false));
   const planDay = (d: string, opts?: Parameters<typeof startPlanning>[1], from: TrayTab = 'pieces') => {
     setDay(d);
     setCat('all');
@@ -135,16 +136,16 @@ export default function Today() {
         <div className="card resume-bar" role="region" aria-label="Day in progress">
           {boardCount > 0 && <Flatlay slots={st.draft.slots} layout={st.draft.layout} bg={st.draft.bg} />}
           <div className="resume-text">
-            <b>{onBoard < today ? `Logging ${boardDay}` : `Planning ${boardDay}`}</b>
-            {boardCount ? `${plural(boardCount, 'piece')} on the outfit board, not ${onBoard < today ? 'logged' : 'planned'} yet.` : 'The outfit board is still open.'}
+            <b>{stopDay.logging ? `Logging ${stopDay.dayName}` : `Planning ${stopDay.dayName}`}</b>
+            {boardCount ? `${plural(boardCount, 'piece')} on the outfit board, not ${stopDay.logging ? 'logged' : 'planned'} yet.` : 'The outfit board is still open.'}
           </div>
           <div className="resume-actions">
             <button className="btn sm primary" onClick={() => setDay(onBoard)}>
               Back to the board
               <Icon name="arrow" />
             </button>
-            <button className="btn sm ghost" onClick={discardBoard}>
-              Discard
+            <button className="btn sm ghost" onClick={stopDay.stop} aria-label={stopDay.label}>
+              Stop {stopDay.verb}
             </button>
           </div>
         </div>
@@ -383,6 +384,7 @@ export default function Today() {
           {plan.name} comes off {dayName}. The pieces stay in your closet.
         </Confirm>
       )}
+      {stopDay.ask}
     </>
   );
 }

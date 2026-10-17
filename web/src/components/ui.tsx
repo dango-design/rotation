@@ -112,16 +112,22 @@ export function Flatlay({ slots, layout, bg, className = '' }: { slots: OutfitSl
 }
 
 /** Asks before something that can't be taken back. Escape or the backdrop keeps things as they are; the safe choice
-    has focus, so Enter can't confirm by accident. */
+    has focus, so Enter can't confirm by accident. Closing gives the focus back to what asked, if it's still there. */
 export function Confirm({ title, children, confirm, cancel = 'Cancel', onConfirm, onCancel }: { title: string; children: ReactNode; confirm: string; cancel?: string; onConfirm: () => void; onCancel: () => void }) {
   const keep = useRef<HTMLButtonElement>(null);
   const cancelNow = useEffectEvent(onCancel);
+  // Noted as the ask opens, before it takes the focus (and only once, though Strict Mode runs the effect twice).
+  const [opener] = useState(() => (typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)));
   useEffect(() => {
     keep.current?.focus();
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && cancelNow();
     window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, []);
+    return () => {
+      window.removeEventListener('keydown', esc);
+      // Unless something that opened next, like signing in, has taken the focus already.
+      if (opener?.isConnected && (!document.activeElement || document.activeElement === document.body)) opener.focus();
+    };
+  }, [opener]);
   return (
     <>
       <div className="backdrop" onClick={onCancel} />
