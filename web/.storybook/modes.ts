@@ -4,6 +4,7 @@
 
 export const VIEWPORTS = {
   phone: { name: 'Phone · 390 (≤ 900 layout)', styles: { width: '390px', height: '844px' }, type: 'mobile' },
+  smallPhone: { name: 'Small phone · 375', styles: { width: '375px', height: '812px' }, type: 'mobile' },
   tablet: { name: 'Tablet · 1024 (≤ 1180 layout)', styles: { width: '1024px', height: '1366px' }, type: 'tablet' },
   laptop: { name: 'Laptop · 1280 (≤ 1320 layout)', styles: { width: '1280px', height: '800px' }, type: 'desktop' },
   desktop: { name: 'Desktop · 1440', styles: { width: '1440px', height: '900px' }, type: 'desktop' },

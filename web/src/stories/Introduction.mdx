@@ -15,7 +15,7 @@ Every part of Rotation, from color tokens to full pages, rendered from the real 
 
 ## Reviewing a design
 
-- **Viewports.** The viewport menu in the toolbar has Rotation's breakpoints: phone (390, the 900px layout), tablet (1024, the 1180px layout), laptop (1280, the 1320px layout) and desktop (1440).
+- **Viewports.** The viewport menu in the toolbar has Rotation's breakpoints: phone (390, the 900px layout), small phone (375, for the checks that nothing scrolls sideways), tablet (1024, the 1180px layout), laptop (1280, the 1320px layout) and desktop (1440).
 - **Light and dark.** The theme switch in the toolbar shows any story in either theme. Garment tiles stay light in both, like product photos.
 - **States.** Stories with a play function act out a step (open a drawer, remove a piece, read a link) and stop on the result. The **Interactions** panel replays each step.
 - **Accessibility.** The **Accessibility** panel runs axe on each story, and violations fail the story tests. Stories that show a known issue in the app are marked `a11y: { test: 'todo' }` with a comment naming it: the panel still lists it, and the tests pass until it's fixed.
