@@ -27,8 +27,9 @@ export function T({ v = 'body', style, ...rest }: TextProps & { v?: Variant }) {
   return <Text {...rest} style={[TEXT[v], style]} />;
 }
 
-type BtnKind = 'default' | 'primary' | 'ghost' | 'gap' | 'white' | 'danger';
+type BtnKind = 'default' | 'primary' | 'ghost' | 'gap' | 'white' | 'danger' | 'good';
 
+/** `accessibilityLabel` replaces the label for screen readers; start it with the label, so what's said matches what's shown. */
 export function Btn({
   label,
   icon,
@@ -38,6 +39,8 @@ export function Btn({
   disabled,
   style,
   grow,
+  accessibilityLabel,
+  accessibilityHint,
 }: {
   label: string;
   icon?: IconName;
@@ -47,13 +50,16 @@ export function Btn({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   grow?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
   const palette = BTN[kind];
   const h = size === 'md' ? 44 : size === 'sm' ? 34 : 28;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
       disabled={disabled}
       onPress={() => {
         tap();
@@ -83,6 +89,7 @@ const BTN: Record<BtnKind, { bg: string; border: string; fg: string }> = {
   gap: { bg: C.gap, border: C.gap, fg: C.white },
   white: { bg: C.white, border: C.white, fg: C.gapInk },
   danger: { bg: C.panel, border: C.warn, fg: C.warn },
+  good: { bg: C.goodTint, border: 'transparent', fg: C.good },
 };
 
 export function IconBtn({ icon, label, onPress, size = 40, color = C.ink, bg = C.panel, badge, disabled }: { icon: IconName; label: string; onPress: () => void; size?: number; color?: string; bg?: string; badge?: number; disabled?: boolean }) {
