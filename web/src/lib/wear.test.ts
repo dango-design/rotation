@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { demoData } from './demo';
-import { dayWear, dayWearId, putOn, settle, takeOff, wornOn, wornOutfits } from './wear';
+import { dayWear, dayWearId, putOn, settle, takeOff, unsavedDay, wornOn, wornOutfits } from './wear';
 
 const { items } = demoData();
 const tee = { ...items[0], wears: 4, lastWorn: '2026-10-08' };
@@ -95,5 +95,30 @@ describe("a day's outfit", () => {
     expect(dayWear([lone], '2026-10-12')?.id).toBe('1');
     expect(dayWear([outfit, lone], '2026-10-12')?.id).toBe('2');
     expect(dayWear([own, outfit, lone], '2026-10-12')?.id).toBe(own.id);
+  });
+});
+
+describe('leaving a day on the outfit board', () => {
+  const today = '2026-10-14';
+  const plan = { date: '2026-10-16', name: 'Errands', slots: { top: 'a', bottom: 'b' }, layout: { top: { id: 'a', x: 10, y: 20, w: 40, z: 1 } }, bg: 'linen' as const };
+  const worn = { id: dayWearId('2026-10-12'), date: '2026-10-12', slots: { top: 'c', shoes: 'd' } };
+  it('loses nothing when the board is empty', () => {
+    expect(unsavedDay({ date: '2026-10-17', slots: {} }, [], [], today)).toBe(false);
+  });
+  it('loses pieces put on a day with nothing planned yet', () => {
+    expect(unsavedDay({ date: '2026-10-17', slots: { top: 'a' } }, [plan], [], today)).toBe(true);
+  });
+  it('loses nothing when the board still matches the plan, whatever order it was set in', () => {
+    expect(unsavedDay({ date: plan.date, slots: { bottom: 'b', top: 'a' }, layout: { top: { z: 1, w: 40, y: 20, x: 10, id: 'a' } }, bg: 'linen' }, [plan], [], today)).toBe(false);
+  });
+  it('loses a changed piece, a moved piece or a new background', () => {
+    expect(unsavedDay({ ...plan, slots: { top: 'a', bottom: 'x' } }, [plan], [], today)).toBe(true);
+    expect(unsavedDay({ ...plan, layout: { top: { ...plan.layout.top, x: 30 } } }, [plan], [], today)).toBe(true);
+    expect(unsavedDay({ ...plan, bg: undefined }, [plan], [], today)).toBe(true);
+  });
+  it('checks a past day, or a change to what was worn, against what was worn', () => {
+    expect(unsavedDay({ date: worn.date, slots: { top: 'c', shoes: 'd' } }, [], [worn], today)).toBe(false);
+    expect(unsavedDay({ date: worn.date, slots: { top: 'c' } }, [], [worn], today)).toBe(true);
+    expect(unsavedDay({ date: today, slots: { top: 'c', shoes: 'd' }, log: true }, [], [{ ...worn, id: dayWearId(today), date: today }], today)).toBe(false);
   });
 });

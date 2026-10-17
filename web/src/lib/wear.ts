@@ -48,6 +48,28 @@ export function dayWear(wears: WearEntry[], date: string): WearEntry | undefined
   return on.find((w) => w.id === dayWearId(date)) ?? on.filter((w) => piecesOf(w.slots).length > 1).at(-1) ?? on.at(-1);
 }
 
+/** The same outfit data, whatever order its keys were set in. */
+const same = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  const x = a as Record<string, unknown>;
+  const y = b as Record<string, unknown>;
+  return Object.keys({ ...x, ...y }).every((k) => same(x[k], y[k]));
+};
+
+/** Whether a day on the outfit board holds something its day doesn't have yet: pieces that aren't planned (or logged,
+    for a past day or a change to what was worn), or that were moved or recolored since. Leaving it then loses them. */
+export function unsavedDay(
+  board: { date: string; slots: OutfitSlots; layout?: Layout; bg?: Background; log?: boolean },
+  plans: Plan[],
+  wears: WearEntry[],
+  today: string,
+): boolean {
+  if (!piecesOf(board.slots).length) return false;
+  const saved = board.date < today || board.log ? dayWear(wears, board.date) : plans.find((p) => p.date === board.date);
+  return !saved || !same(board.slots, saved.slots) || !same(board.layout, saved.layout) || board.bg !== saved.bg;
+}
+
 /** Adds `entry` as a wear to each of its pieces, noting where each piece's last worn day was before. */
 export function putOn(items: Item[], entry: WearEntry): { items: Item[]; entry: WearEntry } {
   const ids = piecesOf(entry.slots);
