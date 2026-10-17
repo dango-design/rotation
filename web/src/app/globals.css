@@ -451,6 +451,7 @@ h3.small { font: 600 15px/1.3 var(--sans); }
 .skip-row h3 { font-weight: 600; font-size: 14px; }
 .skip-row p { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
 .off-state { padding: 48px 32px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.off-state > svg { width: 30px; height: 30px; flex: none; color: var(--ink-2); }
 .off-state h2 { font: 30px/1.1 var(--serif); font-weight: 400; }
 .off-state p { color: var(--ink-2); max-width: 460px; }
 
