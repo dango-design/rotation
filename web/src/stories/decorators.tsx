@@ -18,6 +18,24 @@ export const settled = () =>
       .map((a) => a.finished.catch(() => undefined)),
   );
 
+/** On a phone the page never slides sideways. Nothing is wider than the screen (drawers and dialogs included), and
+    nothing zooms it in: iPhone browsers zoom when you tap a field with text under 16px, or tap a button twice quickly. */
+export async function expectNoSidewaysScroll() {
+  await settled();
+  const root = document.documentElement;
+  await expect(window.innerWidth).toBeLessThanOrEqual(900);
+  await expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  for (const box of document.querySelectorAll('.drawer, .modal, .outfit-panel')) await expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
+  const small = [...document.querySelectorAll('input, select, textarea')]
+    .filter((f) => f.getClientRects().length && parseFloat(getComputedStyle(f).fontSize) < 16)
+    .map((f) => f.outerHTML.slice(0, 80));
+  await expect(small).toEqual([]);
+  const zoomable = [...document.querySelectorAll('button, a[href], input, select, textarea, label')]
+    .filter((c) => !['manipulation', 'none'].includes(getComputedStyle(c).touchAction))
+    .map((c) => c.outerHTML.slice(0, 80));
+  await expect(zoomable).toEqual([]);
+}
+
 /** Signs in through the prompt that opened when saving signed out, then waits for it to close. In a story any code works. */
 export async function signInFromPrompt(canvasElement: HTMLElement, why: string) {
   const canvas = within(canvasElement);
